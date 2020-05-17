@@ -2,19 +2,21 @@ package dsl
 
 import (
 	"fmt"
+	"keybite-http/config"
 	"strings"
 )
 
 // Execute a statement on the data in the provided datadir
-func Execute(input string, dataDir string, pageSize int) (string, error) {
+func Execute(input string, conf config.Config) (string, error) {
 	action := getAction(input)
+
 	for _, command := range Commands {
 		if action == command.keyword {
 			tokens, payload, err := getTokensUntil(input, command.numTokens)
 			if err != nil {
 				return "", err
 			}
-			return command.execute(tokens, payload, dataDir, pageSize)
+			return command.execute(tokens, payload, conf)
 		}
 	}
 	return "", fmt.Errorf("%s is not a valid query command", action)

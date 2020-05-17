@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strconv"
@@ -44,11 +45,11 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 		return p, err
 	}
 
-	if err == os.ErrNotExist {
-		p = EmptyMapPage(filePath)
-		err = p.Write()
+	if os.IsNotExist(err) {
+		return m.WriteEmptyPage(pageIDStr)
 	}
 
+	log.Println(err)
 	return MapPage{}, err
 
 }
@@ -103,4 +104,17 @@ func (m MapIndex) Update(key string, newValue string) error {
 	page.Set(id, newValue)
 	err = page.Write()
 	return err
+}
+
+// WriteEmptyPage creates an empty page file for the specified page ID
+func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
+	fileName := pageIDStr + ".kb"
+	filePath := path.Join(m.Dir, fileName)
+	_, err := os.Create(filePath)
+	if err != nil {
+		return MapPage{}, err
+	}
+
+	return EmptyMapPage(filePath), nil
+
 }

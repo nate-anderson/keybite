@@ -1,7 +1,9 @@
 package dsl
 
 import (
+	"errors"
 	"fmt"
+	"keybite-http/config"
 	"keybite-http/store"
 	"path"
 	"strconv"
@@ -11,14 +13,24 @@ type command struct {
 	keyword   string // the keyword that starts the command
 	numTokens int    // the number of tokens before the command payload
 	// the function to call to get the result. assumes correct input.
-	execute func(tokens []string, payload string, dataDir string, pageSize int) (string, error)
+	execute func(tokens []string, payload string, conf config.Config) (string, error)
 }
 
 // Query existing data
 var Query = command{
 	keyword:   "query",
 	numTokens: 2, // query index "..."
-	execute: func(tokens []string, payload string, dataDir string, pageSize int) (string, error) {
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
+		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid auto index page size from environment")
+		}
+
 		index, err := store.NewAutoIndex(tokens[1], dataDir, pageSize)
 		if err != nil {
 			return "", err
@@ -37,7 +49,17 @@ var Query = command{
 var Insert = command{
 	keyword:   "insert",
 	numTokens: 2, // insert index "..."
-	execute: func(tokens []string, payload string, dataDir string, pageSize int) (string, error) {
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
+		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid auto index page size from environment")
+		}
+
 		index, err := store.NewAutoIndex(tokens[1], dataDir, pageSize)
 		if err != nil {
 			return "", err
@@ -56,7 +78,17 @@ var Insert = command{
 var Update = command{
 	keyword:   "update",
 	numTokens: 3, // update index 3 "..."
-	execute: func(tokens []string, payload string, dataDir string, pageSize int) (string, error) {
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
+		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid auto index page size from environment")
+		}
+
 		index, err := store.NewAutoIndex(tokens[1], dataDir, pageSize)
 		if err != nil {
 			return "", err
@@ -80,8 +112,12 @@ var Update = command{
 var CreateAutoIndex = command{
 	keyword:   "create_auto_index",
 	numTokens: 1, // create_index spam
-	execute: func(tokens []string, payload string, dataDir string, pageSize int) (string, error) {
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
 		indexName := tokens[1]
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
 		indexPath := path.Join(dataDir, indexName)
 		return indexName, store.CreateIndexDirectory(indexPath)
 	},
@@ -91,10 +127,91 @@ var CreateAutoIndex = command{
 var CreateMapIndex = command{
 	keyword:   "create_map_index",
 	numTokens: 1, // create_map_index spam
-	execute: func(tokens []string, payload string, dataDir string, pageSize int) (string, error) {
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
 		indexName := tokens[1]
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
 		indexPath := path.Join(dataDir, indexName)
 		return indexName, store.CreateIndexDirectory(indexPath)
+	},
+}
+
+// QueryKey queries a map index.
+// @TODO remove this, query should work on either index type
+var QueryKey = command{
+	keyword:   "query_key",
+	numTokens: 2,
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		indexName := tokens[1]
+		key := tokens[2]
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid auto index page size from environment")
+		}
+
+		mapIndex, err := store.NewMapIndex(indexName, dataDir, pageSize)
+		if err != nil {
+			return "", err
+		}
+		return mapIndex.Query(key)
+	},
+}
+
+// InsertKey inserts into a map index
+var InsertKey = command{
+	keyword:   "insert_key",
+	numTokens: 3, // insert_key index key [...]
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		indexName := tokens[1]
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid auto index page size from environment")
+		}
+
+		key := tokens[2]
+		mapIndex, err := store.NewMapIndex(indexName, dataDir, pageSize)
+		if err != nil {
+			return "", err
+		}
+		return mapIndex.Insert(key, payload)
+	},
+}
+
+// UpdateKey updates an existing key in a map index
+var UpdateKey = command{
+	keyword:   "update_key",
+	numTokens: 3, // update_key index key [...]
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		indexName := tokens[1]
+		key := tokens[2]
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return "", errors.New("could not get data directory path from environment")
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid or missing auto index page size from environment")
+		}
+
+		mapIndex, err := store.NewMapIndex(indexName, dataDir, pageSize)
+		if err != nil {
+			return "", err
+		}
+		return key, mapIndex.Update(key, payload)
 	},
 }
 
@@ -105,4 +222,7 @@ var Commands = []command{
 	Update,
 	CreateAutoIndex,
 	CreateMapIndex,
+	QueryKey,
+	InsertKey,
+	UpdateKey,
 }
