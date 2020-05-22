@@ -1,10 +1,9 @@
 package store
 
 import (
-	"fmt"
-	"log"
+	"keybite-http/store/driver"
+	"keybite-http/util"
 	"os"
-	"path"
 	"strconv"
 )
 
@@ -12,51 +11,53 @@ import (
 type MapIndex struct {
 	Name     string
 	pageSize int
-	Dir      string
+	driver   driver.StorageDriver
 }
 
 // NewMapIndex returns an index object, validating that index data exists in the data directory
-func NewMapIndex(name string, dataDir string, pageSize int) (MapIndex, error) {
-	dir := path.Join(dataDir, name)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return MapIndex{}, fmt.Errorf("no index named %s could be found", name)
-	}
-
+func NewMapIndex(name string, driver driver.StorageDriver, pageSize int) (MapIndex, error) {
 	return MapIndex{
 		Name:     name,
 		pageSize: pageSize,
-		Dir:      dir,
+		driver:   driver,
 	}, nil
 }
 
 // readPage returns page with provided ID belonging to this index
 func (m MapIndex) readPage(pageID uint64) (MapPage, error) {
 	pageIDStr := strconv.FormatUint(pageID, 10)
-	filePath := path.Join(m.Dir, pageIDStr+".kb")
-	return FileToMapPage(filePath, m.pageSize)
+	fileName := pageIDStr
+	vals, err := m.driver.ReadMapPage(fileName, m.Name, m.pageSize)
+	if err != nil {
+		return MapPage{}, err
+	}
+
+	return MapPage{
+		vals: vals,
+		name: pageIDStr,
+	}, nil
 }
 
 // readOrCreatePage reads or creates the map page for this page ID
 func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
-	pageIDStr := strconv.FormatUint(pageID, 10)
-	filePath := path.Join(m.Dir, pageIDStr+".kb")
-	p, err := FileToMapPage(filePath, m.pageSize)
+	p, err := m.readPage(pageID)
 	if err == nil {
 		return p, err
 	}
 
+	// if there is no page file with this name, create one
 	if os.IsNotExist(err) {
-		return m.WriteEmptyPage(pageIDStr)
+		fileName := strconv.FormatUint(pageID, 10)
+		return m.WriteEmptyPage(fileName)
 	}
 
-	log.Println(err)
+	// if there is another error type, return it
 	return MapPage{}, err
-
 }
 
 // Query the MapIndex for the specified key
 func (m MapIndex) Query(key string) (string, error) {
-	id, err := hashString(key)
+	id, err := util.HashString(key)
 	if err != nil {
 		return "", err
 	}
@@ -72,7 +73,7 @@ func (m MapIndex) Query(key string) (string, error) {
 
 // Insert value at key
 func (m MapIndex) Insert(key string, value string) (string, error) {
-	id, err := hashString(key)
+	id, err := util.HashString(key)
 	if err != nil {
 		return "", err
 	}
@@ -84,13 +85,13 @@ func (m MapIndex) Insert(key string, value string) (string, error) {
 	}
 
 	page.Set(id, value)
-	err = page.Write()
+	err = m.driver.WriteMapPage(page.vals, page.name, m.Name)
 	return key, err
 }
 
 // Update existing data
 func (m MapIndex) Update(key string, newValue string) error {
-	id, err := hashString(key)
+	id, err := util.HashString(key)
 	if err != nil {
 		return err
 	}
@@ -102,19 +103,15 @@ func (m MapIndex) Update(key string, newValue string) error {
 	}
 
 	page.Set(id, newValue)
-	err = page.Write()
+	err = m.driver.WriteMapPage(page.vals, page.name, m.Name)
 	return err
 }
 
 // WriteEmptyPage creates an empty page file for the specified page ID
 func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
-	fileName := pageIDStr + ".kb"
-	filePath := path.Join(m.Dir, fileName)
-	_, err := os.Create(filePath)
-	if err != nil {
-		return MapPage{}, err
-	}
-
-	return EmptyMapPage(filePath), nil
+	fileName := pageIDStr
+	mapPage := EmptyMapPage(fileName)
+	err := m.driver.WriteMapPage(mapPage.vals, mapPage.name, m.Name)
+	return mapPage, err
 
 }

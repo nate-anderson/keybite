@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"keybite-http/config"
 	"keybite-http/store"
+	"keybite-http/store/driver"
 	"path"
 	"strconv"
 )
@@ -21,17 +22,14 @@ var Query = command{
 	keyword:   "query",
 	numTokens: 2, // query index "..."
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
+		storageDriver := driver.GetConfiguredDriver(conf)
 
 		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
 		if err != nil {
 			return "", errors.New("Invalid auto index page size from environment")
 		}
 
-		index, err := store.NewAutoIndex(tokens[1], dataDir, pageSize)
+		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
 			return "", err
 		}
@@ -50,17 +48,14 @@ var Insert = command{
 	keyword:   "insert",
 	numTokens: 2, // insert index "..."
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
+		storageDriver := driver.GetConfiguredDriver(conf)
 
 		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
 		if err != nil {
 			return "", errors.New("Invalid auto index page size from environment")
 		}
 
-		index, err := store.NewAutoIndex(tokens[1], dataDir, pageSize)
+		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
 			return "", err
 		}
@@ -79,17 +74,14 @@ var Update = command{
 	keyword:   "update",
 	numTokens: 3, // update index 3 "..."
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
+		storageDriver := driver.GetConfiguredDriver(conf)
 
 		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
 		if err != nil {
 			return "", errors.New("Invalid auto index page size from environment")
 		}
 
-		index, err := store.NewAutoIndex(tokens[1], dataDir, pageSize)
+		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
 			return "", err
 		}
@@ -147,17 +139,14 @@ var QueryKey = command{
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
 		indexName := tokens[1]
 		key := tokens[2]
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
+		storageDriver := driver.GetConfiguredDriver(conf)
 
 		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
 		if err != nil {
 			return "", errors.New("Invalid auto index page size from environment")
 		}
 
-		mapIndex, err := store.NewMapIndex(indexName, dataDir, pageSize)
+		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
 			return "", err
 		}
@@ -171,10 +160,8 @@ var InsertKey = command{
 	numTokens: 3, // insert_key index key [...]
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
 		indexName := tokens[1]
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
+
+		storageDriver := driver.GetConfiguredDriver(conf)
 
 		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
 		if err != nil {
@@ -182,7 +169,7 @@ var InsertKey = command{
 		}
 
 		key := tokens[2]
-		mapIndex, err := store.NewMapIndex(indexName, dataDir, pageSize)
+		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
 			return "", err
 		}
@@ -197,17 +184,14 @@ var UpdateKey = command{
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
 		indexName := tokens[1]
 		key := tokens[2]
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
+		storageDriver := driver.GetConfiguredDriver(conf)
 
 		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
 		if err != nil {
 			return "", errors.New("Invalid or missing auto index page size from environment")
 		}
 
-		mapIndex, err := store.NewMapIndex(indexName, dataDir, pageSize)
+		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
 			return "", err
 		}

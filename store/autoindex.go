@@ -1,11 +1,8 @@
 package store
 
 import (
-	"fmt"
-	"io/ioutil"
+	"keybite-http/store/driver"
 	"log"
-	"os"
-	"path"
 	"strconv"
 )
 
@@ -13,28 +10,31 @@ import (
 type AutoIndex struct {
 	Name     string
 	pageSize int
-	Dir      string
+	driver   driver.StorageDriver
 }
 
 // NewAutoIndex returns an index object, validating that index data exists in the data directory
-func NewAutoIndex(name string, dataDir string, pageSize int) (AutoIndex, error) {
-	dir := path.Join(dataDir, name)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return AutoIndex{}, fmt.Errorf("no index named %s could be found", name)
-	}
-
+func NewAutoIndex(name string, driver driver.StorageDriver, pageSize int) (AutoIndex, error) {
 	return AutoIndex{
 		Name:     name,
 		pageSize: pageSize,
-		Dir:      dir,
+		driver:   driver,
 	}, nil
 }
 
 // readPage returns page with provided ID belonging to this index
 func (i AutoIndex) readPage(pageID int64) (Page, error) {
 	pageIDStr := strconv.FormatInt(pageID, 10)
-	filePath := path.Join(i.Dir, pageIDStr+".kb")
-	return FileToPage(filePath, i.pageSize)
+	fileName := pageIDStr
+	vals, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
+	if err != nil {
+		return Page{}, err
+	}
+
+	return Page{
+		vals: vals,
+		name: pageIDStr,
+	}, nil
 }
 
 // Query queries the index for the provided ID
@@ -53,20 +53,27 @@ func (i AutoIndex) Query(id int64) (string, error) {
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
 func (i AutoIndex) getLatestPage() (Page, error) {
-	pageFiles, err := ioutil.ReadDir(i.Dir)
+	pageFiles, err := i.driver.ListPages(i.Name)
 	if err != nil {
 		return Page{}, err
 	}
 
-	var file os.FileInfo
 	// if the index already contains pages, get the latest page
 	if len(pageFiles) > 0 {
-		for _, file = range pageFiles {
+		var fileName string
+		for _, fileName = range pageFiles {
 			continue
 		}
 
-		pageFilePath := path.Join(i.Dir, file.Name())
-		return FileToPage(pageFilePath, i.pageSize)
+		vals, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
+		if err != nil {
+			return Page{}, err
+		}
+
+		return Page{
+			vals: vals,
+			name: fileName,
+		}, nil
 	}
 
 	// else create the initial page
@@ -75,13 +82,14 @@ func (i AutoIndex) getLatestPage() (Page, error) {
 
 // create the first page in an index
 func (i AutoIndex) createInitialPage() (Page, error) {
-	filePath := i.Dir + "/0.kb"
-	_, err := os.Create(filePath)
+	fileName := "0"
+	emptyVals := map[int64]string{}
+	err := i.driver.WritePage(emptyVals, fileName, i.Name)
 	if err != nil {
 		log.Printf("error creating initial page for index %s: %v", i.Name, err)
 		return Page{}, err
 	}
-	page := EmptyPage(filePath)
+	page := EmptyPage(fileName)
 	return page, nil
 }
 
@@ -93,7 +101,7 @@ func (i AutoIndex) Insert(val string) (id int64, err error) {
 	}
 
 	id = latestPage.Append(val)
-	err = latestPage.Write()
+	err = i.driver.WritePage(latestPage.vals, latestPage.name, i.Name)
 	return
 }
 
@@ -112,6 +120,5 @@ func (i AutoIndex) Update(id int64, newVal string) error {
 		return err
 	}
 
-	return page.Write()
-
+	return i.driver.WritePage(page.vals, page.name, i.Name)
 }
