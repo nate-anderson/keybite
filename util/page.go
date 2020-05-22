@@ -1,4 +1,4 @@
-package store
+package util
 
 import (
 	"errors"
@@ -9,7 +9,8 @@ import (
 // MaxKeyLength is the max length of a string that can be used as a key
 const MaxKeyLength = 150
 
-func stringToKeyValue(str string) (int64, string, error) {
+// StringToKeyValue converts a line of text to a key-value pair used to read a page file
+func StringToKeyValue(str string) (int64, string, error) {
 	parts, err := splitOnFirst(str, ':')
 	if err != nil || len(parts) != 2 {
 		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
@@ -23,7 +24,8 @@ func stringToKeyValue(str string) (int64, string, error) {
 	return key, parts[1], nil
 }
 
-func stringToMapKeyValue(str string) (uint64, string, error) {
+// StringToMapKeyValue converts a line of text to a key-value pair used to read a map page file
+func StringToMapKeyValue(str string) (uint64, string, error) {
 	parts, err := splitOnFirst(str, ':')
 	if err != nil || len(parts) != 2 {
 		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
@@ -48,7 +50,8 @@ func splitOnFirst(str string, split rune) ([]string, error) {
 
 }
 
-func maxMapKey(m map[int64]string) int64 {
+// MaxMapKey returns the max integer key of a map
+func MaxMapKey(m map[int64]string) int64 {
 	var maxNumber int64
 	for maxNumber = range m {
 		break
@@ -61,9 +64,9 @@ func maxMapKey(m map[int64]string) int64 {
 	return maxNumber
 }
 
-// hashString to unique unsigned integer
+// HashString to unique unsigned integer
 // https://stackoverflow.com/a/16524816
-func hashString(s string) (uint64, error) {
+func HashString(s string) (uint64, error) {
 	pow := 27
 	if len(s) > MaxKeyLength {
 		return 0, errors.New("cannot hash string longer than 255 characters")
