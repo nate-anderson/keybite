@@ -1,7 +1,7 @@
 package config
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -12,7 +12,9 @@ import (
 type Config map[string]string
 
 // ErrConfigNotFound is returned when a config variable is not defined
-var ErrConfigNotFound = errors.New("Undefined configuration variable")
+func ErrConfigNotFound(key string) error {
+	return fmt.Errorf("Undefined configuration variable '%s'", key)
+}
 
 // MakeConfig initializes a configuration management
 func MakeConfig() (Config, error) {
@@ -29,7 +31,7 @@ func (c Config) GetString(key string) (string, error) {
 
 	val = os.Getenv(key)
 	if val == "" {
-		return "", ErrConfigNotFound
+		return "", ErrConfigNotFound(key)
 	}
 
 	c[key] = val
