@@ -38,9 +38,31 @@ func GetConfiguredDriver(conf config.Config) StorageDriver {
 
 	switch strings.ToLower(driverType) {
 	case "filesystem":
-		return FilesystemDriver{
-			pageExtension: pageExtension,
-			dataDir:       dataDir,
+		if fsd, err := NewFilesystemDriver(dataDir, pageExtension); err == nil {
+			return fsd
+		} else {
+			panic(err)
+		}
+	case "s3":
+		bucketName, err := conf.GetString("BUCKET_NAME")
+		if err != nil {
+			panic(err)
+		}
+
+		accessKeyID, err := conf.GetString("AWS_ACCESS_KEY_ID")
+		if err != nil {
+			panic(err)
+		}
+
+		accessKeySecret, err := conf.GetString("AWS_ACCES_KEY_SECRET")
+		if err != nil {
+			panic(err)
+		}
+
+		if bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret); err == nil {
+			return bd
+		} else {
+			panic(err)
 		}
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
