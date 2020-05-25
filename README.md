@@ -1,4 +1,4 @@
-![Keybite logo](keybite-text.png)
+![Keybite logo](keybite-text.png | width=200)
 A (very beta) stateless key-value store with a cool API
 
 ## Tired of hosting servers for your serverless apps?
