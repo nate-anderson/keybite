@@ -54,7 +54,7 @@ func GetConfiguredDriver(conf config.Config) StorageDriver {
 			panic(err)
 		}
 
-		accessKeySecret, err := conf.GetString("AWS_ACCES_KEY_SECRET")
+		accessKeySecret, err := conf.GetString("AWS_ACCESS_KEY_SECRET")
 		if err != nil {
 			panic(err)
 		}

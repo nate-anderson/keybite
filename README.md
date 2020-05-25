@@ -21,6 +21,10 @@ Keybite lets you cut down on network calls and capitalize on Lambda's fast execu
 ## Auto-increment and map-style indexes
 Keybite has auto-incrementing indexes (insert a value, get an automatically assigned ID) and map- or dictionary- style key-value storage (you provide the value _and_ the key).
 
+## Flexible Use Options
+Keybite can be served as an HTTP API or an AWS Lambda function, and can be used locally via command line interface. It also comes with storage drivers for a local
+filesystem and an S3 bucket.
+
 ## What keybite is
 - A file-based key value store that doesn't require a server
 - A flexible way of storing and maintaining data

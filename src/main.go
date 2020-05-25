@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"keybite-http/config"
 	"keybite-http/dsl"
+	"keybite-http/server"
 	"log"
 	"os"
 	"strings"
@@ -22,7 +23,8 @@ func main() {
 
 	fmt.Println("Keybite v0.0.2")
 	if len(os.Args) == 1 {
-		help()
+		log.Println("handling lambda request")
+		server.ServeLambda(conf)
 		return
 	}
 
@@ -30,7 +32,7 @@ func main() {
 	input := strings.Join(os.Args[2:], " ")
 	switch rootCmd {
 	case "serve":
-		log.Fatal(startServer(conf))
+		log.Fatal(server.StartHTTPServer(conf))
 	case "cli":
 		result, err := dsl.Execute(input, conf)
 		if err != nil {
