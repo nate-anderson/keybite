@@ -1,4 +1,4 @@
-![Keybite logo](https://imgur.com/a/WSEt28o)
+![Keybite logo](https://imgur.com/8TaY1Up)
 A (very beta) stateless key-value store with a cool API
 
 ## Tired of hosting servers for your serverless apps?
