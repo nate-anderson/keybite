@@ -36,7 +36,7 @@ cheaper than just firing up an EC2 or RDS instance with MySQL.
 ## What keybite is
 - A file-based key value store that doesn't require a server
 - A flexible way of storing and maintaining data
-- Limited and fragile
+- Limited and fragile (see index notes above; limited key string length)
 
 ## What keybite isn't
 - A drop-in replacement for MySQL or MongoDB (no indexes based on value, no JSON parsing)
