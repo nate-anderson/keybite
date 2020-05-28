@@ -17,8 +17,8 @@ func ErrConfigNotFound(key string) error {
 }
 
 // MakeConfig initializes a configuration management
-func MakeConfig() (Config, error) {
-	err := godotenv.Load()
+func MakeConfig(filenames ...string) (Config, error) {
+	err := godotenv.Load(filenames...)
 	return Config{}, err
 }
 

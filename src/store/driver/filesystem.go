@@ -18,7 +18,7 @@ type FilesystemDriver struct {
 // NewFilesystemDriver instantiates a new filesystem storage driver
 func NewFilesystemDriver(dataDir string, pageExtension string) (FilesystemDriver, error) {
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		return FilesystemDriver{}, fmt.Errorf("no index directory named %s could be found", dataDir)
+		return FilesystemDriver{}, fmt.Errorf("no data directory named %s could be found", dataDir)
 	}
 
 	return FilesystemDriver{

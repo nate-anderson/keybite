@@ -188,7 +188,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 // create a temporary file
 func (d BucketDriver) createTemporaryFile(fileName string, indexName string) *os.File {
 	currentMillis := util.MakeTimestamp()
-	tempName := fmt.Sprintf("%s-%s-%d.%s.tmp", indexName, fileName, currentMillis, d.pageExtension)
+	tempName := fmt.Sprintf("%s-%s-%d%s.tmp", indexName, fileName, currentMillis, d.pageExtension)
 	tempPath := path.Join("/tmp", tempName)
 	file, err := os.Create(tempPath)
 	if err != nil {
