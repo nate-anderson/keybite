@@ -6,7 +6,6 @@ import (
 	"keybite-http/config"
 	"keybite-http/store"
 	"keybite-http/store/driver"
-	"path"
 	"strconv"
 )
 
@@ -105,13 +104,10 @@ var CreateAutoIndex = command{
 	keyword:   "create_auto_index",
 	numTokens: 1, // create_index spam
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		storageDriver := driver.GetConfiguredDriver(conf)
 		indexName := tokens[1]
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
-		indexPath := path.Join(dataDir, indexName)
-		return indexName, store.CreateIndexDirectory(indexPath)
+
+		return indexName, storageDriver.CreateAutoIndex(indexName)
 	},
 }
 
@@ -120,14 +116,10 @@ var CreateMapIndex = command{
 	keyword:   "create_map_index",
 	numTokens: 1, // create_map_index spam
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		storageDriver := driver.GetConfiguredDriver(conf)
 		indexName := tokens[1]
-		dataDir, err := conf.GetString("DATA_DIR")
-		if err != nil {
-			return "", errors.New("could not get data directory path from environment")
-		}
 
-		indexPath := path.Join(dataDir, indexName)
-		return indexName, store.CreateIndexDirectory(indexPath)
+		return indexName, storageDriver.CreateMapIndex(indexName)
 	},
 }
 

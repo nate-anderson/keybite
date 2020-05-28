@@ -15,6 +15,8 @@ type StorageDriver interface {
 	ReadMapPage(filename string, indexName string, pageSize int) (map[uint64]string, error)
 	WritePage(vals map[int64]string, filename string, indexName string) error
 	WriteMapPage(vals map[uint64]string, filename string, indexName string) error
+	CreateAutoIndex(indexName string) error
+	CreateMapIndex(indexName string) error
 	// return an ascending-sorted list of pagefiles in the index datadir
 	ListPages(indexName string) ([]string, error)
 }

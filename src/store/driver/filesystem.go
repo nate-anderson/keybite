@@ -134,3 +134,15 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 
 	return fileNames, nil
 }
+
+// CreateAutoIndex creates the folder for an auto index in the data dir
+func (d FilesystemDriver) CreateAutoIndex(indexName string) error {
+	indexPath := path.Join(d.dataDir, indexName)
+	return os.Mkdir(indexPath, 0755)
+}
+
+// CreateMapIndex creates the folder for a map index in the data dir
+func (d FilesystemDriver) CreateMapIndex(indexName string) error {
+	indexPath := path.Join(d.dataDir, indexName)
+	return os.Mkdir(indexPath, 0755)
+}
