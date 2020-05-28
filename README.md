@@ -1,6 +1,6 @@
 ![Keybite logo](keybite-text.png)
 
-A (very beta) stateless key-value store with a cool API
+A very alpha stateless key-value store with a cool API
 
 ## Tired of hosting database servers for your serverless apps?
 Hosting an RDS instance or database server for your simple serverless app? That sucks!
