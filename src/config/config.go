@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +19,11 @@ func ErrConfigNotFound(key string) error {
 
 // MakeConfig initializes a configuration management
 func MakeConfig(filenames ...string) (Config, error) {
+	env := strings.ToLower(os.Getenv("ENVIRONMENT"))
+	// if lambda environment, there is no .env
+	if env == "lambda" {
+		return Config{}, nil
+	}
 	err := godotenv.Load(filenames...)
 	return Config{}, err
 }
@@ -36,6 +42,17 @@ func (c Config) GetString(key string) (string, error) {
 
 	c[key] = val
 	return val, nil
+}
+
+// GetStringOrEmpty returns a configured string or empty string if not configured
+func (c Config) GetStringOrEmpty(key string) string {
+	val, ok := c[key]
+	if ok {
+		return val
+	}
+
+	val = os.Getenv(key)
+	return val
 }
 
 // GetInt from configuration

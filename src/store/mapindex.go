@@ -3,7 +3,6 @@ package store
 import (
 	"keybite-http/store/driver"
 	"keybite-http/util"
-	"os"
 	"strconv"
 )
 
@@ -46,7 +45,7 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 	}
 
 	// if there is no page file with this name, create one
-	if os.IsNotExist(err) {
+	if driver.IsNotExistError(err) {
 		fileName := strconv.FormatUint(pageID, 10)
 		return m.WriteEmptyPage(fileName)
 	}

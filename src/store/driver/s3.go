@@ -3,12 +3,14 @@ package driver
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"keybite-http/util"
 	"log"
 	"os"
 	"path"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -33,8 +35,9 @@ func NewBucketDriver(
 	bucketName string,
 	accessKeyID string,
 	accessKeySecret string,
+	accessKeyToken string,
 ) (BucketDriver, error) {
-	creds := credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	creds := credentials.NewStaticCredentials(accessKeyID, accessKeySecret, accessKeyToken)
 	session, err := session.NewSession(&aws.Config{
 		Region:      aws.String("us-west-2"),
 		Credentials: creds,
@@ -69,9 +72,14 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	// download the remote file into a local temp file to read into memory
 	// @TODO this can be improved by implementing a WriterAt and writing the
 	// download's contents to a string instead of writing then reading a temp file
-	tempFile := d.createTemporaryFile(fileName, indexName)
+	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	tempFile, err := d.createTemporaryFile(fileName, indexName)
+	if err != nil {
+		return map[int64]string{}, err
+	}
 	defer tempFile.Close()
-	err := d.downloadToFile(fileName, tempFile)
+
+	err = d.downloadToFile(remotePath, tempFile)
 	if err != nil {
 		return map[int64]string{}, err
 	}
@@ -98,14 +106,22 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	// download the remote file into a local temp file to read into memory
 	// @TODO this can be improved by implementing a WriterAt and writing the
 	// download's contents to a string instead of writing then reading a temp file
-	tempFile := d.createTemporaryFile(fileName, indexName)
-	defer tempFile.Close()
-	err := d.downloadToFile(fileName, tempFile)
+	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
 		return map[uint64]string{}, err
 	}
 
+	defer tempFile.Close()
+
+	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+
 	vals := make(map[uint64]string, pageSize)
+
+	err = d.downloadToFile(remotePath, tempFile)
+	if err != nil {
+		return vals, err
+	}
+
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
 		key, value, err := util.StringToMapKeyValue(scanner.Text())
@@ -122,23 +138,15 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 func (d BucketDriver) WritePage(vals map[int64]string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	// create and write data to temporary file
-	tempFile := d.createTemporaryFile(fileName, indexName)
-	defer tempFile.Close()
-
-	for key, value := range vals {
-		line := fmt.Sprintf("%d:%s\n", key, value)
-		_, err := tempFile.Write([]byte(line))
-		if err != nil {
-			return err
-		}
-	}
+	pageReader := NewPageReader(vals)
+	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
+	filePath := path.Join(indexName, cleanFileName)
 
 	// upload temporary file to S3
 	_, err := d.s3Uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(d.bucketName),
-		Key:    aws.String(fileName),
-		Body:   tempFile,
+		Key:    aws.String(filePath),
+		Body:   pageReader,
 	})
 
 	return err
@@ -148,23 +156,15 @@ func (d BucketDriver) WritePage(vals map[int64]string, fileName string, indexNam
 func (d BucketDriver) WriteMapPage(vals map[uint64]string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	// create and write data to temporary file
-	tempFile := d.createTemporaryFile(fileName, indexName)
-	defer tempFile.Close()
+	pageReader := NewMapPageReader(vals)
+	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
+	filePath := path.Join(indexName, cleanFileName)
 
-	for key, value := range vals {
-		line := fmt.Sprintf("%d:%s\n", key, value)
-		_, err := tempFile.Write([]byte(line))
-		if err != nil {
-			return err
-		}
-	}
-
-	// upload temporary file to S3
+	// upload to S3
 	_, err := d.s3Uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(d.bucketName),
-		Key:    aws.String(fileName),
-		Body:   tempFile,
+		Key:    aws.String(filePath),
+		Body:   pageReader,
 	})
 
 	return err
@@ -172,39 +172,57 @@ func (d BucketDriver) WriteMapPage(vals map[uint64]string, fileName string, inde
 
 // ListPages lists the page files in the bucket
 func (d BucketDriver) ListPages(indexName string) ([]string, error) {
-	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(d.bucketName)})
+	prefix := indexName + "/"
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+
 	if err != nil {
 		return []string{}, err
 	}
 
-	pages := make([]string, len(resp.Contents))
-	for i, item := range resp.Contents {
-		pages[i] = *item.Key
+	pages := []string{}
+	for _, item := range resp.Contents {
+		itemName := path.Base(*item.Key)
+		// the folder marker is just an empty file, don't include it in results
+		if itemName == indexName {
+			continue
+		}
+		// strip prefixes
+		pages = append(pages, itemName)
 	}
 
 	return pages, nil
 }
 
 // create a temporary file
-func (d BucketDriver) createTemporaryFile(fileName string, indexName string) *os.File {
+func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*os.File, error) {
 	currentMillis := util.MakeTimestamp()
 	tempName := fmt.Sprintf("%s-%s-%d%s.tmp", indexName, fileName, currentMillis, d.pageExtension)
 	tempPath := path.Join("/tmp", tempName)
-	file, err := os.Create(tempPath)
-	if err != nil {
-		log.Printf("error creating temporary file: %v\n", err)
-		panic(err)
-	}
-	return file
+	return os.Create(tempPath)
+
 }
 
-func (d BucketDriver) downloadToFile(fileName string, dest *os.File) error {
+func (d BucketDriver) downloadToFile(remotePath string, dest *os.File) error {
 	_, err := d.s3Downloader.Download(dest,
 		&s3.GetObjectInput{
 			Bucket: aws.String(d.bucketName),
-			Key:    aws.String(fileName),
+			Key:    aws.String(remotePath),
 		},
 	)
+
+	if err != nil {
+		if isS3NotExistErr(err) {
+			return ErrNotExist(remotePath)
+		}
+		log.Printf("error fetching remote file %s", remotePath)
+		return err
+	}
+
+	_, err = dest.Seek(0, io.SeekStart)
+
 	return err
 }
 
@@ -252,4 +270,53 @@ func (d BucketDriver) CreateMapIndex(indexName string) error {
 	})
 
 	return err
+}
+
+// DeletePage deletes a map or index page from the S3 bucket
+func (d BucketDriver) DeletePage(indexName string, fileName string) error {
+	filePath := path.Join(indexName, fileName)
+	_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(d.bucketName),
+		Key:    aws.String(filePath),
+	})
+	if err != nil {
+		return err
+	}
+
+	err = d.s3Client.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(d.bucketName),
+		Key:    aws.String(filePath),
+	})
+	return err
+}
+
+// DeleteIndex deletes an index from the bucket
+func (d BucketDriver) DeleteIndex(indexName string) error {
+	_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(d.bucketName),
+		Key:    aws.String(indexName),
+	})
+	if err != nil {
+		return err
+	}
+
+	err = d.s3Client.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(d.bucketName),
+		Key:    aws.String(indexName),
+	})
+	return err
+}
+
+// is the error a missing file or bucket error from S3?
+func isS3NotExistErr(in error) bool {
+	err, ok := in.(awserr.Error)
+	if !ok {
+		return false
+	}
+
+	if err.Code() == s3.ErrCodeNoSuchKey || err.Code() == s3.ErrCodeNoSuchBucket {
+		return true
+	}
+
+	return false
 }

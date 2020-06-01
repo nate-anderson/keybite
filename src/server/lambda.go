@@ -1,20 +1,18 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"keybite-http/config"
 	"keybite-http/dsl"
-	"log"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/iancoleman/orderedmap"
 )
 
 // HandleLambdaRequest handles a lambda request
-func (l LambdaHandler) HandleLambdaRequest(ctx context.Context, payload orderedmap.OrderedMap) (map[string]string, error) {
-	queryResults := map[string]string{}
+func (l LambdaHandler) HandleLambdaRequest(payload orderedmap.OrderedMap) (map[string]string, error) {
+	queryResults := make(map[string]string, len(payload.Keys()))
 	queries := payload.Keys()
 
 	for _, key := range queries {
@@ -25,14 +23,10 @@ func (l LambdaHandler) HandleLambdaRequest(ctx context.Context, payload orderedm
 		}
 
 		queryVariables := extractQueryVariables(query.(string))
-		log.Println("Query variables: ", queryVariables)
-		log.Println("Result map: ", queryResults)
 		if len(queryVariables) > 0 && mapHasKeys(queryResults, queryVariables) {
 			queryFormat := queryWithVariablesToFormat(query.(string))
-			log.Println("variable query format:", queryFormat)
 			variableValues := getMapValues(queryResults, queryVariables)
 			query = fmt.Sprintf(queryFormat, variableValues...)
-			log.Println("Query:", query)
 		}
 
 		result, err := dsl.Execute(query.(string), l.conf)
@@ -52,10 +46,12 @@ func (l LambdaHandler) HandleLambdaRequest(ctx context.Context, payload orderedm
 
 }
 
+// LambdaHandler is the struct used for handling lambda requests
 type LambdaHandler struct {
 	conf config.Config
 }
 
+// NewLambdaHandler creates a lambda handler
 func NewLambdaHandler(conf config.Config) LambdaHandler {
 	return LambdaHandler{
 		conf: conf,

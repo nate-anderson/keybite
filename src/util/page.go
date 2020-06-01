@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // MaxKeyLength is the max length of a string that can be used as a key
@@ -77,4 +78,16 @@ func HashString(s string) (uint64, error) {
 	}
 
 	return result, nil
+}
+
+// PathToIndexPage splits a path into an index name and a file name
+func PathToIndexPage(path string) (fileName string, indexName string, err error) {
+	tokens := strings.Split(path, "/")
+	if len(tokens) > 2 {
+		err = errors.New("PathToIndexPage error: path must be relative and look like 'index_name/file_name.kb'")
+		return
+	}
+	indexName = tokens[0]
+	fileName = tokens[1]
+	return
 }

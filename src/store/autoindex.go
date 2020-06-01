@@ -2,7 +2,6 @@ package store
 
 import (
 	"keybite-http/store/driver"
-	"log"
 	"strconv"
 )
 
@@ -43,7 +42,6 @@ func (i AutoIndex) Query(id int64) (string, error) {
 	pageID := id / int64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
-		log.Println("error reading index page: ", err.Error())
 		return "", err
 	}
 
@@ -86,7 +84,6 @@ func (i AutoIndex) createInitialPage() (Page, error) {
 	emptyVals := map[int64]string{}
 	err := i.driver.WritePage(emptyVals, fileName, i.Name)
 	if err != nil {
-		log.Printf("error creating initial page for index %s: %v", i.Name, err)
 		return Page{}, err
 	}
 	page := EmptyPage(fileName)
@@ -110,13 +107,11 @@ func (i AutoIndex) Update(id int64, newVal string) error {
 	pageID := id / int64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
-		log.Printf("error reading page %d to update value at ID %d: %v", pageID, id, err)
 		return err
 	}
 
 	err = page.Overwrite(id, newVal)
 	if err != nil {
-		log.Printf("error overwriting ID %d in page %d", id, pageID)
 		return err
 	}
 

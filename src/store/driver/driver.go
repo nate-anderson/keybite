@@ -21,53 +21,49 @@ type StorageDriver interface {
 	ListPages(indexName string) ([]string, error)
 }
 
-// GetConfiguredDriver returns the correct driver based on config, or panics on missing env var
-func GetConfiguredDriver(conf config.Config) StorageDriver {
+// GetConfiguredDriver returns the correct driver based on config
+func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 	driverType, err := conf.GetString("DRIVER")
 	if err != nil {
-		panic(err)
-	}
-
-	dataDir, err := conf.GetString("DATA_DIR")
-	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	pageExtension, err := conf.GetString("PAGE_EXTENSION")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	switch strings.ToLower(driverType) {
 	case "filesystem":
-		if fsd, err := NewFilesystemDriver(dataDir, pageExtension); err == nil {
-			return fsd
-		} else {
-			panic(err)
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return nil, err
 		}
+
+		return NewFilesystemDriver(dataDir, pageExtension)
+
 	case "s3":
 		bucketName, err := conf.GetString("BUCKET_NAME")
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		accessKeyID, err := conf.GetString("AWS_ACCESS_KEY_ID")
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
-		accessKeySecret, err := conf.GetString("AWS_ACCESS_KEY_SECRET")
+		accessKeySecret, err := conf.GetString("AWS_SECRET_ACCESS_KEY")
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
-		if bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret); err == nil {
-			return bd
-		} else {
-			panic(err)
-		}
+		accessKeyToken := conf.GetStringOrEmpty("AWS_SESSION_TOKEN")
+
+		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken)
+
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
-		panic(err)
+		return nil, err
 	}
 }

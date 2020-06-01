@@ -10,13 +10,22 @@ import (
 func Execute(input string, conf config.Config) (string, error) {
 	action := getAction(input)
 
+	/*
+		this is bad behavior, because dsl.Execute happens in Lambda, HTTP contexts
+		if action == "help" || action == "" {
+			displayCommandList()
+			return "", nil
+		}
+	*/
+
 	for _, command := range Commands {
 		if action == command.keyword {
 			tokens, payload, err := getTokensUntil(input, command.numTokens)
 			if err != nil {
 				return "", err
 			}
-			return command.execute(tokens, payload, conf)
+			res, err := command.execute(tokens, payload, conf)
+			return res, err
 		}
 	}
 	return "", fmt.Errorf("%s is not a valid query command", action)
@@ -36,7 +45,22 @@ func getTokensUntil(s string, until int) (tokens []string, remaining string, err
 
 // extract the action keyword from a query
 func getAction(q string) string {
+	tokens := strings.Fields(q)
+	if len(tokens) == 0 {
+		return ""
+	}
+
 	return strings.ToLower(
-		strings.Fields(q)[0],
+		tokens[0],
 	)
+}
+
+func displayCommandList() {
+	fmt.Println("Available query commands: ")
+	for _, command := range Commands {
+		fmt.Println(command.keyword)
+		fmt.Println("  ", command.description)
+		fmt.Println("  Example:", command.example)
+		fmt.Println()
+	}
 }

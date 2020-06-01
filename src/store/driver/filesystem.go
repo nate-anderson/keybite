@@ -30,10 +30,13 @@ func NewFilesystemDriver(dataDir string, pageExtension string) (FilesystemDriver
 // ReadPage reads a file into a map
 func (d FilesystemDriver) ReadPage(filename string, indexName string, pageSize int) (map[int64]string, error) {
 	vals := make(map[int64]string, pageSize)
-	path := path.Join(d.dataDir, indexName, util.AddSuffix(filename, d.pageExtension))
+	path := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(filename, d.pageExtension))
 
 	pageFile, err := os.Open(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return vals, ErrNotExist(path)
+		}
 		return vals, err
 	}
 	defer pageFile.Close()
@@ -53,10 +56,13 @@ func (d FilesystemDriver) ReadPage(filename string, indexName string, pageSize i
 // ReadMapPage reads a file into a map page
 func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
 	vals := map[uint64]string{}
-	filePath := path.Join(d.dataDir, indexName, util.AddSuffix(fileName, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(filePath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return vals, ErrNotExist(filePath)
+		}
 		return vals, err
 	}
 	defer pageFile.Close()
@@ -75,10 +81,14 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 
 // WritePage persists a new or updated page as a file in the datadir
 func (d FilesystemDriver) WritePage(vals map[int64]string, filename string, indexName string) error {
-	filePath := path.Join(d.dataDir, indexName, util.AddSuffix(filename, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(filename, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			file, err = os.Create(filePath)
+		} else {
+			return err
+		}
 	}
 	defer file.Close()
 
@@ -95,10 +105,12 @@ func (d FilesystemDriver) WritePage(vals map[int64]string, filename string, inde
 
 // WriteMapPage persists a new or updated map page as a file in the dataDir
 func (d FilesystemDriver) WriteMapPage(vals map[uint64]string, fileName string, indexName string) error {
-	filePath := path.Join(d.dataDir, indexName, util.AddSuffix(fileName, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
 		if !os.IsNotExist(err) {
+			file, err = os.Create(filePath)
+		} else {
 			return err
 		}
 
@@ -124,6 +136,9 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 	indexPath := path.Join(d.dataDir, indexName)
 	files, err := ioutil.ReadDir(indexPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, ErrNotExist(indexPath)
+		}
 		return []string{}, err
 	}
 
