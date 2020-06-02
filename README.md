@@ -8,7 +8,7 @@ Hosting an RDS instance or database server for your simple serverless app? That 
 Keybite is a key-value store designed for use with serverless apps (specifically AWS Lambda). Keybite is designed to run as a Lambda function, connect to an S3 bucket and act as a (moderately) capable database for your serverless apps.
 
 ## Cool, simple query language
-Inspired by declarative query languages like MySQL and the conveniences of modern GraphQL APIs, Keybite's HTTP-based queries are flexible and straightforward. Simply POST a JSON object to the Keybite Lambda function to perform queries, inserts and updates all at once. Keybite's inline variable syntax even allows you to use query results before they are fetched. Check it out:
+Inspired by declarative query languages like SQL and the conveniences of modern GraphQL APIs, Keybite's HTTP-based queries are flexible and straightforward. Simply POST a JSON object to the Keybite Lambda function to perform queries, inserts and updates all at once. Keybite's inline variable syntax even allows you to use query results before they are fetched. Check it out:
 
 ```json
 {
