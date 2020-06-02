@@ -28,7 +28,7 @@ func Execute(input string, conf config.Config) (string, error) {
 			return res, err
 		}
 	}
-	return "", fmt.Errorf("%s is not a valid query command", action)
+	return "", fmt.Errorf("'%s' is not a valid query command", action)
 }
 
 func getTokensUntil(s string, until int) (tokens []string, remaining string, err error) {

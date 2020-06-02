@@ -64,70 +64,64 @@ func stringToLogLevel(str string) logLevel {
 
 // Error logs an error message
 func (l Logger) Error(args ...interface{}) {
-	list := prependLogSlice("[error]", args)
 	if l.level >= LogLevelError {
-		l.logger.Println(list...)
+		l.logger.Println(args...)
 	}
 }
 
 // Errorf logs a formatted error message
 func (l Logger) Errorf(format string, args ...interface{}) {
-	list := prependLogSlice("[error]", args)
+	sformat := prependLogFormat("[error]", format)
 	if l.level >= LogLevelError {
-		l.logger.Printf(format, list...)
+		l.logger.Printf(sformat, args...)
 	}
 }
 
 // Warn logs a warn message
 func (l Logger) Warn(args ...interface{}) {
-	list := prependLogSlice("[warn]", args)
 	if l.level >= LogLevelWarn {
-		l.logger.Println(list...)
+		l.logger.Println(args...)
 	}
 }
 
 // Warnf logs a formatted warn message
 func (l Logger) Warnf(format string, args ...interface{}) {
-	list := prependLogSlice("[warn]", args)
+	sformat := prependLogFormat("[warn]", format)
 	if l.level >= LogLevelWarn {
-		l.logger.Printf(format, list...)
+		l.logger.Printf(sformat, args...)
 	}
 }
 
 // Info logs an info message
 func (l Logger) Info(args ...interface{}) {
-	list := prependLogSlice("[info]", args)
 	if l.level >= LogLevelInfo {
-		l.logger.Println(list...)
+		l.logger.Println(args...)
 	}
 }
 
 // Infof logs a formatted info message
 func (l Logger) Infof(format string, args ...interface{}) {
-	list := prependLogSlice("[info]", args)
+	sformat := prependLogFormat("[error]", format)
 	if l.level >= LogLevelInfo {
-		l.logger.Printf(format, list...)
+		l.logger.Printf(sformat, args...)
 	}
 }
 
 // Debug logs a debug message
 func (l Logger) Debug(args ...interface{}) {
-	list := prependLogSlice("[debug]", args)
 	if l.level >= LogLevelDebug {
-		l.logger.Println(list...)
+		l.logger.Println(args...)
 	}
 }
 
 // Debugf logs a formatted debug message
 func (l Logger) Debugf(format string, args ...interface{}) {
-	list := prependLogSlice("[debug]", args)
+	sformat := prependLogFormat("[error]", format)
 	if l.level >= LogLevelDebug {
-		l.logger.Printf(format, list...)
+		l.logger.Printf(sformat, args...)
 	}
 }
 
-func prependLogSlice(pre string, sl []interface{}) []interface{} {
-	out := []interface{}{pre}
-	out = append(out, sl...)
-	return out
+func prependLogFormat(pre string, format string) string {
+	return pre + " " + format
 }
