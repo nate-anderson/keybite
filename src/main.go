@@ -36,7 +36,7 @@ func main() {
 	}
 
 	// if no args are passed, start in server mode
-	err = server.ServeHTTP(conf, log)
+	err = server.StartConfiguredServer(conf, log)
 	if err != nil {
 		log.Error(err.Error())
 		displayHelp()
@@ -46,5 +46,5 @@ func main() {
 
 func displayHelp() {
 	fmt.Println("Keybite v0.0.2")
-	fmt.Println("Try 'cli' to query against the store locally, or 'serve' to serve the HTTP API")
+	fmt.Println("Run binary with query as trailing args to query against the store locally, run without args to start configured server mode")
 }
