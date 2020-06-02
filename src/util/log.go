@@ -128,6 +128,6 @@ func (l Logger) Debugf(format string, args ...interface{}) {
 
 func prependLogSlice(pre string, sl []interface{}) []interface{} {
 	out := []interface{}{pre}
-	out = append(out, sl)
+	out = append(out, sl...)
 	return out
 }
