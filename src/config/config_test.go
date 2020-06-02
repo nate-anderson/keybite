@@ -1,8 +1,8 @@
 package config_test
 
 import (
-	"keybite-http/config"
-	"keybite-http/util"
+	"keybite/config"
+	"keybite/util"
 	"os"
 	"testing"
 )

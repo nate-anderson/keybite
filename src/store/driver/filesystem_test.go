@@ -1,9 +1,9 @@
 package driver_test
 
 import (
-	"keybite-http/config"
-	"keybite-http/store/driver"
-	"keybite-http/util"
+	"keybite/config"
+	"keybite/store/driver"
+	"keybite/util"
 	"os"
 	"path"
 	"testing"

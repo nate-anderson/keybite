@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"keybite-http/config"
-	"keybite-http/dsl"
-	"keybite-http/util"
+	"keybite/config"
+	"keybite/dsl"
+	"keybite/util"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"

@@ -2,8 +2,8 @@ package server
 
 import (
 	"errors"
-	"keybite-http/config"
-	"keybite-http/util"
+	"keybite/config"
+	"keybite/util"
 )
 
 // StartConfiguredServer starts the appropriate server based on the environment env variable

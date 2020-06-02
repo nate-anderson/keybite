@@ -1,8 +1,8 @@
 package store
 
 import (
-	"keybite-http/store/driver"
-	"keybite-http/util"
+	"keybite/store/driver"
+	"keybite/util"
 	"strconv"
 )
 

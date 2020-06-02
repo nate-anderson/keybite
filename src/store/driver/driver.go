@@ -2,7 +2,7 @@ package driver
 
 import (
 	"fmt"
-	"keybite-http/config"
+	"keybite/config"
 	"strings"
 )
 

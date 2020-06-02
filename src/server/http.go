@@ -3,9 +3,9 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"keybite-http/config"
-	"keybite-http/dsl"
-	"keybite-http/util"
+	"keybite/config"
+	"keybite/dsl"
+	"keybite/util"
 	"net/http"
 	"regexp"
 

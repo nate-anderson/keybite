@@ -2,7 +2,7 @@ package dsl
 
 import (
 	"fmt"
-	"keybite-http/config"
+	"keybite/config"
 	"strings"
 )
 

@@ -3,9 +3,9 @@ package dsl
 import (
 	"errors"
 	"fmt"
-	"keybite-http/config"
-	"keybite-http/store"
-	"keybite-http/store/driver"
+	"keybite/config"
+	"keybite/store"
+	"keybite/store/driver"
 	"strconv"
 )
 

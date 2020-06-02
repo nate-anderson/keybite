@@ -1,4 +1,4 @@
-module keybite-http
+module keybite
 
 go 1.14
 

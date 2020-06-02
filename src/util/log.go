@@ -1,7 +1,7 @@
 package util
 
 import (
-	"keybite-http/config"
+	"keybite/config"
 	"log"
 	"os"
 	"strings"

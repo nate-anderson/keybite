@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"keybite-http/util"
+	"keybite/util"
 )
 
 // Page is an easily transported relevant portion of an index

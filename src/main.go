@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"keybite-http/config"
-	"keybite-http/dsl"
-	"keybite-http/server"
-	"keybite-http/util"
+	"keybite/config"
+	"keybite/dsl"
+	"keybite/server"
+	"keybite/util"
 	"os"
 	"strings"
 )
