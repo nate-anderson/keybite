@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -29,8 +30,22 @@ func (m MapPage) Query(id uint64) (string, error) {
 	return val, nil
 }
 
-// Set a value to a key
-func (m MapPage) Set(id uint64, val string) uint64 {
+// Add a value with a key
+func (m MapPage) Add(id uint64, val string) (uint64, error) {
+	_, exists := m.vals[id]
+	if exists {
+		return 0, errors.New("cannot add key to map page: key exists")
+	}
 	m.vals[id] = val
-	return id
+	return id, nil
+}
+
+// Update an existing value
+func (m MapPage) Update(id uint64, val string) (uint64, error) {
+	_, exists := m.vals[id]
+	if !exists {
+		return 0, errors.New("cannot update key in map page: key doesn't exist")
+	}
+	m.vals[id] = val
+	return id, nil
 }

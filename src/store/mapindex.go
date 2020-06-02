@@ -83,7 +83,10 @@ func (m MapIndex) Insert(key string, value string) (string, error) {
 		return "", err
 	}
 
-	page.Set(id, value)
+	_, err = page.Add(id, value)
+	if err != nil {
+		return key, err
+	}
 	err = m.driver.WriteMapPage(page.vals, page.name, m.Name)
 	return key, err
 }
@@ -101,7 +104,10 @@ func (m MapIndex) Update(key string, newValue string) error {
 		return err
 	}
 
-	page.Set(id, newValue)
+	_, err = page.Update(id, newValue)
+	if err != nil {
+		return err
+	}
 	err = m.driver.WriteMapPage(page.vals, page.name, m.Name)
 	return err
 }
