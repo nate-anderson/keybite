@@ -70,7 +70,7 @@ func MaxMapKey(m map[int64]string) int64 {
 func HashString(s string) (uint64, error) {
 	pow := 27
 	if len(s) > MaxKeyLength {
-		return 0, errors.New("cannot hash string longer than 255 characters")
+		return 0, errors.New("cannot hash string longer than 150 characters")
 	}
 	var result uint64 = 0
 	for i, char := range s {
