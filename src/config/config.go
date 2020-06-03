@@ -52,6 +52,7 @@ func (c Config) GetStringOrEmpty(key string) string {
 	}
 
 	val = os.Getenv(key)
+	c[key] = val
 	return val
 }
 
