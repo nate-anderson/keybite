@@ -12,7 +12,7 @@ const MaxKeyLength = 150
 
 // StringToKeyValue converts a line of text to a key-value pair used to read a page file
 func StringToKeyValue(str string) (int64, string, error) {
-	parts, err := splitOnFirst(str, ':')
+	parts, err := SplitOnFirst(str, ':')
 	if err != nil || len(parts) != 2 {
 		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
 	}
@@ -27,7 +27,7 @@ func StringToKeyValue(str string) (int64, string, error) {
 
 // StringToMapKeyValue converts a line of text to a key-value pair used to read a map page file
 func StringToMapKeyValue(str string) (uint64, string, error) {
-	parts, err := splitOnFirst(str, ':')
+	parts, err := SplitOnFirst(str, ':')
 	if err != nil || len(parts) != 2 {
 		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
 	}
@@ -40,8 +40,8 @@ func StringToMapKeyValue(str string) (uint64, string, error) {
 	return key, parts[1], nil
 }
 
-// splitOnFirst splits a string into two substrings after the first appearance of rune 'split'
-func splitOnFirst(str string, split rune) ([]string, error) {
+// SplitOnFirst splits a string into two substrings after the first appearance of rune 'split'
+func SplitOnFirst(str string, split rune) ([]string, error) {
 	for i, char := range str {
 		if char == split {
 			return []string{str[:i], str[(i + 1):]}, nil
@@ -82,7 +82,13 @@ func HashString(s string) (uint64, error) {
 
 // PathToIndexPage splits a path into an index name and a file name
 func PathToIndexPage(path string) (fileName string, indexName string, err error) {
-	tokens := strings.Split(path, "/")
+	// strip leading slash if present
+	cleanPath := path
+	if strings.HasPrefix(path, "/") {
+		cleanPath = path[1:]
+	}
+
+	tokens := strings.Split(cleanPath, "/")
 	if len(tokens) > 2 {
 		err = errors.New("PathToIndexPage error: path must be relative and look like 'index_name/file_name.kb'")
 		return
