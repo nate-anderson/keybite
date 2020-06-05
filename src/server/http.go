@@ -22,7 +22,7 @@ func ServeHTTP(conf config.Config, log util.Logger) error {
 		return err
 	}
 
-	log.Infof("Serving HTTP on port %s", port)
+	log.Infof("Serving HTTP on port %s/keybite", port)
 
 	r := http.NewServeMux()
 	handler := NewQueryHandler(conf)
@@ -98,6 +98,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func respond(w http.ResponseWriter, data interface{}, status int) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	resBytes, err := json.Marshal(data)
 	if err != nil {
