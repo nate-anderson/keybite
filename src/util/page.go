@@ -65,9 +65,12 @@ func MaxMapKey(m map[int64]string) int64 {
 	return maxNumber
 }
 
-// HashString to unique unsigned integer
+// HashString to unique unsigned integer. Strings that can be parses as integers are not hashed.
 // https://stackoverflow.com/a/16524816
 func HashString(s string) (uint64, error) {
+	if num, err := strconv.ParseUint(s, 10, 64); err == nil {
+		return num, nil
+	}
 	pow := 27
 	if len(s) > MaxKeyLength {
 		return 0, errors.New("cannot hash string longer than 150 characters")
