@@ -21,7 +21,7 @@ func main() {
 		panic(err)
 	}
 
-	log := util.NewConfiguredLogger(conf)
+	log := util.NewConfiguredLogger(conf, nil)
 
 	// if args are passed to tbe binary, run query and returm output to stdout
 	if len(os.Args) > 1 {
