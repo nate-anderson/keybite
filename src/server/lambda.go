@@ -45,7 +45,7 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, payload orderedmap.O
 
 		result, err := dsl.Execute(query.(string), l.conf)
 		if err != nil {
-			l.log.Warnf("error executing query DSL: %s", err.Error())
+			l.log.Infof("error executing query DSL: %s", err.Error())
 			return map[string]string{}, err
 		}
 

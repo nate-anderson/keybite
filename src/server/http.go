@@ -25,7 +25,7 @@ func ServeHTTP(conf config.Config, log util.Logger) error {
 	log.Infof("Serving HTTP on port %s/keybite", port)
 
 	r := http.NewServeMux()
-	handler := NewQueryHandler(conf)
+	handler := NewQueryHandler(conf, log)
 	r.Handle("/keybite", handler)
 
 	return http.ListenAndServe(port, r)
@@ -38,9 +38,10 @@ type QueryHandler struct {
 }
 
 // NewQueryHandler creates a query HTTP handler
-func NewQueryHandler(conf config.Config) QueryHandler {
+func NewQueryHandler(conf config.Config, log util.Logger) QueryHandler {
 	return QueryHandler{
 		conf: conf,
+		log:  log,
 	}
 }
 
@@ -52,7 +53,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		h.log.Infof("%s: client %s JSON request could not be decoded: %s", req.RequestURI, req.RemoteAddr, err.Error())
 		errText := fmt.Sprintf("could not parse request JSON: %s", err.Error())
-		http.Error(w, errText, http.StatusBadRequest)
+		respondError(w, errText, http.StatusBadRequest)
 		return
 	}
 
@@ -64,7 +65,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		query, ok := queryList.Get(key)
 		if !ok {
 			h.log.Warn("unable to Get query from request OrderedMap :: something really broke")
-			http.Error(w, "something really broke", http.StatusInternalServerError)
+			respondError(w, "something really broke", http.StatusInternalServerError)
 			return
 		}
 
@@ -79,8 +80,8 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		result, err := dsl.Execute(query.(string), h.conf)
 		if err != nil {
-			h.log.Warnf("error executing query DSL: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			h.log.Infof("error executing query DSL: %s", err.Error())
+			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -102,7 +103,7 @@ func respond(w http.ResponseWriter, data interface{}, status int) {
 	w.WriteHeader(status)
 	resBytes, err := json.Marshal(data)
 	if err != nil {
-		http.Error(w, "Error marshaling response body", http.StatusInternalServerError)
+		respondError(w, "Error marshaling response body", http.StatusInternalServerError)
 		return
 	}
 
@@ -155,4 +156,30 @@ func strSliceToInterfaceSlice(strSlice []string) []interface{} {
 		new[i] = v
 	}
 	return new
+}
+
+// ErrResponse is used for sending JSON error messages to client
+type ErrResponse struct {
+	Msg    string `json:"error"`
+	Status int    `json:"status"`
+}
+
+func respondError(w http.ResponseWriter, errMsg string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	errBody := ErrResponse{
+		Msg:    errMsg,
+		Status: status,
+	}
+
+	errBytes, err := json.Marshal(errBody)
+
+	if err != nil {
+		errMsg := "error encoding JSON response to query"
+		http.Error(w, errMsg, http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, string(errBytes))
 }
