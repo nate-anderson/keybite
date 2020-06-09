@@ -182,7 +182,7 @@ var QueryKey = command{
 // InsertKey inserts into a map index
 var InsertKey = command{
 	keyword:     "insert_key",
-	numTokens:   3, // insert_key index key [...]
+	numTokens:   3,
 	description: "Insert a key and value into a map index",
 	example:     "insert_key map_index_name user1_email johndoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
