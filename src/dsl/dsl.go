@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"keybite/config"
 	"strings"
+
+	"github.com/lmika/shellwords"
 )
 
 // Execute a statement on the data in the provided datadir
@@ -32,14 +34,14 @@ func Execute(input string, conf config.Config) (string, error) {
 }
 
 func getTokensUntil(s string, until int) (tokens []string, remaining string, err error) {
-	fields := strings.Fields(s)
+	fields := shellwords.Split(s)
 
 	if len(fields) < until {
 		err = fmt.Errorf("malformed query: minimum length of %d tokens not met", (until + 1))
 		return
 	}
 	tokens = fields[0 : until+1]
-	remaining = strings.Join(fields[until:], " ")
+	remaining = fields[until]
 	return
 }
 
