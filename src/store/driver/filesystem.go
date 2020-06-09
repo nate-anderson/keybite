@@ -108,7 +108,7 @@ func (d FilesystemDriver) WriteMapPage(vals map[uint64]string, fileName string, 
 	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
-		if !os.IsNotExist(err) {
+		if os.IsNotExist(err) {
 			file, err = os.Create(filePath)
 		} else {
 			return err
