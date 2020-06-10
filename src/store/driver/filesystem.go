@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"keybite/util"
+	"log"
 	"os"
 	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 )
+
+const lockfileExtension = ".lock"
 
 // FilesystemDriver enables writing and reading indexes from local filesystem
 type FilesystemDriver struct {
@@ -144,7 +151,12 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 
 	fileNames := make([]string, len(files))
 	for i, file := range files {
-		fileNames[i] = file.Name()
+		fName := file.Name()
+		// exclude lock files from results
+		if isLockfile(fName) {
+			continue
+		}
+		fileNames[i] = fName
 	}
 
 	return fileNames, nil
@@ -160,4 +172,76 @@ func (d FilesystemDriver) CreateAutoIndex(indexName string) error {
 func (d FilesystemDriver) CreateMapIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	return os.Mkdir(indexPath, 0755)
+}
+
+// LockIndex creates a lockfile in the specified index
+func (d FilesystemDriver) LockIndex(indexName string) error {
+	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
+	lockfileName := currentMillis + d.pageExtension + lockfileExtension
+
+	filePath := path.Join(d.dataDir, indexName, lockfileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	return nil
+}
+
+// UnlockIndex deletes any lockfiles in an index
+func (d FilesystemDriver) UnlockIndex(indexName string) error {
+	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
+	fNames, err := filepath.Glob(globPattern)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range fNames {
+		path := path.Join(d.dataDir, indexName, name)
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// IndexIsLocked checks if an index is locked by another request process, returning the time at which it was locked
+func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
+	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
+	fNames, err := filepath.Glob(globPattern)
+	if err != nil {
+		return true, time.Time{}, err
+	}
+
+	// if lockfile(s) present, return max lock timestamp
+	if len(fNames) > 0 {
+		maxLockTs := time.Time{}
+		for _, name := range fNames {
+			ts, err := filenameToLockTimestamp(name)
+			if err != nil {
+				log.Printf("index %s contains malformed or corrupted lockfile '%s'", indexName, name)
+				return true, maxLockTs, err
+			}
+			if ts.After(maxLockTs) {
+				maxLockTs = ts
+			}
+		}
+	}
+
+	return false, time.Time{}, nil
+}
+
+func isLockfile(path string) bool {
+	return filepath.Ext(path) == lockfileExtension
+}
+
+func filenameToLockTimestamp(fileName string) (time.Time, error) {
+	// if path is given, only look at filename
+	cleanName := filepath.Base(fileName)
+	// split on dots to get filename before extensions
+	nameTokens := strings.Split(cleanName, ".")
+	timeString := nameTokens[0]
+	return util.ParseMillisString(timeString)
 }
