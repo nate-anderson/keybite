@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-var dataDir string
-var autoPageSize int
-var mapPageSize int
-
 func main() {
 	conf, err := config.MakeConfig()
 	if err != nil {
