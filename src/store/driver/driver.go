@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"keybite/config"
 	"strings"
+	"time"
 )
 
 // StorageDriver is the interface needed to read and persist files that make up the DB
@@ -19,6 +20,12 @@ type StorageDriver interface {
 	CreateMapIndex(indexName string) error
 	// return an ascending-sorted list of pagefiles in the index datadir
 	ListPages(indexName string) ([]string, error)
+	// check if an index is locked by another request process, returning the time at which it was locked if true
+	IndexIsLocked(indexName string) (bool, time.Time, error)
+	// lock an index
+	LockIndex(indexName string) error
+	// unlock an index
+	UnlockIndex(indexName string) error
 }
 
 // GetConfiguredDriver returns the correct driver based on config
