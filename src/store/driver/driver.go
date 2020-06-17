@@ -3,6 +3,8 @@ package driver
 import (
 	"fmt"
 	"keybite/config"
+	"keybite/util"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -27,6 +29,8 @@ type StorageDriver interface {
 	// unlock an index
 	UnlockIndex(indexName string) error
 }
+
+const lockfileExtension = ".lock"
 
 // GetConfiguredDriver returns the correct driver based on config
 func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
@@ -73,4 +77,17 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
 		return nil, err
 	}
+}
+
+func isLockfile(path string) bool {
+	return filepath.Ext(path) == lockfileExtension
+}
+
+func filenameToLockTimestamp(fileName string) (time.Time, error) {
+	// if path is given, only look at filename
+	cleanName := filepath.Base(fileName)
+	// split on dots to get filename before extensions
+	nameTokens := strings.Split(cleanName, ".")
+	timeString := nameTokens[0]
+	return util.ParseMillisString(timeString)
 }

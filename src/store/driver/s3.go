@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -305,6 +306,40 @@ func (d BucketDriver) DeleteIndex(indexName string) error {
 		Key:    aws.String(indexName),
 	})
 	return err
+}
+
+// IndexIsLocked checks if the specified index is locked
+func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
+	prefix := indexName + "/"
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+
+	if err != nil {
+		return true, time.Now(), err
+	}
+
+	var maxLockTs time.Time
+
+	for _, item := range resp.Contents {
+		itemName := path.Base(*item.Key)
+		if isLockfile(itemName) {
+			ts, err := filenameToLockTimestamp(itemName)
+			if err != nil {
+				continue
+			}
+			if ts.After(maxLockTs) {
+				maxLockTs = ts
+			}
+		}
+	}
+
+	return (maxLockTs.After(time.Time{})), maxLockTs, nil
+}
+
+func (d BucketDriver) LockIndex(indexName string) error {
+
 }
 
 // is the error a missing file or bucket error from S3?

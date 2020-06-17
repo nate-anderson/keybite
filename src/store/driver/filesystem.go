@@ -10,11 +10,8 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 )
-
-const lockfileExtension = ".lock"
 
 // FilesystemDriver enables writing and reading indexes from local filesystem
 type FilesystemDriver struct {
@@ -231,17 +228,4 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 	}
 
 	return false, time.Time{}, nil
-}
-
-func isLockfile(path string) bool {
-	return filepath.Ext(path) == lockfileExtension
-}
-
-func filenameToLockTimestamp(fileName string) (time.Time, error) {
-	// if path is given, only look at filename
-	cleanName := filepath.Base(fileName)
-	// split on dots to get filename before extensions
-	nameTokens := strings.Split(cleanName, ".")
-	timeString := nameTokens[0]
-	return util.ParseMillisString(timeString)
 }
