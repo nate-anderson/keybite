@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-var lockDuration time.Duration = 50 * time.Millisecond
-
 // StorageDriver is the interface needed to read and persist files that make up the DB
 // A storage driver should handle these IO operations and should handle all paths and
 // file extensions (i.e. the filename passed should not end in an extension, as this may
@@ -53,7 +51,14 @@ func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, er
 			return nil, err
 		}
 
-		return NewFilesystemDriver(dataDir, pageExtension, log)
+		lockMs, err := conf.GetInt64("LOCK_DURATION_FS")
+		if err != nil {
+			return nil, err
+		}
+
+		lockDuration := util.ToMillisDuration(lockMs)
+
+		return NewFilesystemDriver(dataDir, pageExtension, lockDuration, log)
 
 	case "s3":
 		bucketName, err := conf.GetString("BUCKET_NAME")
@@ -73,7 +78,14 @@ func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, er
 
 		accessKeyToken := conf.GetStringOrEmpty("AWS_SESSION_TOKEN")
 
-		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, log)
+		lockMs, err := conf.GetInt64("LOCK_DURATION_S3")
+		if err != nil {
+			return nil, err
+		}
+
+		lockDuration := util.ToMillisDuration(lockMs)
+
+		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, lockDuration, log)
 
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
