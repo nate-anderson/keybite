@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var lockDuration time.Duration = 50 * time.Millisecond
+
 // StorageDriver is the interface needed to read and persist files that make up the DB
 // A storage driver should handle these IO operations and should handle all paths and
 // file extensions (i.e. the filename passed should not end in an extension, as this may
@@ -33,7 +35,7 @@ type StorageDriver interface {
 const lockfileExtension = ".lock"
 
 // GetConfiguredDriver returns the correct driver based on config
-func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
+func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, error) {
 	driverType, err := conf.GetString("DRIVER")
 	if err != nil {
 		return nil, err
@@ -51,7 +53,7 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 			return nil, err
 		}
 
-		return NewFilesystemDriver(dataDir, pageExtension)
+		return NewFilesystemDriver(dataDir, pageExtension, log)
 
 	case "s3":
 		bucketName, err := conf.GetString("BUCKET_NAME")

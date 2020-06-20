@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"keybite/util"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,10 +16,11 @@ import (
 type FilesystemDriver struct {
 	dataDir       string
 	pageExtension string
+	log           util.Logger
 }
 
 // NewFilesystemDriver instantiates a new filesystem storage driver
-func NewFilesystemDriver(dataDir string, pageExtension string) (FilesystemDriver, error) {
+func NewFilesystemDriver(dataDir string, pageExtension string, log util.Logger) (FilesystemDriver, error) {
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
 		return FilesystemDriver{}, fmt.Errorf("no data directory named %s could be found", dataDir)
 	}
@@ -28,6 +28,7 @@ func NewFilesystemDriver(dataDir string, pageExtension string) (FilesystemDriver
 	return FilesystemDriver{
 		dataDir:       dataDir,
 		pageExtension: pageExtension,
+		log:           log,
 	}, nil
 }
 
@@ -146,15 +147,17 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 		return []string{}, err
 	}
 
-	fileNames := make([]string, len(files))
-	for i, file := range files {
+	fileNames := []string{}
+	for _, file := range files {
 		fName := file.Name()
 		// exclude lock files from results
 		if isLockfile(fName) {
 			continue
 		}
-		fileNames[i] = fName
+		fileNames = append(fileNames, fName)
 	}
+
+	d.log.Debugf("found %d page files %v", len(fileNames), fileNames)
 
 	return fileNames, nil
 }
@@ -173,6 +176,7 @@ func (d FilesystemDriver) CreateMapIndex(indexName string) error {
 
 // LockIndex creates a lockfile in the specified index
 func (d FilesystemDriver) LockIndex(indexName string) error {
+	d.log.Debugf("locking index %s for writes", indexName)
 	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
 	lockfileName := currentMillis + d.pageExtension + lockfileExtension
 
@@ -182,20 +186,23 @@ func (d FilesystemDriver) LockIndex(indexName string) error {
 		return err
 	}
 
+	d.log.Debugf("created lockfile %s", filePath)
+
 	defer file.Close()
 	return nil
 }
 
 // UnlockIndex deletes any lockfiles in an index
 func (d FilesystemDriver) UnlockIndex(indexName string) error {
+	d.log.Debugf("unlocking index %s for writes", indexName)
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
 		return err
 	}
 
-	for _, name := range fNames {
-		path := path.Join(d.dataDir, indexName, name)
+	for _, path := range fNames {
+		d.log.Debugf("deleting lockfile %s", path)
 		if err := os.Remove(path); err != nil {
 			return err
 		}
@@ -204,8 +211,9 @@ func (d FilesystemDriver) UnlockIndex(indexName string) error {
 	return nil
 }
 
-// IndexIsLocked checks if an index is locked by another request process, returning the time at which it was locked
+// IndexIsLocked checks if an index is locked by another request process, returning the time at which the lock expires
 func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
+	d.log.Debugf("checking index %s for write locks", indexName)
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
@@ -214,17 +222,22 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 
 	// if lockfile(s) present, return max lock timestamp
 	if len(fNames) > 0 {
+		d.log.Debugf("found %d lockfiles in index %s", len(fNames), indexName)
 		maxLockTs := time.Time{}
 		for _, name := range fNames {
 			ts, err := filenameToLockTimestamp(name)
 			if err != nil {
-				log.Printf("index %s contains malformed or corrupted lockfile '%s'", indexName, name)
-				return true, maxLockTs, err
+				return true, maxLockTs.Add(lockDuration), err
 			}
 			if ts.After(maxLockTs) {
 				maxLockTs = ts
 			}
 		}
+
+		expire := maxLockTs.Add(lockDuration)
+		isLocked := maxLockTs.After(time.Now())
+		d.log.Debugf("index %s locks expired at or before %s: locked? %v", indexName, expire.String(), isLocked)
+		return isLocked, expire, nil
 	}
 
 	return false, time.Time{}, nil
