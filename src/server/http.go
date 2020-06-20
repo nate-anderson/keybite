@@ -81,8 +81,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		result, err := dsl.Execute(query.(string), h.conf)
 		if err != nil {
 			h.log.Infof("error executing query DSL: %s", err.Error())
-			respondError(w, err.Error(), http.StatusInternalServerError)
-			return
+			continue
 		}
 
 		// if key == "_", don't add it to the return value
