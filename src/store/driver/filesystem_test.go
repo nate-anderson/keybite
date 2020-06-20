@@ -11,6 +11,8 @@ import (
 
 var testConf config.Config
 
+var testLog = util.NewLogger(util.LogLevelDebug, os.Stderr)
+
 // test that CreateAutoIndex creates a folder
 func TestFSCreateAutoIndex(t *testing.T) {
 	dirName := "test_data"
@@ -19,7 +21,7 @@ func TestFSCreateAutoIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb")
+	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -39,7 +41,7 @@ func TestFSCreateMapIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb")
+	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -55,7 +57,7 @@ func TestFSCreateMapIndex(t *testing.T) {
 func TestFSNewFilesystemDriver(t *testing.T) {
 	dirName := "test_data"
 
-	_, err := driver.NewFilesystemDriver(dirName, ".kb")
+	_, err := driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	if err == nil {
 		t.Logf("attempting to instantiate filesystem driver on missing directory %s should fail", dirName)
 		t.FailNow()
@@ -66,7 +68,7 @@ func TestFSNewFilesystemDriver(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	_, err = driver.NewFilesystemDriver(dirName, ".kb")
+	_, err = driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	util.Ok(t, err)
 }
 
@@ -78,7 +80,7 @@ func TestFSWritePageReadPage(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb")
+	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -113,7 +115,7 @@ func TestFSWriteMapPageReadMapPage(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb")
+	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -148,7 +150,7 @@ func TestFSListPages(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb")
+	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLog)
 	util.Ok(t, err)
 
 	indexName := "test_index"

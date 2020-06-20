@@ -8,6 +8,9 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -27,6 +30,7 @@ type BucketDriver struct {
 	session         *session.Session
 	s3Downloader    *s3manager.Downloader
 	s3Uploader      *s3manager.Uploader
+	log             util.Logger
 }
 
 // NewBucketDriver instantiates a new bucket storage driver
@@ -36,6 +40,7 @@ func NewBucketDriver(
 	accessKeyID string,
 	accessKeySecret string,
 	accessKeyToken string,
+	log util.Logger,
 ) (BucketDriver, error) {
 	creds := credentials.NewStaticCredentials(accessKeyID, accessKeySecret, accessKeyToken)
 	session, err := session.NewSession(&aws.Config{
@@ -62,6 +67,7 @@ func NewBucketDriver(
 		pageExtension:   pageExtension,
 		s3Client:        client,
 		session:         session,
+		log:             log,
 	}, nil
 }
 
@@ -305,6 +311,91 @@ func (d BucketDriver) DeleteIndex(indexName string) error {
 		Key:    aws.String(indexName),
 	})
 	return err
+}
+
+// IndexIsLocked checks if the specified index is locked
+func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
+	d.log.Debugf("checking index %s for write locks", indexName)
+	prefix := indexName + "/"
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+
+	if err != nil {
+		return true, time.Now(), err
+	}
+
+	var maxLockTs time.Time
+
+	for _, item := range resp.Contents {
+		itemName := path.Base(*item.Key)
+		if isLockfile(itemName) {
+			d.log.Debugf("found lockfile %s in index %s", itemName, indexName)
+			ts, err := filenameToLockTimestamp(itemName)
+			if err != nil {
+				continue
+			}
+			if ts.After(maxLockTs) {
+				maxLockTs = ts
+			}
+		}
+	}
+
+	return (maxLockTs.After(time.Time{})), maxLockTs, nil
+}
+
+// LockIndex marks an index as locked for writing
+func (d BucketDriver) LockIndex(indexName string) error {
+	d.log.Debugf("locking index %s for writes", indexName)
+	d.setUploaderIfNil()
+
+	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
+	lockfileName := currentMillis + d.pageExtension + lockfileExtension
+
+	filePath := path.Join(indexName, lockfileName)
+
+	// upload to S3
+	_, err := d.s3Uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(d.bucketName),
+		Key:    aws.String(filePath),
+		Body:   strings.NewReader(""),
+	})
+
+	d.log.Debugf("created lockfile %s", filePath)
+
+	return err
+}
+
+// UnlockIndex deletes all write lockfiles in an index
+func (d BucketDriver) UnlockIndex(indexName string) error {
+	d.log.Debugf("unlocking index %s for writes", indexName)
+	prefix := indexName + "/"
+
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, item := range resp.Contents {
+		itemName := path.Base(*item.Key)
+		if isLockfile(itemName) {
+			d.log.Debugf("deleting lockfile %s", itemName)
+			_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
+				Bucket: aws.String(d.bucketName),
+				Key:    aws.String(*item.Key),
+			})
+			if err != nil {
+				log.Println("Error deleting index write lockfile!", err)
+				continue
+			}
+		}
+	}
+
+	return nil
 }
 
 // is the error a missing file or bucket error from S3?

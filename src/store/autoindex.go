@@ -98,7 +98,12 @@ func (i AutoIndex) Insert(val string) (id int64, err error) {
 	}
 
 	id = latestPage.Append(val)
-	err = i.driver.WritePage(latestPage.vals, latestPage.name, i.Name)
+
+	id, err = wrapInAutoWriteLock(i.driver, i.Name, func() (int64, error) {
+		err := i.driver.WritePage(latestPage.vals, latestPage.name, i.Name)
+		return id, err
+	})
+
 	return
 }
 
@@ -115,5 +120,10 @@ func (i AutoIndex) Update(id int64, newVal string) error {
 		return err
 	}
 
-	return i.driver.WritePage(page.vals, page.name, i.Name)
+	_, err = wrapInAutoWriteLock(i.driver, i.Name, func() (int64, error) {
+		writeErr := i.driver.WritePage(page.vals, page.name, i.Name)
+		return id, writeErr
+	})
+
+	return err
 }

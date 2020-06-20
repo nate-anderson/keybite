@@ -3,8 +3,13 @@ package driver
 import (
 	"fmt"
 	"keybite/config"
+	"keybite/util"
+	"path/filepath"
 	"strings"
+	"time"
 )
+
+var lockDuration time.Duration = 50 * time.Millisecond
 
 // StorageDriver is the interface needed to read and persist files that make up the DB
 // A storage driver should handle these IO operations and should handle all paths and
@@ -19,10 +24,18 @@ type StorageDriver interface {
 	CreateMapIndex(indexName string) error
 	// return an ascending-sorted list of pagefiles in the index datadir
 	ListPages(indexName string) ([]string, error)
+	// check if an index is locked by another request process, returning the time at which it was locked if true
+	IndexIsLocked(indexName string) (bool, time.Time, error)
+	// lock an index
+	LockIndex(indexName string) error
+	// unlock an index
+	UnlockIndex(indexName string) error
 }
 
+const lockfileExtension = ".lock"
+
 // GetConfiguredDriver returns the correct driver based on config
-func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
+func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, error) {
 	driverType, err := conf.GetString("DRIVER")
 	if err != nil {
 		return nil, err
@@ -40,7 +53,7 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 			return nil, err
 		}
 
-		return NewFilesystemDriver(dataDir, pageExtension)
+		return NewFilesystemDriver(dataDir, pageExtension, log)
 
 	case "s3":
 		bucketName, err := conf.GetString("BUCKET_NAME")
@@ -60,10 +73,23 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 
 		accessKeyToken := conf.GetStringOrEmpty("AWS_SESSION_TOKEN")
 
-		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken)
+		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, log)
 
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
 		return nil, err
 	}
+}
+
+func isLockfile(path string) bool {
+	return filepath.Ext(path) == lockfileExtension
+}
+
+func filenameToLockTimestamp(fileName string) (time.Time, error) {
+	// if path is given, only look at filename
+	cleanName := filepath.Base(fileName)
+	// split on dots to get filename before extensions
+	nameTokens := strings.Split(cleanName, ".")
+	timeString := nameTokens[0]
+	return util.ParseMillisString(timeString)
 }

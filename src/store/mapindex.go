@@ -87,8 +87,11 @@ func (m MapIndex) Insert(key string, value string) (string, error) {
 	if err != nil {
 		return key, err
 	}
-	err = m.driver.WriteMapPage(page.vals, page.name, m.Name)
-	return key, err
+
+	return wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
+		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
+		return key, writeErr
+	})
 }
 
 // Update existing data
@@ -108,7 +111,12 @@ func (m MapIndex) Update(key string, newValue string) error {
 	if err != nil {
 		return err
 	}
-	err = m.driver.WriteMapPage(page.vals, page.name, m.Name)
+
+	_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
+		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
+		return key, writeErr
+	})
+
 	return err
 }
 
