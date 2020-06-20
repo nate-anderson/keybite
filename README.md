@@ -45,4 +45,4 @@ cheaper than just firing up an EC2 or RDS instance with MySQL.
 
 
 ## What keybite will be
-- Concurrency safe (it currently isn't, there are race conditions everywhere)
+- Concurrency safe (it tries to be, but I'm not positive it is)
