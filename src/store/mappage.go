@@ -49,3 +49,9 @@ func (m MapPage) Update(id uint64, val string) (uint64, error) {
 	m.vals[id] = val
 	return id, nil
 }
+
+// Upsert == idempotent insert
+func (m MapPage) Upsert(id uint64, val string) uint64 {
+	m.vals[id] = val
+	return id
+}

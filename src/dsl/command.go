@@ -221,7 +221,7 @@ var InsertKey = command{
 // UpdateKey updates an existing key in a map index
 var UpdateKey = command{
 	keyword:     "update_key",
-	numTokens:   3, // update_key index key [...]
+	numTokens:   3,
 	description: "Update an existing record at the provided key. Fails if the record does not exist.",
 	example:     "update_key map_index_name user1_email janedoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
@@ -236,7 +236,7 @@ var UpdateKey = command{
 
 		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
 		if err != nil {
-			return "", errors.New("Invalid or missing auto index page size from environment")
+			return "", errors.New("Invalid or missing map index page size from environment")
 		}
 
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
@@ -244,6 +244,35 @@ var UpdateKey = command{
 			return "", err
 		}
 		return key, mapIndex.Update(key, payload)
+	},
+}
+
+// UpsertKey idempotent inserts into a map index, overwriting any existing value at provided key
+var UpsertKey = command{
+	keyword:     "upsert_key",
+	numTokens:   3,
+	description: "Update or insert a record with the specified key.",
+	example:     "upsery_key map_index_name user1_email janedoe@example.com",
+	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
+		log := util.NewConfiguredLogger(conf, os.Stderr)
+
+		indexName := tokens[1]
+		key := tokens[2]
+		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		if err != nil {
+			return "", err
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return "", errors.New("Invalid or missing map index page size from environment")
+		}
+
+		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
+		if err != nil {
+			return "", err
+		}
+		return key, mapIndex.Upsert(key, payload)
 	},
 }
 
@@ -257,4 +286,5 @@ var Commands = []command{
 	QueryKey,
 	InsertKey,
 	UpdateKey,
+	UpsertKey,
 }

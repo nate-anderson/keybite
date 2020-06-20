@@ -22,7 +22,12 @@ func ServeHTTP(conf config.Config, log util.Logger) error {
 		return err
 	}
 
-	log.Infof("Serving HTTP on port %s/keybite", port)
+	driverName, err := conf.GetString("DRIVER")
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Serving HTTP on port %s/keybite using driver '%s'", port, driverName)
 
 	r := http.NewServeMux()
 	handler := NewQueryHandler(conf, log)
