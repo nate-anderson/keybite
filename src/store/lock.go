@@ -2,7 +2,6 @@ package store
 
 import (
 	"keybite/store/driver"
-	"log"
 	"time"
 )
 
@@ -11,7 +10,6 @@ const pauseBeforeRetry int64 = 5000
 func wrapInMapWriteLock(driver driver.StorageDriver, indexName string, action func() (string, error)) (string, error) {
 	now := time.Now()
 	locked, exp, err := driver.IndexIsLocked(indexName)
-	log.Printf("Index %s locked: %v :: until %v", indexName, locked, exp)
 
 	for locked && exp.After(now) {
 		if err != nil {
