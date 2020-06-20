@@ -7,9 +7,12 @@ build-lambda:
 	@rm ./bin/keybite
 
 build-linux:
-	@echo "Removing old build artifact"
 	@echo "Building Keybite"
 	@cd ./src && go build -o ../bin/keybite .
+
+build-arm:
+	@echo "Building Keybite ARM"
+	@cd ./src && env GOOS=linux GOARCH=arm GOARM=5 go build -o ../bin/keybite-arm .
 
 compress-bin:
 	@echo "Compressing Lambda executable"
