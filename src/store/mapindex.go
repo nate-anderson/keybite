@@ -120,6 +120,29 @@ func (m MapIndex) Update(key string, newValue string) error {
 	return err
 }
 
+// Upsert inserts or modifies a value at the given key
+func (m MapIndex) Upsert(key string, newValue string) error {
+	id, err := util.HashString(key)
+	if err != nil {
+		return err
+	}
+
+	pageID := id / uint64(m.pageSize)
+	page, err := m.readOrCreatePage(pageID)
+	if err != nil {
+		return err
+	}
+
+	page.Upsert(id, newValue)
+
+	_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
+		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
+		return key, writeErr
+	})
+
+	return err
+}
+
 // WriteEmptyPage creates an empty page file for the specified page ID
 func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
 	fileName := pageIDStr
