@@ -31,6 +31,7 @@ type BucketDriver struct {
 	s3Downloader    *s3manager.Downloader
 	s3Uploader      *s3manager.Uploader
 	log             util.Logger
+	lockDuration    time.Duration
 }
 
 // NewBucketDriver instantiates a new bucket storage driver
@@ -40,6 +41,7 @@ func NewBucketDriver(
 	accessKeyID string,
 	accessKeySecret string,
 	accessKeyToken string,
+	lockDuration time.Duration,
 	log util.Logger,
 ) (BucketDriver, error) {
 	creds := credentials.NewStaticCredentials(accessKeyID, accessKeySecret, accessKeyToken)
@@ -68,6 +70,7 @@ func NewBucketDriver(
 		s3Client:        client,
 		session:         session,
 		log:             log,
+		lockDuration:    lockDuration,
 	}, nil
 }
 
@@ -313,7 +316,7 @@ func (d BucketDriver) DeleteIndex(indexName string) error {
 	return err
 }
 
-// IndexIsLocked checks if the specified index is locked
+// IndexIsLocked checks if the specified index is locked and returns the timestamp it expires at
 func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 	d.log.Debugf("checking index %s for write locks", indexName)
 	prefix := indexName + "/"
@@ -342,7 +345,10 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 		}
 	}
 
-	return (maxLockTs.After(time.Time{})), maxLockTs, nil
+	expire := maxLockTs.Add(d.lockDuration)
+	isLocked := maxLockTs.After(time.Now())
+
+	return isLocked, expire, nil
 }
 
 // LockIndex marks an index as locked for writing

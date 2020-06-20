@@ -19,3 +19,8 @@ func ParseMillisString(millis string) (time.Time, error) {
 
 	return time.Unix(0, msInt*int64(time.Millisecond)), nil
 }
+
+// ToMillisDuration turn an int64 millisecond duration into time.Duration
+func ToMillisDuration(millis int64) time.Duration {
+	return (time.Duration(millis) * time.Millisecond)
+}

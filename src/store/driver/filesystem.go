@@ -17,10 +17,11 @@ type FilesystemDriver struct {
 	dataDir       string
 	pageExtension string
 	log           util.Logger
+	lockDuration  time.Duration
 }
 
 // NewFilesystemDriver instantiates a new filesystem storage driver
-func NewFilesystemDriver(dataDir string, pageExtension string, log util.Logger) (FilesystemDriver, error) {
+func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time.Duration, log util.Logger) (FilesystemDriver, error) {
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
 		return FilesystemDriver{}, fmt.Errorf("no data directory named %s could be found", dataDir)
 	}
@@ -29,6 +30,7 @@ func NewFilesystemDriver(dataDir string, pageExtension string, log util.Logger) 
 		dataDir:       dataDir,
 		pageExtension: pageExtension,
 		log:           log,
+		lockDuration:  lockDuration,
 	}, nil
 }
 
@@ -227,14 +229,14 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 		for _, name := range fNames {
 			ts, err := filenameToLockTimestamp(name)
 			if err != nil {
-				return true, maxLockTs.Add(lockDuration), err
+				return true, maxLockTs.Add(d.lockDuration), err
 			}
 			if ts.After(maxLockTs) {
 				maxLockTs = ts
 			}
 		}
 
-		expire := maxLockTs.Add(lockDuration)
+		expire := maxLockTs.Add(d.lockDuration)
 		isLocked := maxLockTs.After(time.Now())
 		d.log.Debugf("index %s locks expired at or before %s: locked? %v", indexName, expire.String(), isLocked)
 		return isLocked, expire, nil
