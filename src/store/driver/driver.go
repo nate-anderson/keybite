@@ -73,7 +73,7 @@ func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, er
 
 		accessKeyToken := conf.GetStringOrEmpty("AWS_SESSION_TOKEN")
 
-		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken)
+		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, log)
 
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
