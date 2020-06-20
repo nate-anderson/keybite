@@ -34,14 +34,16 @@ and design a query language. I don't promise this will be useful to anyone. I ha
 cheaper than just firing up an EC2 or RDS instance with MySQL.
 
 ## What keybite is
-- A file-based key value store that doesn't require a server
+- A file-based key value store that doesn't require an always-on server
 - A flexible way of storing and maintaining data
+- Great for prototyping and small personal projects
 - Limited and fragile (see index notes above; limited key string length)
 
 ## What keybite isn't
 - A drop-in replacement for MySQL or MongoDB (no indexes based on value, no JSON parsing)
 - Suited for analytics tasks for the same reasons as above
 - Secure (don't make queries straight from a frontend, don't store sensitive data)
+- Production-ready
 
 
 ## What keybite will be
