@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -338,8 +339,50 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 	return (maxLockTs.After(time.Time{})), maxLockTs, nil
 }
 
+// LockIndex marks an index as locked for writing
 func (d BucketDriver) LockIndex(indexName string) error {
+	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
+	lockfileName := currentMillis + d.pageExtension + lockfileExtension
 
+	filePath := path.Join(indexName, lockfileName)
+
+	// upload to S3
+	_, err := d.s3Uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(d.bucketName),
+		Key:    aws.String(filePath),
+		Body:   nil,
+	})
+
+	return err
+}
+
+// UnlockIndex deletes all write lockfiles in an index
+func (d BucketDriver) UnlockIndex(indexName string) error {
+	prefix := indexName + "/"
+
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, item := range resp.Contents {
+		itemName := path.Base(*item.Key)
+		if isLockfile(itemName) {
+			_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
+				Bucket: aws.String(d.bucketName),
+				Key:    aws.String(*item.Key),
+			})
+			if err != nil {
+				log.Println("Error deleting index write lockfile!", err)
+				continue
+			}
+		}
+	}
+
+	return nil
 }
 
 // is the error a missing file or bucket error from S3?
