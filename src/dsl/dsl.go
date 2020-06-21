@@ -3,7 +3,6 @@ package dsl
 import (
 	"fmt"
 	"keybite/config"
-	"keybite/util/log"
 	"strings"
 )
 
@@ -33,8 +32,6 @@ func getTokensUntil(s string, until int) (tokens []string, payload string, err e
 	}
 	tokens = fields[0 : until+1]
 	payload = strings.Join(fields[until:], " ")
-	log.Debug("Payload")
-	log.Debug(payload)
 	return
 }
 
