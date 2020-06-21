@@ -5,7 +5,7 @@ import (
 	"keybite/config"
 	"keybite/dsl"
 	"keybite/server"
-	"keybite/util"
+	"keybite/util/log"
 	"os"
 	"strings"
 )
@@ -17,7 +17,13 @@ func main() {
 		panic(err)
 	}
 
-	log := util.NewConfiguredLogger(conf, nil)
+	logLevel, err := conf.GetString("LOG_LEVEL")
+	if err != nil {
+		log.Warnf("Invalid log level %s configured", logLevel)
+		logLevel = "INFO"
+	}
+
+	log.SetLevelString(logLevel)
 
 	// if args are passed to tbe binary, run query and returm output to stdout
 	if len(os.Args) > 1 {
@@ -32,7 +38,7 @@ func main() {
 	}
 
 	// if no args are passed, start in server mode
-	err = server.StartConfiguredServer(conf, log)
+	err = server.StartConfiguredServer(conf)
 	if err != nil {
 		log.Error(err.Error())
 		displayHelp()

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"keybite/config"
 	"keybite/dsl"
-	"keybite/util"
+	"keybite/util/log"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -20,9 +20,9 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, payload orderedmap.O
 	λctx, ok := lambdacontext.FromContext(ctx)
 	if ok {
 		requestID = λctx.AwsRequestID
-		l.log.Debugf("%s :: %s => %s", requestID, λctx.Identity.CognitoIdentityID, functionName)
+		log.Debugf("%s :: %s => %s", requestID, λctx.Identity.CognitoIdentityID, functionName)
 	} else {
-		l.log.Warnf("incomplete log error: failed to extract lambda context")
+		log.Warnf("incomplete log error: failed to extract lambda context")
 	}
 	queryResults := make(map[string]string, len(payload.Keys()))
 	queries := payload.Keys()
@@ -36,16 +36,16 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, payload orderedmap.O
 
 		queryVariables := extractQueryVariables(query.(string))
 		if len(queryVariables) > 0 && mapHasKeys(queryResults, queryVariables) {
-			l.log.Debugf("query contained variables %v", queryVariables)
+			log.Debugf("query contained variables %v", queryVariables)
 			queryFormat := queryWithVariablesToFormat(query.(string))
 			variableValues := getMapValues(queryResults, queryVariables)
 			query = fmt.Sprintf(queryFormat, variableValues...)
-			l.log.Debugf("formatted query: '%s'", query)
+			log.Debugf("formatted query: '%s'", query)
 		}
 
 		result, err := dsl.Execute(query.(string), l.conf)
 		if err != nil {
-			l.log.Infof("error executing query DSL: %s", err.Error())
+			log.Infof("error executing query DSL: %s", err.Error())
 			return map[string]string{}, err
 		}
 
@@ -57,7 +57,7 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, payload orderedmap.O
 		queryResults[key] = result
 	}
 
-	l.log.Debugf("%s :: %s <= %s", requestID, λctx.Identity.CognitoIdentityID, functionName)
+	log.Debugf("%s :: %s <= %s", requestID, λctx.Identity.CognitoIdentityID, functionName)
 	return queryResults, nil
 
 }
@@ -65,19 +65,17 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, payload orderedmap.O
 // λHandler is the struct used for handling lambda requests
 type λHandler struct {
 	conf config.Config
-	log  util.Logger
 }
 
 // newλHandler creates a lambda handler
-func newλHandler(conf config.Config, log util.Logger) λHandler {
+func newλHandler(conf config.Config) λHandler {
 	return λHandler{
 		conf: conf,
-		log:  log,
 	}
 }
 
 // Serveλ serves a lambda request
-func Serveλ(conf config.Config, log util.Logger) {
-	handler := newλHandler(conf, log)
+func Serveλ(conf config.Config) {
+	handler := newλHandler(conf)
 	lambda.Start(handler.HandleLambdaRequest)
 }

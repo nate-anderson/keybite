@@ -6,8 +6,7 @@ import (
 	"keybite/config"
 	"keybite/store"
 	"keybite/store/driver"
-	"keybite/util"
-	"os"
+	"keybite/util/log"
 	"strconv"
 )
 
@@ -27,8 +26,7 @@ var Query = command{
 	description: "Query an auto index for the given key",
 	example:     "query index_name 1",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -59,8 +57,7 @@ var Insert = command{
 	description: "Insert the given value into an auto index. Everything after the index name is treated as a single string value.",
 	example:     "insert index_name the string to insert",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		log.Debugf("inserting with storage driver %T %+v", storageDriver, storageDriver)
 		if err != nil {
 			return "", err
@@ -93,8 +90,7 @@ var Update = command{
 	description: "Update the existing record at the given key. Fails if the record does not exist.",
 	example:     "update index_name 2 the new value of the key",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -130,8 +126,7 @@ var CreateAutoIndex = command{
 	description: "Create a new auto index with the given name",
 	example:     "create_auto_index index_name",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -148,8 +143,7 @@ var CreateMapIndex = command{
 	description: "Create a new map index with the given name",
 	example:     "create_map_index map_index_name",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -167,10 +161,9 @@ var QueryKey = command{
 	description: "Query a map index for the given key",
 	example:     "query_key map_index_name user1_email",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
 		indexName := tokens[1]
 		key := tokens[2]
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -195,11 +188,9 @@ var InsertKey = command{
 	description: "Insert a key and value into a map index",
 	example:     "insert_key map_index_name user1_email johndoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-
 		indexName := tokens[1]
 
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -225,11 +216,9 @@ var UpdateKey = command{
 	description: "Update an existing record at the provided key. Fails if the record does not exist.",
 	example:     "update_key map_index_name user1_email janedoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-
 		indexName := tokens[1]
 		key := tokens[2]
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}
@@ -254,11 +243,9 @@ var UpsertKey = command{
 	description: "Update or insert a record with the specified key.",
 	example:     "upsery_key map_index_name user1_email janedoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (string, error) {
-		log := util.NewConfiguredLogger(conf, os.Stderr)
-
 		indexName := tokens[1]
 		key := tokens[2]
-		storageDriver, err := driver.GetConfiguredDriver(conf, log)
+		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return "", err
 		}

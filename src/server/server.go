@@ -3,11 +3,11 @@ package server
 import (
 	"errors"
 	"keybite/config"
-	"keybite/util"
+	"keybite/util/log"
 )
 
 // StartConfiguredServer starts the appropriate server based on the environment env variable
-func StartConfiguredServer(conf config.Config, log util.Logger) error {
+func StartConfiguredServer(conf config.Config) error {
 	environment, err := conf.GetString("ENVIRONMENT")
 	if err != nil {
 		log.Error("error determining environment")
@@ -16,9 +16,9 @@ func StartConfiguredServer(conf config.Config, log util.Logger) error {
 
 	switch environment {
 	case "linux":
-		ServeHTTP(conf, log)
+		ServeHTTP(conf)
 	case "lambda":
-		Serveλ(conf, log)
+		Serveλ(conf)
 	default:
 		err := errors.New("ENVIRONMENT not configured :: cannot start application server")
 		return err
