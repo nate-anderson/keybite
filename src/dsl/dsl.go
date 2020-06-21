@@ -3,22 +3,13 @@ package dsl
 import (
 	"fmt"
 	"keybite/config"
+	"keybite/util/log"
 	"strings"
-
-	"github.com/lmika/shellwords"
 )
 
 // Execute a statement on the data in the provided datadir
 func Execute(input string, conf config.Config) (string, error) {
 	action := getAction(input)
-
-	/*
-		this is bad behavior, because dsl.Execute happens in Lambda, HTTP contexts
-		if action == "help" || action == "" {
-			displayCommandList()
-			return "", nil
-		}
-	*/
 
 	for _, command := range Commands {
 		if action == command.keyword {
@@ -33,15 +24,17 @@ func Execute(input string, conf config.Config) (string, error) {
 	return "", fmt.Errorf("'%s' is not a valid query command", action)
 }
 
-func getTokensUntil(s string, until int) (tokens []string, remaining string, err error) {
-	fields := shellwords.Split(s)
+func getTokensUntil(s string, until int) (tokens []string, payload string, err error) {
+	fields := strings.Fields(s)
 
 	if len(fields) < until {
 		err = fmt.Errorf("malformed query: minimum length of %d tokens not met", (until + 1))
 		return
 	}
 	tokens = fields[0 : until+1]
-	remaining = fields[until]
+	payload = strings.Join(fields[until:], " ")
+	log.Debug("Payload")
+	log.Debug(payload)
 	return
 }
 
