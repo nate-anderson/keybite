@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"keybite/util"
-	"log"
+	"keybite/util/log"
 	"os"
 	"path"
 	"strconv"
@@ -30,7 +30,6 @@ type BucketDriver struct {
 	session         *session.Session
 	s3Downloader    *s3manager.Downloader
 	s3Uploader      *s3manager.Uploader
-	log             util.Logger
 	lockDuration    time.Duration
 }
 
@@ -42,7 +41,6 @@ func NewBucketDriver(
 	accessKeySecret string,
 	accessKeyToken string,
 	lockDuration time.Duration,
-	log util.Logger,
 ) (BucketDriver, error) {
 	creds := credentials.NewStaticCredentials(accessKeyID, accessKeySecret, accessKeyToken)
 	session, err := session.NewSession(&aws.Config{
@@ -69,7 +67,6 @@ func NewBucketDriver(
 		pageExtension:   pageExtension,
 		s3Client:        client,
 		session:         session,
-		log:             log,
 		lockDuration:    lockDuration,
 	}, nil
 }
@@ -226,7 +223,7 @@ func (d BucketDriver) downloadToFile(remotePath string, dest *os.File) error {
 		if isS3NotExistErr(err) {
 			return ErrNotExist(remotePath)
 		}
-		log.Printf("error fetching remote file %s", remotePath)
+		log.Errorf("error fetching remote file %s", remotePath)
 		return err
 	}
 
@@ -318,7 +315,7 @@ func (d BucketDriver) DeleteIndex(indexName string) error {
 
 // IndexIsLocked checks if the specified index is locked and returns the timestamp it expires at
 func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
-	d.log.Debugf("checking index %s for write locks", indexName)
+	log.Debugf("checking index %s for write locks", indexName)
 	prefix := indexName + "/"
 	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(d.bucketName),
@@ -334,7 +331,7 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 	for _, item := range resp.Contents {
 		itemName := path.Base(*item.Key)
 		if isLockfile(itemName) {
-			d.log.Debugf("found lockfile %s in index %s", itemName, indexName)
+			log.Debugf("found lockfile %s in index %s", itemName, indexName)
 			ts, err := filenameToLockTimestamp(itemName)
 			if err != nil {
 				continue
@@ -353,7 +350,7 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 
 // LockIndex marks an index as locked for writing
 func (d BucketDriver) LockIndex(indexName string) error {
-	d.log.Debugf("locking index %s for writes", indexName)
+	log.Debugf("locking index %s for writes", indexName)
 	d.setUploaderIfNil()
 
 	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
@@ -368,14 +365,14 @@ func (d BucketDriver) LockIndex(indexName string) error {
 		Body:   strings.NewReader(""),
 	})
 
-	d.log.Debugf("created lockfile %s", filePath)
+	log.Debugf("created lockfile %s", filePath)
 
 	return err
 }
 
 // UnlockIndex deletes all write lockfiles in an index
 func (d BucketDriver) UnlockIndex(indexName string) error {
-	d.log.Debugf("unlocking index %s for writes", indexName)
+	log.Debugf("unlocking index %s for writes", indexName)
 	prefix := indexName + "/"
 
 	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
@@ -389,13 +386,13 @@ func (d BucketDriver) UnlockIndex(indexName string) error {
 	for _, item := range resp.Contents {
 		itemName := path.Base(*item.Key)
 		if isLockfile(itemName) {
-			d.log.Debugf("deleting lockfile %s", itemName)
+			log.Debugf("deleting lockfile %s", itemName)
 			_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
 				Bucket: aws.String(d.bucketName),
 				Key:    aws.String(*item.Key),
 			})
 			if err != nil {
-				log.Println("Error deleting index write lockfile!", err)
+				log.Errorf("Error deleting index write lockfile! %s", err.Error())
 				continue
 			}
 		}

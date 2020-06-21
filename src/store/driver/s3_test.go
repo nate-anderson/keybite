@@ -62,7 +62,7 @@ func TestNewBucketDriver(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	_, err = driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration, testLog)
+	_, err = driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
 	util.Ok(t, err)
 }
 
@@ -71,7 +71,7 @@ func TestBucketCreateAutoIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration, testLog)
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -95,7 +95,7 @@ func TestBucketCreateMapIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration, testLog)
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -120,7 +120,7 @@ func TestBucketWritePageReadPage(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration, testLog)
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"

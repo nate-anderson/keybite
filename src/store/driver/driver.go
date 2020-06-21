@@ -33,7 +33,7 @@ type StorageDriver interface {
 const lockfileExtension = ".lock"
 
 // GetConfiguredDriver returns the correct driver based on config
-func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, error) {
+func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 	driverType, err := conf.GetString("DRIVER")
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, er
 
 		lockDuration := util.ToMillisDuration(lockMs)
 
-		return NewFilesystemDriver(dataDir, pageExtension, lockDuration, log)
+		return NewFilesystemDriver(dataDir, pageExtension, lockDuration)
 
 	case "s3":
 		bucketName, err := conf.GetString("BUCKET_NAME")
@@ -85,7 +85,7 @@ func GetConfiguredDriver(conf config.Config, log util.Logger) (StorageDriver, er
 
 		lockDuration := util.ToMillisDuration(lockMs)
 
-		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, lockDuration, log)
+		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, lockDuration)
 
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)

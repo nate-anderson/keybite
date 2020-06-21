@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"keybite/config"
 	"keybite/dsl"
-	"keybite/util"
+	"keybite/util/log"
 	"net/http"
 	"regexp"
 
@@ -16,7 +16,7 @@ import (
 const NoResultWantedKey = "_"
 
 // ServeHTTP starts the HTTP server
-func ServeHTTP(conf config.Config, log util.Logger) error {
+func ServeHTTP(conf config.Config) error {
 	port, err := conf.GetString("HTTP_PORT")
 	if err != nil {
 		return err
@@ -27,10 +27,10 @@ func ServeHTTP(conf config.Config, log util.Logger) error {
 		return err
 	}
 
-	log.Infof("Serving HTTP on port %s/keybite using driver '%s'", port, driverName)
+	log.Alwaysf("Starting Keybite HTTP server at %s/keybite using driver '%s'", port, driverName)
 
 	r := http.NewServeMux()
-	handler := NewQueryHandler(conf, log)
+	handler := NewQueryHandler(conf)
 	r.Handle("/keybite", handler)
 
 	return http.ListenAndServe(port, r)
@@ -39,24 +39,22 @@ func ServeHTTP(conf config.Config, log util.Logger) error {
 // QueryHandler handles query HTTP requests
 type QueryHandler struct {
 	conf config.Config
-	log  util.Logger
 }
 
 // NewQueryHandler creates a query HTTP handler
-func NewQueryHandler(conf config.Config, log util.Logger) QueryHandler {
+func NewQueryHandler(conf config.Config) QueryHandler {
 	return QueryHandler{
 		conf: conf,
-		log:  log,
 	}
 }
 
 func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	h.log.Debugf("%s => %s", req.RemoteAddr, req.RequestURI)
+	log.Debugf("%s => %s", req.RemoteAddr, req.RequestURI)
 	queryList := orderedmap.New()
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&queryList)
 	if err != nil {
-		h.log.Infof("%s: client %s JSON request could not be decoded: %s", req.RequestURI, req.RemoteAddr, err.Error())
+		log.Infof("%s: client %s JSON request could not be decoded: %s", req.RequestURI, req.RemoteAddr, err.Error())
 		errText := fmt.Sprintf("could not parse request JSON: %s", err.Error())
 		respondError(w, errText, http.StatusBadRequest)
 		return
@@ -69,23 +67,23 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		query, ok := queryList.Get(key)
 		if !ok {
-			h.log.Warn("unable to Get query from request OrderedMap :: something really broke")
+			log.Warn("unable to Get query from request OrderedMap :: something really broke")
 			respondError(w, "something really broke", http.StatusInternalServerError)
 			return
 		}
 
 		queryVariables := extractQueryVariables(query.(string))
 		if len(queryVariables) > 0 && mapHasKeys(queryResults, queryVariables) {
-			h.log.Debugf("query contained variables %v", queryVariables)
+			log.Debugf("query contained variables %v", queryVariables)
 			queryFormat := queryWithVariablesToFormat(query.(string))
 			variableValues := getMapValues(queryResults, queryVariables)
 			query = fmt.Sprintf(queryFormat, variableValues...)
-			h.log.Debugf("formatted query: '%s'", query)
+			log.Debugf("formatted query: '%s'", query)
 		}
 
 		result, err := dsl.Execute(query.(string), h.conf)
 		if err != nil {
-			h.log.Infof("error executing query DSL: %s", err.Error())
+			log.Infof("error executing query DSL: %s", err.Error())
 			continue
 		}
 
@@ -97,7 +95,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		queryResults[key] = result
 	}
 
-	h.log.Debugf("%s <= %s", req.RemoteAddr, req.RequestURI)
+	log.Debugf("%s <= %s", req.RemoteAddr, req.RequestURI)
 	respond(w, queryResults, http.StatusOK)
 
 }
