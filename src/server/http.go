@@ -55,28 +55,28 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	err := decoder.Decode(&queryList)
 	if err != nil {
 		log.Infof("%s: client %s JSON request could not be decoded: %s", req.RequestURI, req.RemoteAddr, err.Error())
-		errText := fmt.Sprintf("could not parse request JSON: %s", err.Error())
+		errText := "JSON error: could not parse client request. Query object should be a single object with depth 1"
 		respondError(w, errText, http.StatusBadRequest)
 		return
 	}
 
-	queryResults := map[string]string{}
 	queries := queryList.Keys()
+	queryResults := make(ResultSet, len(queries))
 
 	for _, key := range queries {
 
 		query, ok := queryList.Get(key)
 		if !ok {
 			log.Warn("unable to Get query from request OrderedMap :: something really broke")
-			respondError(w, "something really broke", http.StatusInternalServerError)
+			respondError(w, "error retrieving previously cached query result", http.StatusInternalServerError)
 			return
 		}
 
 		queryVariables := extractQueryVariables(query.(string))
-		if len(queryVariables) > 0 && mapHasKeys(queryResults, queryVariables) {
+		if len(queryVariables) > 0 && resultSetHasKeys(queryResults, queryVariables) {
 			log.Debugf("query contained variables %v", queryVariables)
 			queryFormat := queryWithVariablesToFormat(query.(string))
-			variableValues := getMapValues(queryResults, queryVariables)
+			variableValues := getResultSetValues(queryResults, queryVariables)
 			query = fmt.Sprintf(queryFormat, variableValues...)
 			log.Debugf("formatted query: '%s'", query)
 		}
@@ -84,6 +84,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		result, err := dsl.Execute(query.(string), h.conf)
 		if err != nil {
 			log.Infof("error executing query DSL: %s", err.Error())
+			queryResults[key] = NullableString{}
 			continue
 		}
 
@@ -92,7 +93,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			continue
 		}
 
-		queryResults[key] = result
+		queryResults[key] = toNullableString(result)
 	}
 
 	log.Debugf("%s <= %s", req.RemoteAddr, req.RequestURI)
@@ -102,13 +103,15 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func respond(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
 	resBytes, err := json.Marshal(data)
 	if err != nil {
-		respondError(w, "Error marshaling response body", http.StatusInternalServerError)
+		errString := "error marshaling JSON response: " + err.Error()
+		log.Warn(errString, err)
+		respondError(w, errString, http.StatusInternalServerError)
 		return
 	}
 
+	w.WriteHeader(status)
 	fmt.Fprintf(w, string(resBytes))
 	return
 }
@@ -131,33 +134,6 @@ func stripStringPrefixes(ss []string, n int) []string {
 // convert a query string with variables to a Go format string
 func queryWithVariablesToFormat(query string) string {
 	return findVariableRegex.ReplaceAllLiteralString(query, "%s")
-}
-
-// does the map contain all of the provided keys
-func mapHasKeys(m map[string]string, keys []string) bool {
-	for _, key := range keys {
-		if _, ok := m[key]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-// get a collection of map values from a collection of keys
-func getMapValues(m map[string]string, keys []string) []interface{} {
-	res := []string{}
-	for _, key := range keys {
-		res = append(res, m[key])
-	}
-	return strSliceToInterfaceSlice(res)
-}
-
-func strSliceToInterfaceSlice(strSlice []string) []interface{} {
-	new := make([]interface{}, len(strSlice))
-	for i, v := range strSlice {
-		new[i] = v
-	}
-	return new
 }
 
 // ErrResponse is used for sending JSON error messages to client
