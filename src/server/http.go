@@ -63,17 +63,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	queryResults := make(ResultSet, len(request))
-	for key, query := range request {
-		log.Debugf("QUERY: %+v", query)
-		result, err := query.Execute(h.conf, queryResults)
-		if err != nil {
-			log.Infof("error executing query DSL: %s", err.Error())
-			queryResults[key] = NullableString{}
-			continue
-		}
-		queryResults[key] = toNullableString(result)
-	}
+	queryResults := request.ExecuteQueries(h.conf)
 
 	log.Debugf("%s <= %s", req.RemoteAddr, req.RequestURI)
 	respond(w, queryResults, http.StatusOK)

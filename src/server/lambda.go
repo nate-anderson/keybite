@@ -10,7 +10,7 @@ import (
 )
 
 // HandleLambdaRequest handles a lambda request
-func (l λHandler) HandleLambdaRequest(ctx context.Context, payload Request) (ResultSet, error) {
+func (l λHandler) HandleLambdaRequest(ctx context.Context, request Request) (ResultSet, error) {
 	var requestID string
 	functionName := lambdacontext.FunctionName
 	λctx, ok := lambdacontext.FromContext(ctx)
@@ -21,16 +21,13 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, payload Request) (Re
 		log.Warnf("incomplete log error: failed to extract lambda context")
 	}
 
-	queryResults := make(ResultSet, len(payload))
-	for key, query := range payload {
-		result, err := query.Execute(l.conf, queryResults)
-		if err != nil {
-			log.Infof("error executing query DSL: %s", err.Error())
-			queryResults[key] = NullableString{}
-			continue
-		}
-		queryResults[key] = toNullableString(result)
+	err := request.LinkQueryDependencies()
+	if err != nil {
+		log.Infof("error linking query dependencies: %s", err.Error())
+		return ResultSet{}, err
 	}
+
+	queryResults := request.ExecuteQueries(l.conf)
 
 	log.Debugf("%s :: %s <= %s", requestID, λctx.Identity.CognitoIdentityID, functionName)
 	return queryResults, nil
