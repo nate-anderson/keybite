@@ -57,7 +57,7 @@ func (q *Query) LinkDependencies(queries Request) error {
 	for _, depVar := range q.depVars {
 		dep, ok := queries[depVar]
 		if !ok {
-			return fmt.Errorf("query has dependency '%s' which is not declared in the request", depVar)
+			return fmt.Errorf("query depends on variable ':%s' which is not declared in the request", depVar)
 		}
 		q.deps = append(q.deps, &dep)
 	}
@@ -76,7 +76,7 @@ func (q *Query) Complete(list ResultSet) (string, error) {
 		if value := list[key]; value.valid {
 			variableValues = append(variableValues, list[key].value)
 		} else {
-			return "", fmt.Errorf("failed executing query with variable '%s': variable not set in request resolution", key)
+			return "", fmt.Errorf("failed executing query with variable ':%s': variable not set in request resolution", key)
 		}
 	}
 	// have to convert results to interface slice for fmt.Sprintf to work
