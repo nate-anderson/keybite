@@ -4,12 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"keybite/config"
-	"keybite/dsl"
 	"keybite/util/log"
 	"net/http"
-	"regexp"
-
-	"github.com/iancoleman/orderedmap"
 )
 
 // NoResultWantedKey should be used in JSON queries to indicate that no response value is desired, but the query should still be executed
@@ -50,9 +46,9 @@ func NewQueryHandler(conf config.Config) QueryHandler {
 
 func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	log.Debugf("%s => %s", req.RemoteAddr, req.RequestURI)
-	queryList := orderedmap.New()
+	request := Request{}
 	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&queryList)
+	err := decoder.Decode(&request)
 	if err != nil {
 		log.Infof("%s: client %s JSON request could not be decoded: %s", req.RequestURI, req.RemoteAddr, err.Error())
 		errText := "JSON error: could not parse client request. Query object should be a single object with depth 1"
@@ -60,41 +56,72 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	queries := queryList.Keys()
-	queryResults := make(ResultSet, len(queries))
+	err = request.LinkQueryDependencies()
+	if err != nil {
+		log.Infof("error linking query dependencies: %s", err.Error())
+		respondError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	for _, key := range queries {
-
-		query, ok := queryList.Get(key)
-		if !ok {
-			log.Warn("unable to Get query from request OrderedMap :: something really broke")
-			respondError(w, "error retrieving previously cached query result", http.StatusInternalServerError)
-			return
-		}
-
-		queryVariables := extractQueryVariables(query.(string))
-		if len(queryVariables) > 0 && resultSetHasKeys(queryResults, queryVariables) {
-			log.Debugf("query contained variables %v", queryVariables)
-			queryFormat := queryWithVariablesToFormat(query.(string))
-			variableValues := getResultSetValues(queryResults, queryVariables)
-			query = fmt.Sprintf(queryFormat, variableValues...)
-			log.Debugf("formatted query: '%s'", query)
-		}
-
-		result, err := dsl.Execute(query.(string), h.conf)
+	queryResults := make(ResultSet, len(request))
+	for key, query := range request {
+		log.Debugf("QUERY: %+v", query)
+		result, err := query.Execute(h.conf, queryResults)
 		if err != nil {
 			log.Infof("error executing query DSL: %s", err.Error())
 			queryResults[key] = NullableString{}
 			continue
 		}
-
-		// if key == "_", don't add it to the return value
-		if key == NoResultWantedKey {
-			continue
-		}
-
 		queryResults[key] = toNullableString(result)
 	}
+
+	/*
+		queryList := orderedmap.New()
+		decoder := json.NewDecoder(req.Body)
+		err := decoder.Decode(&queryList)
+		if err != nil {
+			log.Infof("%s: client %s JSON request could not be decoded: %s", req.RequestURI, req.RemoteAddr, err.Error())
+			errText := "JSON error: could not parse client request. Query object should be a single object with depth 1"
+			respondError(w, errText, http.StatusBadRequest)
+			return
+		}
+
+		queries := queryList.Keys()
+		queryResults := make(ResultSet, len(queries))
+
+		for _, key := range queries {
+
+			query, ok := queryList.Get(key)
+			if !ok {
+				log.Warn("unable to Get query from request OrderedMap :: something really broke")
+				respondError(w, "error retrieving previously cached query result", http.StatusInternalServerError)
+				return
+			}
+
+			queryVariables := extractQueryVariables(query.(string))
+			if len(queryVariables) > 0 && resultSetHasKeys(queryResults, queryVariables) {
+				log.Debugf("query contained variables %v", queryVariables)
+				queryFormat := queryWithVariablesToFormat(query.(string))
+				variableValues := getResultSetValues(queryResults, queryVariables)
+				query = fmt.Sprintf(queryFormat, variableValues...)
+				log.Debugf("formatted query: '%s'", query)
+			}
+
+			result, err := dsl.Execute(query.(string), h.conf)
+			if err != nil {
+				log.Infof("error executing query DSL: %s", err.Error())
+				queryResults[key] = NullableString{}
+				continue
+			}
+
+			// if key == "_", don't add it to the return value
+			if key == NoResultWantedKey {
+				continue
+			}
+
+			queryResults[key] = toNullableString(result)
+		}
+	*/
 
 	log.Debugf("%s <= %s", req.RemoteAddr, req.RequestURI)
 	respond(w, queryResults, http.StatusOK)
@@ -114,26 +141,6 @@ func respond(w http.ResponseWriter, data interface{}, status int) {
 	w.WriteHeader(status)
 	fmt.Fprintf(w, string(resBytes))
 	return
-}
-
-var findVariableRegex = regexp.MustCompile(`\B:\w+`)
-
-// get a list of variables in a query
-func extractQueryVariables(query string) []string {
-	return stripStringPrefixes(findVariableRegex.FindAllString(query, -1), 1)
-}
-
-func stripStringPrefixes(ss []string, n int) []string {
-	results := make([]string, len(ss))
-	for i, s := range ss {
-		results[i] = s[n:]
-	}
-	return results
-}
-
-// convert a query string with variables to a Go format string
-func queryWithVariablesToFormat(query string) string {
-	return findVariableRegex.ReplaceAllLiteralString(query, "%s")
 }
 
 // ErrResponse is used for sending JSON error messages to client
