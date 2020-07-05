@@ -27,7 +27,15 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, request Request) (Re
 		return ResultSet{}, err
 	}
 
-	queryResults := request.ExecuteQueries(l.conf)
+	queryResults := ResultSet{}
+	seen := keyList{}
+	for key, query := range request {
+		err := ResolveQuery(key, *query, l.conf, queryResults, seen)
+		if err != nil {
+			log.Infof("error resolving query for key '%s': %s", key, err)
+			continue
+		}
+	}
 
 	log.Debugf("%s :: %s <= %s", requestID, λctx.Identity.CognitoIdentityID, functionName)
 	return queryResults, nil
