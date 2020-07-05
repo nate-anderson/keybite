@@ -24,21 +24,30 @@ func toNullableString(str string) NullableString {
 	}
 }
 
-// does the map contain all of the provided keys
-func resultSetHasKeys(m ResultSet, keys []string) bool {
+// HasKeys indicates if the map contain all of the provided keys
+func (r ResultSet) HasKeys(keys []string) bool {
 	for _, key := range keys {
-		if _, ok := m[key]; !ok {
+		if _, ok := r[key]; !ok {
 			return false
 		}
 	}
 	return true
 }
 
-// get a collection of map values from a collection of keys
-func getResultSetValues(m ResultSet, keys []string) []interface{} {
+// HasKey indicates if the map contain the provided key
+func (r ResultSet) HasKey(key string) bool {
+	if _, ok := r[key]; !ok {
+		return false
+	}
+
+	return true
+}
+
+// GetValueList returns a collection of map values from a collection of keys
+func (r ResultSet) GetValueList(keys []string) []interface{} {
 	res := []string{}
 	for _, key := range keys {
-		res = append(res, m[key].value)
+		res = append(res, r[key].value)
 	}
 	return strSliceToInterfaceSlice(res)
 }
