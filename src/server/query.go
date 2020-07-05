@@ -59,7 +59,7 @@ func (q *Query) LinkDependencies(queries Request) error {
 		if !ok {
 			return fmt.Errorf("query depends on variable ':%s' which is not declared in the request", depVar)
 		}
-		q.deps = append(q.deps, &dep)
+		q.deps = append(q.deps, dep)
 	}
 	return nil
 }

@@ -1,12 +1,13 @@
 package server
 
 import (
+	"fmt"
 	"keybite/config"
 	"keybite/util/log"
 )
 
 // Request is a mapped collection of requests marshalled from JSON
-type Request map[string]Query
+type Request map[string]*Query
 
 // LinkQueryDependencies populates the `deps` field of each request query based on the other queries
 func (r *Request) LinkQueryDependencies() error {
@@ -36,15 +37,39 @@ func (r Request) ExecuteQueries(conf config.Config) ResultSet {
 	return results
 }
 
+type keyList []string
+
+func (l keyList) contains(key string) bool {
+	for _, member := range l {
+		if member == key {
+			return true
+		}
+	}
+	return false
+}
+
 // ResolveQuery resolves a query into a resultset
-func ResolveQuery(q Query, results ResultSet) error {
-	for _, dep := range q.deps {
-		if results.HasKey(dep.)
-		err := ResolveQuery(*dep, results)
-		if err != nil {
-			return err
+func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, seen keyList) error {
+	// resolve q's deps
+	for i, dep := range q.deps {
+		depKey := q.depVars[i]
+		if !results.HasKey(depKey) {
+			if seen.contains(depKey) {
+				return fmt.Errorf("circular dependency on variable '%s'", depKey)
+			}
+			err := ResolveQuery(depKey, *dep, conf, results, seen)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	ResolveQuery(q)
+	// resolve q
+	res, err := q.Execute(conf, results)
+	if err != nil {
+		return err
+	}
+	results[key] = toNullableString(res)
+	seen = append(seen, key)
+	return nil
 }
