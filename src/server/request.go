@@ -71,6 +71,7 @@ func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, se
 	// resolve q
 	res, err := q.Execute(conf, results)
 	if err != nil {
+		results[key] = NullableString{}
 		return err
 	}
 
