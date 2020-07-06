@@ -54,11 +54,13 @@ func (l keyList) contains(key string) bool {
 
 // ResolveQuery resolves a query into a resultset
 func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, seen keyList) error {
+	seen = append(seen, key)
 	// resolve q's deps
 	for i, dep := range q.deps {
 		depKey := q.depVars[i]
 		if !results.HasKey(depKey) {
 			if seen.contains(depKey) {
+				results[key] = NullableString{}
 				return fmt.Errorf("circular dependency on variable '%s'", depKey)
 			}
 			err := ResolveQuery(depKey, *dep, conf, results, seen)
@@ -79,6 +81,5 @@ func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, se
 		results[key] = toNullableString(res)
 	}
 
-	seen = append(seen, key)
 	return nil
 }
