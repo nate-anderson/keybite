@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"keybite/config"
 	"keybite/util/log"
+	"strings"
 )
+
+// NoResultWantedPrefix should be used in JSON queries to indicate that no response value is desired, but the query should still be executed
+const NoResultWantedPrefix = "_"
 
 // Request is a mapped collection of requests marshalled from JSON
 type Request map[string]*Query
@@ -67,9 +71,14 @@ func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, se
 	// resolve q
 	res, err := q.Execute(conf, results)
 	if err != nil {
+		results[key] = NullableString{}
 		return err
 	}
-	results[key] = toNullableString(res)
+
+	if !strings.HasPrefix(key, NoResultWantedPrefix) {
+		results[key] = toNullableString(res)
+	}
+
 	seen = append(seen, key)
 	return nil
 }

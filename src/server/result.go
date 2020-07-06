@@ -9,12 +9,12 @@ type NullableString struct {
 // ResultSet is a set of query results used when serving the JSON API
 type ResultSet map[string]NullableString
 
-// MarshalText makes the string fulfill the Marshaler interface
-func (s NullableString) MarshalText() ([]byte, error) {
+// MarshalJSON makes the string fulfill the Marshaler interface
+func (s NullableString) MarshalJSON() ([]byte, error) {
 	if !s.valid {
-		return []byte("null"), nil
+		return []byte(`null`), nil
 	}
-	return []byte(s.value), nil
+	return []byte(`"` + s.value + `"`), nil
 }
 
 func toNullableString(str string) NullableString {

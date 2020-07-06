@@ -8,9 +8,6 @@ import (
 	"net/http"
 )
 
-// NoResultWantedKey should be used in JSON queries to indicate that no response value is desired, but the query should still be executed
-const NoResultWantedKey = "_"
-
 // ServeHTTP starts the HTTP server
 func ServeHTTP(conf config.Config) error {
 	port, err := conf.GetString("HTTP_PORT")
