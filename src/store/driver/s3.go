@@ -72,7 +72,7 @@ func NewBucketDriver(
 }
 
 // ReadPage reads the contents of a page into a map
-func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) (map[int64]string, error) {
+func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
 	d.setDownloaderIfNil()
 
 	// download the remote file into a local temp file to read into memory
@@ -81,16 +81,16 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
-		return map[int64]string{}, err
+		return map[uint64]string{}, err
 	}
 	defer tempFile.Close()
 
 	err = d.downloadToFile(remotePath, tempFile)
 	if err != nil {
-		return map[int64]string{}, err
+		return map[uint64]string{}, err
 	}
 
-	vals := make(map[int64]string, pageSize)
+	vals := make(map[uint64]string, pageSize)
 
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
@@ -141,7 +141,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 }
 
 // WritePage persists a new or updated page as a file in the remote bucket
-func (d BucketDriver) WritePage(vals map[int64]string, fileName string, indexName string) error {
+func (d BucketDriver) WritePage(vals map[uint64]string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
 	pageReader := NewPageReader(vals)
@@ -162,7 +162,7 @@ func (d BucketDriver) WritePage(vals map[int64]string, fileName string, indexNam
 func (d BucketDriver) WriteMapPage(vals map[uint64]string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewMapPageReader(vals)
+	pageReader := NewPageReader(vals)
 	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 

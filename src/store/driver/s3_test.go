@@ -129,7 +129,7 @@ func TestBucketWritePageReadPage(t *testing.T) {
 
 	defer bd.DeleteIndex(indexName)
 
-	testVals := map[int64]string{
+	testVals := map[uint64]string{
 		1: "hello",
 		2: "world",
 	}

@@ -34,8 +34,8 @@ func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time
 }
 
 // ReadPage reads a file into a map
-func (d FilesystemDriver) ReadPage(filename string, indexName string, pageSize int) (map[int64]string, error) {
-	vals := make(map[int64]string, pageSize)
+func (d FilesystemDriver) ReadPage(filename string, indexName string, pageSize int) (map[uint64]string, error) {
+	vals := make(map[uint64]string, pageSize)
 	path := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(filename, d.pageExtension))
 
 	pageFile, err := os.Open(path)
@@ -86,7 +86,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 }
 
 // WritePage persists a new or updated page as a file in the datadir
-func (d FilesystemDriver) WritePage(vals map[int64]string, filename string, indexName string) error {
+func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, indexName string) error {
 	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(filename, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {

@@ -86,7 +86,7 @@ func TestFSWritePageReadPage(t *testing.T) {
 	err = fsd.CreateMapIndex(indexName)
 	util.Ok(t, err)
 
-	testMap := map[int64]string{
+	testMap := map[uint64]string{
 		1: "hello",
 		2: "world",
 	}

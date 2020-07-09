@@ -11,13 +11,13 @@ import (
 const MaxKeyLength = 150
 
 // StringToKeyValue converts a line of text to a key-value pair used to read a page file
-func StringToKeyValue(str string) (int64, string, error) {
+func StringToKeyValue(str string) (uint64, string, error) {
 	parts, err := SplitOnFirst(str, ':')
 	if err != nil || len(parts) != 2 {
 		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
 	}
 
-	key, err := strconv.ParseInt(parts[0], 10, 64)
+	key, err := strconv.ParseUint(parts[0], 10, 64)
 	if err != nil {
 		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: key %v is not a valid int64", str, parts[0])
 	}
@@ -52,8 +52,8 @@ func SplitOnFirst(str string, split rune) ([]string, error) {
 }
 
 // MaxMapKey returns the max integer key of a map
-func MaxMapKey(m map[int64]string) int64 {
-	var maxNumber int64
+func MaxMapKey(m map[uint64]string) uint64 {
+	var maxNumber uint64
 	for maxNumber = range m {
 		break
 	}

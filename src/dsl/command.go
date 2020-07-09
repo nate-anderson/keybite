@@ -41,7 +41,7 @@ var Query = command{
 			return "", err
 		}
 
-		queryID, err := strconv.ParseInt(tokens[2], 10, 64)
+		queryID, err := strconv.ParseUint(tokens[2], 10, 64)
 		if err != nil {
 			return "", fmt.Errorf("cannot query non-integer ID %s", tokens[2])
 		}
@@ -79,7 +79,7 @@ var Insert = command{
 			return "", err
 		}
 
-		return strconv.FormatInt(result, 10), nil
+		return strconv.FormatUint(result, 10), nil
 	},
 }
 
@@ -105,7 +105,7 @@ var Update = command{
 			return "", err
 		}
 
-		queryID, err := strconv.ParseInt(tokens[2], 10, 64)
+		queryID, err := strconv.ParseUint(tokens[2], 10, 64)
 		if err != nil {
 			return "", fmt.Errorf("cannot query non-integer ID %s", tokens[2])
 		}
@@ -115,7 +115,7 @@ var Update = command{
 			return "", err
 		}
 
-		return strconv.FormatInt(queryID, 10), nil
+		return strconv.FormatUint(queryID, 10), nil
 	},
 }
 

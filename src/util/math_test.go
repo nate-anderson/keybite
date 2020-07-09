@@ -7,10 +7,10 @@ import (
 
 func TestMin(t *testing.T) {
 	haves := [][]int64{
-		[]int64{1, 2},
-		[]int64{2, 10},
-		[]int64{30, -30},
-		[]int64{0, 0},
+		{1, 2},
+		{2, 10},
+		{30, -30},
+		{0, 0},
 	}
 
 	wants := []int64{
@@ -27,10 +27,10 @@ func TestMin(t *testing.T) {
 
 func TestMax(t *testing.T) {
 	haves := [][]int64{
-		[]int64{1, 2},
-		[]int64{2, 10},
-		[]int64{30, -30},
-		[]int64{0, 0},
+		{1, 2},
+		{2, 10},
+		{30, -30},
+		{0, 0},
 	}
 
 	wants := []int64{
