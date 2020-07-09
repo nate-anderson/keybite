@@ -15,10 +15,10 @@ type KeyValueAssertion struct {
 
 func TestStringToKeyValue(t *testing.T) {
 	cases := []KeyValueAssertion{
-		KeyValueAssertion{1, "hi", "1:hi", true},
-		KeyValueAssertion{2, "hi:hi", "2:hi:hi", true},
-		KeyValueAssertion{3, "hi", "3", false},
-		KeyValueAssertion{3, "hi", ":", false},
+		{1, "hi", "1:hi", true},
+		{2, "hi:hi", "2:hi:hi", true},
+		{3, "hi", "3", false},
+		{3, "hi", ":", false},
 	}
 
 	for _, testCase := range cases {
@@ -41,10 +41,10 @@ type MapKeyValueAssertion struct {
 
 func TestStringToMapKeyValue(t *testing.T) {
 	cases := []MapKeyValueAssertion{
-		MapKeyValueAssertion{1, "hi", "1:hi", true},
-		MapKeyValueAssertion{2, "hi:hi", "2:hi:hi", true},
-		MapKeyValueAssertion{3, "hi", "3", false},
-		MapKeyValueAssertion{3, "hi", ":", false},
+		{1, "hi", "1:hi", true},
+		{2, "hi:hi", "2:hi:hi", true},
+		{3, "hi", "3", false},
+		{3, "hi", ":", false},
 	}
 
 	for _, testCase := range cases {
@@ -66,10 +66,10 @@ func TestSplitOnFirst(t *testing.T) {
 		":",
 	}
 	outs := [][]string{
-		[]string{"hi", "there"},
-		[]string{"hi", "there:again"},
-		[]string{"hi", ":there"},
-		[]string{"", ""},
+		{"hi", "there"},
+		{"hi", "there:again"},
+		{"hi", ":there"},
+		{"", ""},
 	}
 
 	for i, in := range ins {
@@ -81,7 +81,7 @@ func TestSplitOnFirst(t *testing.T) {
 }
 
 func TestMaxMapKey(t *testing.T) {
-	testMap := map[int64]string{
+	testMap := map[uint64]string{
 		1:   "low",
 		2:   "high",
 		3:   "higher",
@@ -135,8 +135,8 @@ func TestHashStringNotAcceptOverMaxLength(t *testing.T) {
 
 func TestPathToIndexPage(t *testing.T) {
 	exps := map[string][]string{
-		"ind/p.kb":  []string{"ind", "p.kb"},
-		"/ind/p.kb": []string{"ind", "p.kb"},
+		"ind/p.kb":  {"ind", "p.kb"},
+		"/ind/p.kb": {"ind", "p.kb"},
 	}
 
 	for in, exp := range exps {

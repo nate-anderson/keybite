@@ -34,7 +34,7 @@ func wrapInMapWriteLock(driver driver.StorageDriver, indexName string, action fu
 	return res, resErr
 }
 
-func wrapInAutoWriteLock(driver driver.StorageDriver, indexName string, action func() (int64, error)) (int64, error) {
+func wrapInAutoWriteLock(driver driver.StorageDriver, indexName string, action func() (uint64, error)) (uint64, error) {
 	now := time.Now()
 	locked, exp, err := driver.IndexIsLocked(indexName)
 
