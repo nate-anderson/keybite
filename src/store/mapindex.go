@@ -55,19 +55,21 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 }
 
 // Query the MapIndex for the specified key
-func (m MapIndex) Query(key string) (string, error) {
-	id, err := util.HashString(key)
-	if err != nil {
-		return "", err
-	}
+func (m MapIndex) Query(s Selector) (result string, err error) {
+	var lastPageID uint64
+	var page MapPage
+	for s.Next() {
+		pageID := s.Select() / uint64(m.pageSize)
+		if pageID != lastPageID {
+			page, err = m.readPage(pageID)
+			if err != nil {
+				return
+			}
+		}
 
-	pageID := id / uint64(m.pageSize)
-	page, err := m.readPage(pageID)
-	if err != nil {
-		return "", err
 	}
-
-	return page.Query(id)
+	// identify the expected page ID of the record ID passed
+	return page.Query(s.Select())
 }
 
 // Insert value at key

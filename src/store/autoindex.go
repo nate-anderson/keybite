@@ -37,16 +37,21 @@ func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 }
 
 // Query queries the index for the provided ID
-func (i AutoIndex) Query(id uint64) (string, error) {
-	// identify the expected page ID of the record ID passed
-	pageID := id / uint64(i.pageSize)
-	page, err := i.readPage(pageID)
-	if err != nil {
-		return "", err
+func (i AutoIndex) Query(s Selector) (result string, err error) {
+	var lastPageID uint64
+	var page Page
+	for s.Next() {
+		pageID := s.Select() / uint64(i.pageSize)
+		if pageID != lastPageID {
+			page, err = i.readPage(pageID)
+			if err != nil {
+				return
+			}
+		}
+
 	}
-
-	return page.Query(id)
-
+	// identify the expected page ID of the record ID passed
+	return page.Query(s.Select())
 }
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
