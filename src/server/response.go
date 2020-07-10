@@ -1,5 +1,10 @@
 package server
 
+import (
+	"keybite/store"
+	"keybite/util/log"
+)
+
 // NullableString is a string that can marshall to JSON `null` if no valid value passed
 type NullableString struct {
 	value string
@@ -21,6 +26,19 @@ func toNullableString(str string) NullableString {
 	return NullableString{
 		valid: true,
 		value: str,
+	}
+}
+
+func resultToNullableString(r store.Result) NullableString {
+	var valid bool
+	bytes, err := r.MarshalJSON()
+	if err != nil {
+		log.Infof("error converting response to nullable JSON string: %s", err.Error())
+		valid = false
+	}
+	return NullableString{
+		valid: valid,
+		value: string(bytes),
 	}
 }
 
