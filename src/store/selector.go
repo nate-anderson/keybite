@@ -11,6 +11,7 @@ import (
 type Selector interface {
 	Next() bool
 	Select() uint64
+	Length() int
 }
 
 // ArraySelector allows selecting an arbitrary collection of IDs
@@ -40,6 +41,11 @@ func (s ArraySelector) Select() uint64 {
 	return s.current
 }
 
+// Length denotes if this selection is a collection of multiple values, or a single value
+func (s ArraySelector) Length() int {
+	return len(s.ids)
+}
+
 // RangeSelector allows selecting a range of values from start to end
 type RangeSelector struct {
 	to   uint64
@@ -63,6 +69,11 @@ func (s *RangeSelector) Next() bool {
 // Select the selector's value
 func (s RangeSelector) Select() uint64 {
 	return s.from - 1
+}
+
+// Length denotes if this selection is a collection of multiple values, or a single value
+func (s RangeSelector) Length() int {
+	return int(s.to - s.from)
 }
 
 // SingleSelector selects a single ID
@@ -97,6 +108,11 @@ func (s *SingleSelector) Next() bool {
 // Select the selector's value
 func (s SingleSelector) Select() uint64 {
 	return s.id
+}
+
+// Length denotes if this selection is a collection of multiple values, or a single value
+func (s SingleSelector) Length() int {
+	return 1
 }
 
 // ParseSelector parses a string into a selector. Acceptable formats are 6, [6:10], [6, 7, 8]
