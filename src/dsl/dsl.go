@@ -3,24 +3,25 @@ package dsl
 import (
 	"fmt"
 	"keybite/config"
+	"keybite/store"
 	"strings"
 )
 
 // Execute a statement on the data in the provided datadir
-func Execute(input string, conf config.Config) (string, error) {
+func Execute(input string, conf config.Config) (store.Result, error) {
 	action := getAction(input)
 
 	for _, command := range Commands {
 		if action == command.keyword {
 			tokens, payload, err := getTokensUntil(input, command.numTokens)
 			if err != nil {
-				return "", err
+				return store.EmptyResult(), err
 			}
 			res, err := command.execute(tokens, payload, conf)
 			return res, err
 		}
 	}
-	return "", fmt.Errorf("'%s' is not a valid query command", action)
+	return store.EmptyResult(), fmt.Errorf("'%s' is not a valid query command", action)
 }
 
 func getTokensUntil(s string, until int) (tokens []string, payload string, err error) {

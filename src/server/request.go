@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"keybite/config"
+	"keybite/store"
 	"keybite/util/log"
 	"strings"
 )
@@ -32,10 +33,10 @@ func (r Request) ExecuteQueries(conf config.Config) ResultSet {
 		result, err := query.Execute(conf, results)
 		if err != nil {
 			log.Infof("error executing query DSL: %s", err.Error())
-			results[key] = NullableString{}
+			results[key] = store.EmptyResult()
 			continue
 		}
-		results[key] = toNullableString(result)
+		results[key] = result
 	}
 
 	return results
@@ -60,7 +61,7 @@ func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, se
 		depKey := q.depVars[i]
 		if !results.HasKey(depKey) {
 			if seen.contains(depKey) {
-				results[key] = NullableString{}
+				results[key] = store.EmptyResult()
 				return fmt.Errorf("circular dependency on variable '%s'", depKey)
 			}
 			err := ResolveQuery(depKey, *dep, conf, results, seen)
@@ -73,12 +74,12 @@ func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, se
 	// resolve q
 	res, err := q.Execute(conf, results)
 	if err != nil {
-		results[key] = NullableString{}
+		results[key] = store.EmptyResult()
 		return err
 	}
 
 	if !strings.HasPrefix(key, NoResultWantedPrefix) {
-		results[key] = toNullableString(res)
+		results[key] = res
 	}
 
 	return nil

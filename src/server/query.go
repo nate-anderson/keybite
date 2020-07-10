@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"keybite/config"
 	"keybite/dsl"
+	"keybite/store"
 	"keybite/util"
 	"regexp"
 	"strconv"
@@ -73,8 +74,8 @@ func (q *Query) Complete(list ResultSet) (string, error) {
 	variableValues := []string{}
 	for _, key := range q.depVars {
 		// should not need to check for map membership here, this is checked during dependency linking
-		if value := list[key]; value.valid {
-			variableValues = append(variableValues, list[key].value)
+		if value := list[key]; value.Valid() {
+			variableValues = append(variableValues, list[key].String())
 		} else {
 			return "", fmt.Errorf("failed executing query with variable ':%s': variable not set in request resolution", key)
 		}
@@ -84,10 +85,10 @@ func (q *Query) Complete(list ResultSet) (string, error) {
 }
 
 // Execute the query and get the result
-func (q Query) Execute(conf config.Config, results ResultSet) (string, error) {
+func (q Query) Execute(conf config.Config, results ResultSet) (store.Result, error) {
 	toExecute, err := q.Complete(results)
 	if err != nil {
-		return "", err
+		return store.EmptyResult(), err
 	}
 
 	return dsl.Execute(toExecute, conf)

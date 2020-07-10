@@ -36,13 +36,14 @@ func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 }
 
 // Query queries the index for the provided ID
-func (i AutoIndex) Query(s Selector) (result string, err error) {
+func (i AutoIndex) Query(s Selector) (result Result, err error) {
 	pageID := s.Select() / uint64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
 		return
 	}
-	result, err = page.Query(s.Select())
+	resultStr, err := page.Query(s.Select())
+	result = SingleResult(resultStr)
 	return
 }
 

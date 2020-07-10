@@ -1,64 +1,61 @@
 package store
 
-import (
-	"encoding/json"
-	"fmt"
-	"strconv"
-)
+import "encoding/json"
 
-// Result contains a single or multiple result values
-type Result struct {
-	value  string
-	values []string
-	isArr  bool
-	isNull bool
+// Result contains a single result or collection of results
+type Result interface {
+	MarshalJSON() ([]byte, error)
+	String() string
+	Valid() bool
 }
 
-// MarshalJSON marshals the response into a JSON byte array
-func (r Result) MarshalJSON() ([]byte, error) {
-	if r.isArr {
-		bytes, err := json.Marshal(r.values)
-		if err != nil {
-			return bytes, fmt.Errorf("error marshaling JSON from Result: %w", err)
-		}
-		return bytes, nil
-	} else if r.isNull {
-		return []byte(`null`), nil
+// SingleResult contains a scalar query result
+type SingleResult string
+
+// MarshalJSON returns a JSON byte array representation of the result
+func (r SingleResult) MarshalJSON() ([]byte, error) {
+	if r == "" {
+		return []byte("null"), nil
 	}
-	return []byte(`"` + r.value + `"`), nil
+	return []byte(`"` + string(r) + `"`), nil
 }
 
-// Valid indicates whether the result contains any values
-func (r Result) Valid() bool {
-	return r.value != "" || len(r.values) > 0
+// String returns a string encoding of the result
+func (r SingleResult) String() string {
+	return string(r)
 }
 
-// NewNumberResult creates a new Result from a Uint64
-func NewNumberResult(num uint64) Result {
-	numStr := strconv.FormatUint(num, 10)
-	return Result{value: numStr}
-}
-
-// NewNumberSliceResult creates a new Result from a slice of Uint64s
-func NewNumberSliceResult(nums []uint64) Result {
-	numStrs := make([]string, len(nums))
-	for i, num := range nums {
-		numStrs[i] = strconv.FormatUint(num, 10)
+// Valid indicates whether the result was resolved successfully
+func (r SingleResult) Valid() bool {
+	if len(r) > 0 {
+		return true
 	}
-	return Result{values: numStrs}
+	return false
 }
 
-// NewStringResult creates a new Result from a string
-func NewStringResult(str string) Result {
-	return Result{value: str}
+// CollectionResult contains an array of results
+type CollectionResult []string
+
+// MarshalJSON returns a JSON byte array representation of the result
+func (r CollectionResult) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r)
 }
 
-// NewStringSliceResult creates a new Result from a slice of strings
-func NewStringSliceResult(strs []string) Result {
-	return Result{values: strs}
+// String returns a string encoding of the result
+func (r CollectionResult) String() string {
+	res, _ := json.Marshal(r)
+	return string(res)
 }
 
-// NewEmptyResult returns a result that will marshal to JSON null
-func NewEmptyResult() Result {
-	return Result{}
+// Valid indicates whether the result was resolved successfully
+func (r CollectionResult) Valid() bool {
+	if len(r) > 0 {
+		return true
+	}
+	return false
+}
+
+// EmptyResult returns a null result
+func EmptyResult() Result {
+	return SingleResult("")
 }

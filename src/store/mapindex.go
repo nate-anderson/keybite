@@ -54,14 +54,15 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 }
 
 // Query the MapIndex for the specified key
-func (m MapIndex) Query(s Selector) (result string, err error) {
+func (m MapIndex) Query(s Selector) (result Result, err error) {
 	pageID := s.Select() / uint64(m.pageSize)
 
 	page, err := m.readPage(pageID)
 	if err != nil {
 		return
 	}
-	result, err = page.Query(s.Select())
+	resultStr, err := page.Query(s.Select())
+	result = SingleResult(resultStr)
 	return
 }
 
