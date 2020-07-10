@@ -25,8 +25,7 @@ func NewMapIndex(name string, driver driver.StorageDriver, pageSize int) (MapInd
 // readPage returns page with provided ID belonging to this index
 func (m MapIndex) readPage(pageID uint64) (MapPage, error) {
 	pageIDStr := strconv.FormatUint(pageID, 10)
-	fileName := pageIDStr
-	vals, err := m.driver.ReadMapPage(fileName, m.Name, m.pageSize)
+	vals, err := m.driver.ReadMapPage(pageIDStr, m.Name, m.pageSize)
 	if err != nil {
 		return MapPage{}, err
 	}
@@ -56,20 +55,14 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 
 // Query the MapIndex for the specified key
 func (m MapIndex) Query(s Selector) (result string, err error) {
-	var lastPageID uint64
-	var page MapPage
-	for s.Next() {
-		pageID := s.Select() / uint64(m.pageSize)
-		if pageID != lastPageID {
-			page, err = m.readPage(pageID)
-			if err != nil {
-				return
-			}
-		}
+	pageID := s.Select() / uint64(m.pageSize)
 
+	page, err := m.readPage(pageID)
+	if err != nil {
+		return
 	}
-	// identify the expected page ID of the record ID passed
-	return page.Query(s.Select())
+	result, err = page.Query(s.Select())
+	return
 }
 
 // Insert value at key

@@ -24,8 +24,7 @@ func NewAutoIndex(name string, driver driver.StorageDriver, pageSize int) (AutoI
 // readPage returns page with provided ID belonging to this index
 func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 	pageIDStr := strconv.FormatUint(pageID, 10)
-	fileName := pageIDStr
-	vals, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
+	vals, err := i.driver.ReadPage(pageIDStr, i.Name, i.pageSize)
 	if err != nil {
 		return Page{}, err
 	}
@@ -38,20 +37,13 @@ func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 
 // Query queries the index for the provided ID
 func (i AutoIndex) Query(s Selector) (result string, err error) {
-	var lastPageID uint64
-	var page Page
-	for s.Next() {
-		pageID := s.Select() / uint64(i.pageSize)
-		if pageID != lastPageID {
-			page, err = i.readPage(pageID)
-			if err != nil {
-				return
-			}
-		}
-
+	pageID := s.Select() / uint64(i.pageSize)
+	page, err := i.readPage(pageID)
+	if err != nil {
+		return
 	}
-	// identify the expected page ID of the record ID passed
-	return page.Query(s.Select())
+	result, err = page.Query(s.Select())
+	return
 }
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
