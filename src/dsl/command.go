@@ -177,7 +177,7 @@ var QueryKey = command{
 		if err != nil {
 			return store.EmptyResult(), err
 		}
-		log.Debugf("Key selector: %+v", selector)
+
 		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return store.EmptyResult(), err

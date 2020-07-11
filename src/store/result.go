@@ -1,6 +1,9 @@
 package store
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // Result contains a single result or collection of results
 type Result interface {
@@ -44,8 +47,7 @@ func (r CollectionResult) MarshalJSON() ([]byte, error) {
 
 // String returns a string encoding of the result
 func (r CollectionResult) String() string {
-	res, _ := json.Marshal(r)
-	return string(res)
+	return fmt.Sprint([]string(r))
 }
 
 // Valid indicates whether the result was resolved successfully
