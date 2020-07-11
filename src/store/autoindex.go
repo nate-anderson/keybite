@@ -36,15 +36,33 @@ func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 }
 
 // Query queries the index for the provided ID
-func (i AutoIndex) Query(s Selector) (result Result, err error) {
+func (i AutoIndex) Query(s Selector) (Result, error) {
+	// if there are multiple query selections, return a collection result
+	if s.Length() > 1 {
+		resultStrs := make([]string, s.Length())
+		for j := 0; s.Next(); j++ {
+			pageID := s.Select() / uint64(i.pageSize)
+			page, err := i.readPage(pageID)
+			if err != nil {
+				return EmptyResult(), err
+			}
+			resultStrs[j], err = page.Query(s.Select())
+			if err != nil {
+				return EmptyResult(), err
+			}
+		}
+		return CollectionResult(resultStrs), nil
+	}
+
+	// else return a single result
 	pageID := s.Select() / uint64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
-		return
+		return EmptyResult(), err
 	}
 	resultStr, err := page.Query(s.Select())
-	result = SingleResult(resultStr)
-	return
+	result := SingleResult(resultStr)
+	return result, err
 }
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
