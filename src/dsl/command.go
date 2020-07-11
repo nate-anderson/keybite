@@ -41,14 +41,12 @@ var Query = command{
 			return store.EmptyResult(), err
 		}
 
-		queryID, err := strconv.ParseUint(tokens[2], 10, 64)
+		selector, err := ParseAutoSelector(tokens[2])
 		if err != nil {
-			return store.EmptyResult(), fmt.Errorf("cannot query non-integer ID %s", tokens[2])
+			return store.EmptyResult(), err
 		}
 
-		selector := store.NewSingleSelector(queryID)
-
-		return index.Query(&selector)
+		return index.Query(selector)
 	},
 }
 
@@ -175,10 +173,11 @@ var QueryKey = command{
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		indexName := tokens[1]
 		key := tokens[2]
-		selector, err := store.NewMapSingleSelector(key)
+		selector, err := ParseMapSelector(key)
 		if err != nil {
 			return store.EmptyResult(), err
 		}
+		log.Debugf("Key selector: %+v", selector)
 		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return store.EmptyResult(), err
@@ -193,7 +192,7 @@ var QueryKey = command{
 		if err != nil {
 			return store.EmptyResult(), err
 		}
-		return mapIndex.Query(&selector)
+		return mapIndex.Query(selector)
 	},
 }
 
