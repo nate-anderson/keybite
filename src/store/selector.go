@@ -20,7 +20,7 @@ type ArraySelector struct {
 
 // NewArraySelector instantiates a new ArraySelector
 func NewArraySelector(ids []uint64) ArraySelector {
-	return ArraySelector{ids: ids}
+	return ArraySelector{ids: ids, current: ids[0]}
 }
 
 // Next returns a bool indicating whether there is a next value
@@ -56,7 +56,7 @@ func NewRangeSelector(min, max uint64) RangeSelector {
 
 // Next indicates whether the selector has more values
 func (s *RangeSelector) Next() bool {
-	if s.from <= s.to {
+	if s.from < s.to {
 		s.from++
 		return true
 	}
