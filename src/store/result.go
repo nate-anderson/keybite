@@ -38,7 +38,8 @@ type CollectionResult []string
 
 // MarshalJSON returns a JSON byte array representation of the result
 func (r CollectionResult) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r)
+	strs := []string(r)
+	return json.Marshal(strs)
 }
 
 // String returns a string encoding of the result
