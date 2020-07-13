@@ -24,8 +24,7 @@ func NewAutoIndex(name string, driver driver.StorageDriver, pageSize int) (AutoI
 // readPage returns page with provided ID belonging to this index
 func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 	pageIDStr := strconv.FormatUint(pageID, 10)
-	fileName := pageIDStr
-	vals, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
+	vals, err := i.driver.ReadPage(pageIDStr, i.Name, i.pageSize)
 	if err != nil {
 		return Page{}, err
 	}
@@ -37,16 +36,33 @@ func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 }
 
 // Query queries the index for the provided ID
-func (i AutoIndex) Query(id uint64) (string, error) {
-	// identify the expected page ID of the record ID passed
-	pageID := id / uint64(i.pageSize)
-	page, err := i.readPage(pageID)
-	if err != nil {
-		return "", err
+func (i AutoIndex) Query(s AutoSelector) (Result, error) {
+	// if there are multiple query selections, return a collection result
+	if s.Length() > 1 {
+		resultStrs := make([]string, s.Length())
+		for j := 0; s.Next(); j++ {
+			pageID := s.Select() / uint64(i.pageSize)
+			page, err := i.readPage(pageID)
+			if err != nil {
+				return EmptyResult(), err
+			}
+			resultStrs[j], err = page.Query(s.Select())
+			if err != nil {
+				return EmptyResult(), err
+			}
+		}
+		return CollectionResult(resultStrs), nil
 	}
 
-	return page.Query(id)
-
+	// else return a single result
+	pageID := s.Select() / uint64(i.pageSize)
+	page, err := i.readPage(pageID)
+	if err != nil {
+		return EmptyResult(), err
+	}
+	resultStr, err := page.Query(s.Select())
+	result := SingleResult(resultStr)
+	return result, err
 }
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
@@ -108,22 +124,49 @@ func (i AutoIndex) Insert(val string) (id uint64, err error) {
 }
 
 // Update a value stored in the index. Attempting to update a value not yet stored returns an error
-func (i AutoIndex) Update(id uint64, newVal string) error {
-	pageID := id / uint64(i.pageSize)
+func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
+	// if there are multiple query selections, update all
+	if s.Length() > 1 {
+		insertedIds := make([]string, s.Length())
+		for j := 0; s.Next(); j++ {
+			pageID := s.Select() / uint64(i.pageSize)
+			page, err := i.readPage(pageID)
+			if err != nil {
+				return EmptyResult(), err
+			}
+
+			err = page.Overwrite(s.Select(), newVal)
+			if err != nil {
+				return EmptyResult(), err
+			}
+
+			// write the updated map to file, conscious of other requests
+			id, err := wrapInAutoWriteLock(i.driver, i.Name, func() (uint64, error) {
+				writeErr := i.driver.WritePage(page.vals, page.name, i.Name)
+				return s.Select(), writeErr
+			})
+			insertedIds[j] = strconv.FormatUint(id, 10)
+		}
+		return CollectionResult(insertedIds), nil
+	}
+
+	pageID := s.Select() / uint64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
-		return err
+		return EmptyResult(), err
 	}
 
-	err = page.Overwrite(id, newVal)
+	// update the value in the map
+	err = page.Overwrite(s.Select(), newVal)
 	if err != nil {
-		return err
+		return EmptyResult(), err
 	}
 
-	_, err = wrapInAutoWriteLock(i.driver, i.Name, func() (uint64, error) {
+	// write the updated map to file, conscious of other requests
+	id, err := wrapInAutoWriteLock(i.driver, i.Name, func() (uint64, error) {
 		writeErr := i.driver.WritePage(page.vals, page.name, i.Name)
-		return id, writeErr
+		return s.Select(), writeErr
 	})
 
-	return err
+	return SingleResult(strconv.FormatUint(id, 10)), err
 }

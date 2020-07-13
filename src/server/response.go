@@ -1,5 +1,7 @@
 package server
 
+import "keybite/store"
+
 // NullableString is a string that can marshall to JSON `null` if no valid value passed
 type NullableString struct {
 	value string
@@ -7,7 +9,7 @@ type NullableString struct {
 }
 
 // ResultSet is a set of query results used when serving the JSON API
-type ResultSet map[string]NullableString
+type ResultSet map[string]store.Result
 
 // MarshalJSON makes the string fulfill the Marshaler interface
 func (s NullableString) MarshalJSON() ([]byte, error) {
@@ -41,15 +43,6 @@ func (r ResultSet) HasKey(key string) bool {
 	}
 
 	return true
-}
-
-// GetValueList returns a collection of map values from a collection of keys
-func (r ResultSet) GetValueList(keys []string) []interface{} {
-	res := []string{}
-	for _, key := range keys {
-		res = append(res, r[key].value)
-	}
-	return strSliceToInterfaceSlice(res)
 }
 
 func strSliceToInterfaceSlice(strSlice []string) []interface{} {
