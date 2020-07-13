@@ -40,14 +40,14 @@ func (m MapPage) Add(id uint64, val string) (uint64, error) {
 	return id, nil
 }
 
-// Update an existing value
-func (m MapPage) Update(id uint64, val string) (uint64, error) {
+// Overwrite an existing value
+func (m MapPage) Overwrite(id uint64, val string) error {
 	_, exists := m.vals[id]
 	if !exists {
-		return 0, errors.New("cannot update key in map page: key doesn't exist")
+		return errors.New("cannot update key in map page: key doesn't exist")
 	}
 	m.vals[id] = val
-	return id, nil
+	return nil
 }
 
 // Upsert == idempotent insert

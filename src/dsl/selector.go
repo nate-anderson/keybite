@@ -12,7 +12,7 @@ Tools for parsing selectors
 */
 
 // ParseAutoSelector parses a string into a selector. Acceptable formats are 6, [6:10], [6, 7, 8]
-func ParseAutoSelector(token string) (store.Selector, error) {
+func ParseAutoSelector(token string) (store.AutoSelector, error) {
 	if token[0] == '[' {
 		body := StripBrackets(token)
 		// array
@@ -41,18 +41,18 @@ func ParseAutoSelector(token string) (store.Selector, error) {
 }
 
 // ParseMapSelector parses a selection of map keys
-func ParseMapSelector(token string) (store.Selector, error) {
+func ParseMapSelector(token string) store.MapSelector {
 	// if selection resembles an array, try to create an array selector
 	if token[0] == '[' {
 		body := StripBrackets(token)
 		collection := strings.Split(body, ",")
-		selector, err := store.NewMapArraySelector(collection)
-		return &selector, err
+		selector := store.NewMapArraySelector(collection)
+		return &selector
 	}
 
 	// else treat it as a single selection
-	selector, err := store.NewMapSingleSelector(token)
-	return &selector, err
+	selector := store.NewMapSingleSelector(token)
+	return &selector
 }
 
 // StripBrackets removes surrounding square brackets

@@ -54,17 +54,22 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 }
 
 // Query the MapIndex for the specified key
-func (m MapIndex) Query(s Selector) (result Result, err error) {
+func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
 		resultStrs := make([]string, s.Length())
 		for i := 0; s.Next(); i++ {
-			pageID := s.Select() / uint64(m.pageSize)
+			id, err := util.HashString(s.Select())
+			if err != nil {
+				return EmptyResult(), err
+			}
+
+			pageID := id / uint64(m.pageSize)
 			page, err := m.readPage(pageID)
 			if err != nil {
 				return EmptyResult(), err
 			}
-			resultStrs[i], err = page.Query(s.Select())
+			resultStrs[i], err = page.Query(id)
 			if err != nil {
 				return EmptyResult(), err
 			}
@@ -73,19 +78,24 @@ func (m MapIndex) Query(s Selector) (result Result, err error) {
 	}
 
 	// else return a single result
-	pageID := s.Select() / uint64(m.pageSize)
+	id, err := util.HashString(s.Select())
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	pageID := id / uint64(m.pageSize)
 	page, err := m.readPage(pageID)
 	if err != nil {
 		return
 	}
-	resultStr, err := page.Query(s.Select())
+	resultStr, err := page.Query(id)
 	result = SingleResult(resultStr)
 	return
 }
 
 // Insert value at key
-func (m MapIndex) Insert(key string, value string) (string, error) {
-	id, err := util.HashString(key)
+func (m MapIndex) Insert(s MapSelector, value string) (string, error) {
+	id, err := util.HashString(s.Select())
 	if err != nil {
 		return "", err
 	}
@@ -98,62 +108,91 @@ func (m MapIndex) Insert(key string, value string) (string, error) {
 
 	_, err = page.Add(id, value)
 	if err != nil {
-		return key, err
+		return s.Select(), err
 	}
 
 	return wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
 		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-		return key, writeErr
+		return s.Select(), writeErr
 	})
 }
 
 // Update existing data
-func (m MapIndex) Update(key string, newValue string) error {
+func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
+	// if there are multiple query selections, update all
+	if s.Length() > 1 {
+		updatedIds := make([]string, s.Length())
+		for i := 0; s.Next(); i++ {
+			key := s.Select()
+			id, err := util.HashString(key)
+			if err != nil {
+				return EmptyResult(), err
+			}
+
+			pageID := id / uint64(m.pageSize)
+			page, err := m.readPage(pageID)
+			if err != nil {
+				return EmptyResult(), err
+			}
+
+			err = page.Overwrite(id, newValue)
+			if err != nil {
+				return EmptyResult(), err
+			}
+			updatedIds[i] = key
+
+			_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
+				writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
+				return s.Select(), writeErr
+			})
+		}
+
+		return CollectionResult(updatedIds), nil
+	}
+
+	key := s.Select()
 	id, err := util.HashString(key)
 	if err != nil {
-		return err
+		return EmptyResult(), err
 	}
 
 	pageID := id / uint64(m.pageSize)
 	page, err := m.readPage(pageID)
 	if err != nil {
-		return err
+		return EmptyResult(), err
 	}
 
-	_, err = page.Update(id, newValue)
+	err = page.Overwrite(id, newValue)
 	if err != nil {
-		return err
+		return EmptyResult(), err
 	}
 
 	_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
 		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-		return key, writeErr
+		return s.Select(), writeErr
 	})
 
-	return err
+	return SingleResult(key), err
 }
 
 // Upsert inserts or modifies a value at the given key
-func (m MapIndex) Upsert(key string, newValue string) error {
+func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
+	key := s.Select()
 	id, err := util.HashString(key)
-	if err != nil {
-		return err
-	}
-
 	pageID := id / uint64(m.pageSize)
 	page, err := m.readOrCreatePage(pageID)
 	if err != nil {
-		return err
+		return EmptyResult(), err
 	}
 
 	page.Upsert(id, newValue)
 
 	_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
 		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-		return key, writeErr
+		return s.Select(), writeErr
 	})
 
-	return err
+	return SingleResult(key), err
 }
 
 // WriteEmptyPage creates an empty page file for the specified page ID

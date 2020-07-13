@@ -110,22 +110,17 @@ var Update = command{
 			return store.EmptyResult(), err
 		}
 
-		queryID, err := strconv.ParseUint(tokens[2], 10, 64)
+		selector, err := ParseAutoSelector(tokens[2])
 		if err != nil {
 			return store.EmptyResult(), fmt.Errorf("cannot query non-integer ID %s", tokens[2])
 		}
 
-		err = index.Update(queryID, payload)
+		result, err := index.Update(selector, payload)
 		if err != nil {
 			return store.EmptyResult(), err
 		}
 
-		resultStr, err := strconv.FormatUint(queryID, 10), nil
-		if err != nil {
-			return store.EmptyResult(), err
-		}
-
-		return store.SingleResult(resultStr), nil
+		return result, nil
 	},
 }
 
@@ -173,10 +168,7 @@ var QueryKey = command{
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		indexName := tokens[1]
 		key := tokens[2]
-		selector, err := ParseMapSelector(key)
-		if err != nil {
-			return store.EmptyResult(), err
-		}
+		selector := ParseMapSelector(key)
 
 		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
@@ -215,13 +207,13 @@ var InsertKey = command{
 			return store.EmptyResult(), errors.New("Invalid auto index page size from environment")
 		}
 
-		key := tokens[2]
+		selector := ParseMapSelector(tokens[2])
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
 			return store.EmptyResult(), err
 		}
 
-		resultStr, err := mapIndex.Insert(key, payload)
+		resultStr, err := mapIndex.Insert(selector, payload)
 		if err != nil {
 			return store.EmptyResult(), err
 		}
@@ -238,7 +230,7 @@ var UpdateKey = command{
 	example:     "update_key map_index_name user1_email janedoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		indexName := tokens[1]
-		key := tokens[2]
+		selector := ParseMapSelector(tokens[2])
 		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return store.EmptyResult(), err
@@ -253,7 +245,7 @@ var UpdateKey = command{
 		if err != nil {
 			return store.EmptyResult(), err
 		}
-		return store.SingleResult(indexName), mapIndex.Update(key, payload)
+		return mapIndex.Update(selector, payload)
 	},
 }
 
@@ -265,7 +257,7 @@ var UpsertKey = command{
 	example:     "upsery_key map_index_name user1_email janedoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		indexName := tokens[1]
-		key := tokens[2]
+		selector := ParseMapSelector(tokens[2])
 		storageDriver, err := driver.GetConfiguredDriver(conf)
 		if err != nil {
 			return store.EmptyResult(), err
@@ -281,7 +273,7 @@ var UpsertKey = command{
 			return store.EmptyResult(), err
 		}
 
-		return store.SingleResult(key), mapIndex.Upsert(key, payload)
+		return mapIndex.Upsert(selector, payload)
 	},
 }
 
