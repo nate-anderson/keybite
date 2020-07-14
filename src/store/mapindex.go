@@ -3,6 +3,7 @@ package store
 import (
 	"keybite/store/driver"
 	"keybite/util"
+	"keybite/util/log"
 	"strconv"
 )
 
@@ -36,6 +37,13 @@ func (m MapIndex) readPage(pageID uint64) (MapPage, error) {
 	}, nil
 }
 
+// write a map page to storage using a mutex for concurrency safety
+func (m MapIndex) writePage(p MapPage) error {
+	return wrapInWriteLock(m.driver, m.Name, func() error {
+		return m.driver.WriteMapPage(p.vals, p.name, m.Name)
+	})
+}
+
 // readOrCreatePage reads or creates the map page for this page ID
 func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 	p, err := m.readPage(pageID)
@@ -58,20 +66,34 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
 		resultStrs := make([]string, s.Length())
+		var lastPageID uint64
+		var page MapPage
+		var loaded bool
 		for i := 0; s.Next(); i++ {
+			key := s.Select()
 			id, err := util.HashString(s.Select())
 			if err != nil {
-				return EmptyResult(), err
+				log.Infof("error hashing string key %s :: %s", key, err.Error())
+				continue
 			}
 
 			pageID := id / uint64(m.pageSize)
-			page, err := m.readPage(pageID)
-			if err != nil {
-				return EmptyResult(), err
+			// if the page housing the queried ID is different than the loaded page, or no page has been loaded
+			// load the needed page
+			if pageID != lastPageID || !loaded {
+				page, err = m.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
 			}
+
 			resultStrs[i], err = page.Query(id)
 			if err != nil {
-				return EmptyResult(), err
+				log.Infof("error querying page %d for ID %d (key '%s') :: %s", pageID, id, key, err.Error())
+				continue
 			}
 		}
 		return CollectionResult(resultStrs), nil
@@ -95,6 +117,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 
 // Insert value at key
 func (m MapIndex) Insert(s MapSelector, value string) (string, error) {
+	key := s.Select()
 	id, err := util.HashString(s.Select())
 	if err != nil {
 		return "", err
@@ -111,10 +134,8 @@ func (m MapIndex) Insert(s MapSelector, value string) (string, error) {
 		return s.Select(), err
 	}
 
-	return wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
-		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-		return s.Select(), writeErr
-	})
+	err = m.writePage(page)
+	return key, err
 }
 
 // Update existing data
@@ -122,32 +143,61 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
 		updatedIds := make([]string, s.Length())
+		var lastPageID uint64
+		var page MapPage
+		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
 			id, err := util.HashString(key)
 			if err != nil {
-				return EmptyResult(), err
+				log.Infof("error hashing key '%s' :: %s", key, err.Error())
+				continue
 			}
 
 			pageID := id / uint64(m.pageSize)
-			page, err := m.readPage(pageID)
-			if err != nil {
-				return EmptyResult(), err
+			// if the page housing the update ID is different than the loaded page, or no page has been loaded yet,
+			// load the needed page
+			if !loaded {
+				page, err = m.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
+				// if a page has been loaded and a new page is needed, write the changes to the previous page first
+			} else if pageID != lastPageID {
+				err := m.writePage(page)
+				if err != nil {
+					log.Infof("error in locked page write: %s", err.Error())
+					continue
+				}
+
+				// then load the next page
+				page, err = m.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
 			}
 
+			// update the value in the loaded page
 			err = page.Overwrite(id, newValue)
 			if err != nil {
-				return EmptyResult(), err
+				log.Infof("error overwriting ID %d in page %d :: %s", id, pageID, err.Error())
+				continue
 			}
-			updatedIds[i] = key
 
-			_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
-				writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-				return s.Select(), writeErr
-			})
+			updatedIds[i] = key
 		}
 
-		return CollectionResult(updatedIds), nil
+		// write the updated map to file, conscious of other requests
+		err := m.writePage(page)
+		if err != nil {
+			log.Infof("error in locked page write: %s", err.Error())
+		}
+		return CollectionResult(updatedIds), err
 	}
 
 	key := s.Select()
@@ -167,16 +217,59 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 		return EmptyResult(), err
 	}
 
-	_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
-		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-		return s.Select(), writeErr
-	})
+	err = m.writePage(page)
 
 	return SingleResult(key), err
 }
 
 // Upsert inserts or modifies a value at the given key
 func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
+	if s.Length() > 1 {
+		upsertedKeys := make([]string, s.Length())
+		var lastPageID uint64
+		var page MapPage
+		var loaded bool
+		for i := 0; s.Next(); i++ {
+			key := s.Select()
+			id, err := util.HashString(key)
+			if err != nil {
+				log.Infof("error hashing string key '%s' :: %s", key, err.Error())
+				continue
+			}
+			pageID := id / uint64(m.pageSize)
+			// if the page housing the update ID is different than the loaded page, or no page has been loaded yet,
+			// load the needed page
+			if !loaded {
+				page, err = m.readOrCreatePage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
+			} else if pageID != lastPageID {
+				err := m.writePage(page)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
+			}
+
+			// update or insert value in loaded page
+			page.Upsert(id, newValue)
+			upsertedKeys[i] = key
+		}
+
+		// write the updated map to file, conscious of other requests
+		err := m.writePage(page)
+		if err != nil {
+			log.Infof("error in locked page write: %s", err.Error())
+		}
+
+		return CollectionResult(upsertedKeys), err
+	}
+
 	key := s.Select()
 	id, err := util.HashString(key)
 	pageID := id / uint64(m.pageSize)
@@ -187,10 +280,10 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 
 	page.Upsert(id, newValue)
 
-	_, err = wrapInMapWriteLock(m.driver, m.Name, func() (string, error) {
-		writeErr := m.driver.WriteMapPage(page.vals, page.name, m.Name)
-		return s.Select(), writeErr
-	})
+	err = m.writePage(page)
+	if err != nil {
+		log.Infof("error in locked page write: %s", err.Error())
+	}
 
 	return SingleResult(key), err
 }
