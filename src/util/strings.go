@@ -1,6 +1,9 @@
 package util
 
-import "strings"
+import (
+	"path/filepath"
+	"strings"
+)
 
 // AddSuffixIfNotExist adds a suffix to a string unless it is already present
 func AddSuffixIfNotExist(root, suff string) string {
@@ -18,4 +21,9 @@ func StripStringPrefixes(ss []string, n int) []string {
 		results[i] = s[n:]
 	}
 	return results
+}
+
+// StripExtension drops file extension from a file name
+func StripExtension(filename string) string {
+	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
