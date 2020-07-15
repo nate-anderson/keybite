@@ -124,6 +124,38 @@ var Update = command{
 	},
 }
 
+// Delete existing data
+var Delete = command{
+	keyword:     "delete",
+	numTokens:   2, // "delete index ..."
+	description: "Delete the existing record at the given key. Fails if the key does not exist",
+	example:     "delete index_name 2",
+	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
+		storageDriver, err := driver.GetConfiguredDriver(conf)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
+		if err != nil {
+			return store.EmptyResult(), errors.New("Invalid auto index page size from environment")
+		}
+
+		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		selector, err := ParseAutoSelector(tokens[2])
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("cannot delete non-integer ID %s", tokens[2])
+		}
+
+		return index.Delete(selector)
+
+	},
+}
+
 // CreateAutoIndex in data dir
 var CreateAutoIndex = command{
 	keyword:     "create_auto_index",
@@ -253,8 +285,8 @@ var UpdateKey = command{
 var UpsertKey = command{
 	keyword:     "upsert_key",
 	numTokens:   3,
-	description: "Update or insert a record with the specified key.",
-	example:     "upsery_key map_index_name user1_email janedoe@example.com",
+	description: "Update or insert a record with the specified key",
+	example:     "upsert_key map_index_name user1_email janedoe@example.com",
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		indexName := tokens[1]
 		selector := ParseMapSelector(tokens[2])
@@ -277,15 +309,45 @@ var UpsertKey = command{
 	},
 }
 
+// DeleteKey deletes a record from a map index
+var DeleteKey = command{
+	keyword:     "delete_key",
+	numTokens:   2, // "delete_key index ..."
+	description: "Delete a record with the specified key",
+	example:     "delete_key map_index_name user1_email",
+	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
+		indexName := tokens[1]
+		selector := ParseMapSelector(tokens[2])
+		storageDriver, err := driver.GetConfiguredDriver(conf)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return store.EmptyResult(), errors.New("Invalid or missing map index page size from environment")
+		}
+
+		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		return mapIndex.Delete(selector)
+	},
+}
+
 // Commands available to the DSL
 var Commands = []command{
 	Query,
 	Insert,
 	Update,
+	Delete,
 	CreateAutoIndex,
 	CreateMapIndex,
 	QueryKey,
 	InsertKey,
 	UpdateKey,
 	UpsertKey,
+	DeleteKey,
 }
