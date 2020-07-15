@@ -1,7 +1,7 @@
 package util
 
 // Max returns the larger of x or y.
-func Max(x, y int64) int64 {
+func Max(x, y uint64) uint64 {
 	if x < y {
 		return y
 	}
@@ -9,7 +9,7 @@ func Max(x, y int64) int64 {
 }
 
 // Min returns the smaller of x or y.
-func Min(x, y int64) int64 {
+func Min(x, y uint64) uint64 {
 	if x > y {
 		return y
 	}
