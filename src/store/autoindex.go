@@ -206,13 +206,90 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	}
 
 	// update the value in the map
-	err = page.Overwrite(s.Select(), newVal)
+	err = page.Overwrite(id, newVal)
 	if err != nil {
 		return EmptyResult(), err
 	}
 
 	// write the updated map to file, conscious of other requests
 	err = i.writePage(page)
+	if err != nil {
+		return EmptyResult(), err
+	}
 
-	return SingleResult(strconv.FormatUint(id, 10)), err
+	return SingleResult(strconv.FormatUint(id, 10)), nil
+}
+
+// Delete a value stored in the autoindex
+func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
+	if s.Length() > 1 {
+		deletedIDs := make([]string, s.Length())
+		var lastPageID uint64
+		var page Page
+		var loaded bool
+		var err error
+		for j := 0; s.Next(); j++ {
+			id := s.Select()
+			pageID := id / uint64(i.pageSize)
+			// if no page has been loaded, load the first page
+			if !loaded {
+				page, err = i.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
+				// if the page loaded does not contain the needed ID, write changes to the current page
+			} else if pageID != lastPageID {
+				err := i.writePage(page)
+				if err != nil {
+					log.Infof("error in locked page write: %s", err.Error())
+					continue
+				}
+				// then load the correct page
+				page, err = i.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
+			}
+
+			// delete the value in the loaded page
+			err := page.Delete(id)
+			if err != nil {
+				log.Infof("error deleting ID %d in page %d :: %s", id, pageID, err.Error())
+				continue
+			}
+
+			deletedIDs[j] = strconv.FormatUint(id, 10)
+		}
+
+		// write the updated map to file
+		err = i.writePage(page)
+		if err != nil {
+			log.Infof("error in locked page write: %s", err.Error())
+			return EmptyResult(), err
+		}
+	}
+
+	id := s.Select()
+	pageID := id / uint64(i.pageSize)
+	page, err := i.readPage(pageID)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	err = page.Delete(id)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	err = i.writePage(page)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	return SingleResult(strconv.FormatUint(id, 10)), nil
 }
