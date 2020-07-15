@@ -272,6 +272,10 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 
 	key := s.Select()
 	id, err := util.HashString(key)
+	if err != nil {
+		log.Infof("error hashing string key '%s' :: %s", key, err.Error())
+		return EmptyResult(), err
+	}
 	pageID := id / uint64(m.pageSize)
 	page, err := m.readOrCreatePage(pageID)
 	if err != nil {
@@ -283,9 +287,94 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 	err = m.writePage(page)
 	if err != nil {
 		log.Infof("error in locked page write: %s", err.Error())
+		return EmptyResult(), err
 	}
 
 	return SingleResult(key), err
+}
+
+// Delete an item from the map index
+func (m MapIndex) Delete(s MapSelector) (Result, error) {
+	if s.Length() > 1 {
+		deletedKeys := make([]string, s.Length())
+		var lastPageID uint64
+		var page MapPage
+		var loaded bool
+		var err error
+		for i := 0; s.Next(); i++ {
+			key := s.Select()
+			id, err := util.HashString(key)
+			if err != nil {
+				log.Infof("error hashing string key '%s' :: %s", key, err.Error())
+				continue
+			}
+			pageID := id / uint64(m.pageSize)
+			if !loaded {
+				page, err = m.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
+				// if the loaded page does not contain the needed ID, write the changes to the current page
+			} else if pageID != lastPageID {
+				err := m.writePage(page)
+				if err != nil {
+					log.Info("error in locked page write: %s", err.Error())
+					continue
+				}
+				// then load the correct page
+				page, err = m.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
+			}
+
+			// delete the value in the loaded page
+			err = page.Delete(id)
+			if err != nil {
+				log.Infof("error deleting ID %d in page %d :: %s", id, pageID, err.Error())
+				continue
+			}
+
+			deletedKeys[i] = key
+		}
+
+		// write the updated map to file
+		err = m.writePage(page)
+		if err != nil {
+			log.Infof("error in locked page write: %s", err.Error())
+			return EmptyResult(), err
+		}
+	}
+
+	key := s.Select()
+	id, err := util.HashString(key)
+	if err != nil {
+		log.Infof("error hashing string key '%s' :: %s", key, err.Error())
+		return EmptyResult(), err
+	}
+
+	pageID := id / uint64(m.pageSize)
+	page, err := m.readPage(pageID)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	err = page.Delete(id)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	err = m.writePage(page)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	return SingleResult(key), nil
 }
 
 // WriteEmptyPage creates an empty page file for the specified page ID
@@ -294,5 +383,4 @@ func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
 	mapPage := EmptyMapPage(fileName)
 	err := m.driver.WriteMapPage(mapPage.vals, mapPage.name, m.Name)
 	return mapPage, err
-
 }

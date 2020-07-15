@@ -55,3 +55,13 @@ func (m MapPage) Upsert(id uint64, val string) uint64 {
 	m.vals[id] = val
 	return id
 }
+
+// Delete an existing value
+func (m MapPage) Delete(id uint64) error {
+	_, exists := m.vals[id]
+	if !exists {
+		return fmt.Errorf("cannot delete key from map page: key doesn't exist")
+	}
+	delete(m.vals, id)
+	return nil
+}

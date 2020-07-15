@@ -47,3 +47,13 @@ func (p *Page) Overwrite(id uint64, newVal string) error {
 	p.vals[id] = newVal
 	return nil
 }
+
+// Delete an existing value
+func (p Page) Delete(id uint64) error {
+	_, exists := p.vals[id]
+	if !exists {
+		return fmt.Errorf("cannot delete id %d from page: key doesn't exist", id)
+	}
+	delete(p.vals, id)
+	return nil
+}

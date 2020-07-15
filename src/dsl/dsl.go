@@ -53,7 +53,7 @@ func displayCommandList() {
 	for _, command := range Commands {
 		fmt.Println(command.keyword)
 		fmt.Println("  ", command.description)
-		fmt.Println("  Example:", command.example)
+		fmt.Println("   Example:", command.example)
 		fmt.Println()
 	}
 }
