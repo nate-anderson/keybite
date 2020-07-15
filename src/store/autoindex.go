@@ -2,6 +2,7 @@ package store
 
 import (
 	"keybite/store/driver"
+	"keybite/util/log"
 	"strconv"
 )
 
@@ -35,32 +36,54 @@ func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 	}, nil
 }
 
+// write a page to storage using a mutex for concurrency safety
+func (i AutoIndex) writePage(p Page) error {
+	return wrapInWriteLock(i.driver, i.Name, func() error {
+		return i.driver.WritePage(p.vals, p.name, i.Name)
+	})
+}
+
 // Query queries the index for the provided ID
 func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
 		resultStrs := make([]string, s.Length())
+		var lastPageID uint64
+		var page Page
+		var loaded bool
+		var err error
 		for j := 0; s.Next(); j++ {
-			pageID := s.Select() / uint64(i.pageSize)
-			page, err := i.readPage(pageID)
-			if err != nil {
-				return EmptyResult(), err
+			id := s.Select()
+			pageID := id / uint64(i.pageSize)
+			// if the page housing the queried ID is different than the loaded page, or no page has been loaded
+			// load the needed page
+			if pageID != lastPageID || !loaded {
+				page, err = i.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
 			}
-			resultStrs[j], err = page.Query(s.Select())
+
+			resultStrs[j], err = page.Query(id)
 			if err != nil {
-				return EmptyResult(), err
+				log.Infof("error querying page %d for id %d :: %s", pageID, id, err.Error())
+				continue
 			}
 		}
 		return CollectionResult(resultStrs), nil
 	}
 
 	// else return a single result
-	pageID := s.Select() / uint64(i.pageSize)
+	id := s.Select()
+	pageID := id / uint64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
 		return EmptyResult(), err
 	}
-	resultStr, err := page.Query(s.Select())
+	resultStr, err := page.Query(id)
 	result := SingleResult(resultStr)
 	return result, err
 }
@@ -115,10 +138,7 @@ func (i AutoIndex) Insert(val string) (id uint64, err error) {
 
 	id = latestPage.Append(val)
 
-	id, err = wrapInAutoWriteLock(i.driver, i.Name, func() (uint64, error) {
-		err := i.driver.WritePage(latestPage.vals, latestPage.name, i.Name)
-		return id, err
-	})
+	err = i.writePage(latestPage)
 
 	return
 }
@@ -127,30 +147,59 @@ func (i AutoIndex) Insert(val string) (id uint64, err error) {
 func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		insertedIds := make([]string, s.Length())
+		insertedIDs := make([]string, s.Length())
+		var lastPageID uint64
+		var page Page
+		var loaded bool
+		var err error
 		for j := 0; s.Next(); j++ {
-			pageID := s.Select() / uint64(i.pageSize)
-			page, err := i.readPage(pageID)
-			if err != nil {
-				return EmptyResult(), err
+			id := s.Select()
+			pageID := id / uint64(i.pageSize)
+			// if the page housing the update ID is different than the loaded page a no page has been loaded yet,
+			// load the needed page
+			if !loaded {
+				page, err = i.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
+				// if a page has been loaded and a new page is needed, write the changes to the previous page first
+			} else if pageID != lastPageID {
+				err := i.writePage(page)
+				if err != nil {
+					log.Infof("error in locked page write: %s", err.Error())
+					continue
+				}
+				// then load the next page
+				page, err = i.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
 			}
 
-			err = page.Overwrite(s.Select(), newVal)
+			// update the value in the loaded page
+			err = page.Overwrite(id, newVal)
 			if err != nil {
-				return EmptyResult(), err
+				log.Infof("error overwriting ID %d in page %d :: %s", id, pageID, err.Error())
+				continue
 			}
 
-			// write the updated map to file, conscious of other requests
-			id, err := wrapInAutoWriteLock(i.driver, i.Name, func() (uint64, error) {
-				writeErr := i.driver.WritePage(page.vals, page.name, i.Name)
-				return s.Select(), writeErr
-			})
-			insertedIds[j] = strconv.FormatUint(id, 10)
+			insertedIDs[j] = strconv.FormatUint(id, 10)
 		}
-		return CollectionResult(insertedIds), nil
+		// write the updated map to file, conscious of other requests
+		err = i.writePage(page)
+		if err != nil {
+			log.Infof("error in locked page write: %s", err.Error())
+		}
+		return CollectionResult(insertedIDs), err
 	}
 
-	pageID := s.Select() / uint64(i.pageSize)
+	id := s.Select()
+	pageID := id / uint64(i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
 		return EmptyResult(), err
@@ -163,10 +212,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	}
 
 	// write the updated map to file, conscious of other requests
-	id, err := wrapInAutoWriteLock(i.driver, i.Name, func() (uint64, error) {
-		writeErr := i.driver.WritePage(page.vals, page.name, i.Name)
-		return s.Select(), writeErr
-	})
+	err = i.writePage(page)
 
 	return SingleResult(strconv.FormatUint(id, 10)), err
 }
