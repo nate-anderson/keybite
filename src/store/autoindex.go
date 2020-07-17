@@ -1,7 +1,9 @@
 package store
 
 import (
+	"fmt"
 	"keybite/store/driver"
+	"keybite/util"
 	"keybite/util/log"
 	"strconv"
 )
@@ -89,10 +91,10 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 }
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
-func (i AutoIndex) getLatestPage() (Page, error) {
+func (i AutoIndex) getLatestPage() (Page, uint64, error) {
 	pageFiles, err := i.driver.ListPages(i.Name)
 	if err != nil {
-		return Page{}, err
+		return Page{}, 0, err
 	}
 
 	// if the index already contains pages, get the latest page
@@ -104,22 +106,33 @@ func (i AutoIndex) getLatestPage() (Page, error) {
 
 		vals, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
 		if err != nil {
-			return Page{}, err
+			return Page{}, 0, err
+		}
+
+		pageIDStr := util.StripExtension(fileName)
+		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
+		if err != nil {
+			return Page{}, 0, fmt.Errorf("error determining page ID from filename '%s' :: %w", fileName, err)
 		}
 
 		return Page{
 			vals: vals,
 			name: fileName,
-		}, nil
+		}, pageID, nil
 	}
 
 	// else create the initial page
-	return i.createInitialPage()
+	firstPage, err := i.createInitialPage()
+	return firstPage, 0, err
 }
 
 // create the first page in an index
 func (i AutoIndex) createInitialPage() (Page, error) {
-	fileName := "0"
+	return i.createEmptyPage(0)
+}
+
+func (i AutoIndex) createEmptyPage(id uint64) (Page, error) {
+	fileName := strconv.FormatUint(id, 10)
 	emptyVals := map[uint64]string{}
 	err := i.driver.WritePage(emptyVals, fileName, i.Name)
 	if err != nil {
@@ -131,9 +144,26 @@ func (i AutoIndex) createInitialPage() (Page, error) {
 
 // Insert a value into this index's latest page, returning its ID
 func (i AutoIndex) Insert(val string) (id uint64, err error) {
-	latestPage, err := i.getLatestPage()
+	latestPage, latestPageID, err := i.getLatestPage()
 	if err != nil {
 		return
+	}
+
+	latestID := latestPage.MaxKey()
+	// determine max ID that can be held by this page
+	maxIDForLatestPage := (latestPageID + 1) * uint64(i.pageSize)
+
+	// if this value would oversize the latest map page, create a new one at latest page ID +1
+	if len(latestPage.vals) >= i.pageSize || latestID >= maxIDForLatestPage {
+		// increment page ID, create next page
+		latestPageID++
+		latestPage, err = i.createEmptyPage(latestPageID)
+
+		// set minimum key of new page to maximum key of previous page + 1
+		latestPage.SetMinimumKey(latestID + 1)
+		if err != nil {
+			return 0, fmt.Errorf("error creating new page for insert: %w", err)
+		}
 	}
 
 	id = latestPage.Append(val)
