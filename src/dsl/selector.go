@@ -70,7 +70,7 @@ func parseCollection(token string) ([]uint64, error) {
 	for i, str := range strs {
 		id, err := strconv.ParseUint(str, 10, 64)
 		if err != nil {
-			return vals, err
+			return vals, fmt.Errorf("error parsing query selector '%s': %w", token, err)
 		}
 		vals[i] = id
 	}
