@@ -65,7 +65,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	for key, query := range request {
 		err := ResolveQuery(key, *query, h.conf, queryResults, seen)
 		if err != nil {
-			log.Infof("error resolving query for key '%s': %s", key, err)
+			LogQueryErrorInfo(key, err)
 			continue
 		}
 	}
