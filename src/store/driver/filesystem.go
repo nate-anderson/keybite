@@ -23,7 +23,7 @@ type FilesystemDriver struct {
 // NewFilesystemDriver instantiates a new filesystem storage driver
 func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time.Duration) (FilesystemDriver, error) {
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		return FilesystemDriver{}, fmt.Errorf("no data directory named %s could be found", dataDir)
+		return FilesystemDriver{}, ErrDataDirNotExist(dataDir, err)
 	}
 
 	return FilesystemDriver{
@@ -34,16 +34,16 @@ func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time
 }
 
 // ReadPage reads a file into a map
-func (d FilesystemDriver) ReadPage(filename string, indexName string, pageSize int) (map[uint64]string, error) {
+func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
 	vals := make(map[uint64]string, pageSize)
-	path := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(filename, d.pageExtension))
+	path := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return vals, ErrNotExist(path)
+			return vals, ErrNotExist(path, indexName, err)
 		}
-		return vals, err
+		return vals, ErrReadFile(fileName, indexName, err)
 	}
 	defer pageFile.Close()
 
@@ -51,7 +51,7 @@ func (d FilesystemDriver) ReadPage(filename string, indexName string, pageSize i
 	for scanner.Scan() {
 		key, value, err := util.StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, err
+			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
 	}
@@ -67,9 +67,9 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 	pageFile, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return vals, ErrNotExist(filePath)
+			return vals, ErrNotExist(filePath, indexName, err)
 		}
-		return vals, err
+		return vals, ErrReadFile(fileName, indexName, err)
 	}
 	defer pageFile.Close()
 
@@ -77,7 +77,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 	for scanner.Scan() {
 		key, value, err := util.StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, err
+			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
 	}
@@ -92,8 +92,11 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, ind
 	if err != nil {
 		if os.IsNotExist(err) {
 			file, err = os.Create(filePath)
+			if err != nil {
+				return ErrWriteFile(filename, indexName, err)
+			}
 		} else {
-			return err
+			return ErrReadFile(filename, indexName, err)
 		}
 	}
 	defer file.Close()
@@ -117,11 +120,11 @@ func (d FilesystemDriver) WriteMapPage(vals map[uint64]string, fileName string, 
 		if os.IsNotExist(err) {
 			file, err = os.Create(filePath)
 		} else {
-			return err
+			return ErrReadFile(fileName, indexName, err)
 		}
 
 		if file, err = os.Create(filePath); err != nil {
-			return err
+			return ErrWriteFile(fileName, indexName, err)
 		}
 	}
 	defer file.Close()
@@ -130,7 +133,7 @@ func (d FilesystemDriver) WriteMapPage(vals map[uint64]string, fileName string, 
 		line := fmt.Sprintf("%d:%s\n", key, value)
 		_, err = file.Write([]byte(line))
 		if err != nil {
-			return err
+			return fmt.Errorf("writing line to map index file '%s' in index '%s' failed: %w", fileName, indexName, err)
 		}
 	}
 
@@ -143,7 +146,7 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 	files, err := ioutil.ReadDir(indexPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []string{}, ErrNotExist(indexPath)
+			return []string{}, ErrNotExist(indexPath, indexName, err)
 		}
 		return []string{}, err
 	}
@@ -184,7 +187,7 @@ func (d FilesystemDriver) LockIndex(indexName string) error {
 	filePath := path.Join(d.dataDir, indexName, lockfileName)
 	file, err := os.Create(filePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("writing lock file for index %s failed: %w", indexName, err)
 	}
 
 	log.Debugf("created lockfile %s", filePath)
@@ -199,13 +202,13 @@ func (d FilesystemDriver) UnlockIndex(indexName string) error {
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking for lock files in index %s failed: %w", indexName, err)
 	}
 
 	for _, path := range fNames {
 		log.Debugf("deleting lockfile %s", path)
 		if err := os.Remove(path); err != nil {
-			return err
+			return fmt.Errorf("deleting lockfile in index %s failed: %w", indexName, err)
 		}
 	}
 
@@ -218,7 +221,7 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
-		return true, time.Time{}, err
+		return true, time.Time{}, fmt.Errorf("checking for lock files in index %s failed: %w", indexName, err)
 	}
 
 	// if lockfile(s) present, return max lock timestamp
@@ -228,7 +231,7 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 		for _, name := range fNames {
 			ts, err := filenameToLockTimestamp(name)
 			if err != nil {
-				return true, maxLockTs.Add(d.lockDuration), err
+				return true, maxLockTs.Add(d.lockDuration), fmt.Errorf("creating lock file for index %s failed: %w", indexName, err)
 			}
 			if ts.After(maxLockTs) {
 				maxLockTs = ts

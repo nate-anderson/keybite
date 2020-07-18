@@ -57,7 +57,7 @@ func NewBucketDriver(
 	// validate existence and permissions of bucket
 	_, err = client.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(bucketName)})
 	if err != nil {
-		return BucketDriver{}, err
+		return BucketDriver{}, fmt.Errorf("reading from S3 bucket '%s' failed: %w", bucketName, err)
 	}
 
 	return BucketDriver{
@@ -81,13 +81,13 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
-		return map[uint64]string{}, err
+		return map[uint64]string{}, fmt.Errorf("creating temp file '%s' for index '%s' failed: %w", fileName, indexName, err)
 	}
 	defer tempFile.Close()
 
-	err = d.downloadToFile(remotePath, tempFile)
+	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
-		return map[uint64]string{}, err
+		return map[uint64]string{}, ErrWriteFile(fileName, indexName, err)
 	}
 
 	vals := make(map[uint64]string, pageSize)
@@ -96,7 +96,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	for scanner.Scan() {
 		key, value, err := util.StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, err
+			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
 	}
@@ -123,16 +123,16 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 
 	vals := make(map[uint64]string, pageSize)
 
-	err = d.downloadToFile(remotePath, tempFile)
+	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
-		return vals, err
+		return vals, ErrWriteFile(fileName, indexName, err)
 	}
 
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
 		key, value, err := util.StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, err
+			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
 	}
@@ -173,7 +173,11 @@ func (d BucketDriver) WriteMapPage(vals map[uint64]string, fileName string, inde
 		Body:   pageReader,
 	})
 
-	return err
+	if err != nil {
+		return fmt.Errorf("writing updated map page file '%s' to S3 bucket '%s' failed: %w", fileName, d.bucketName, err)
+	}
+
+	return nil
 }
 
 // ListPages lists the page files in the bucket
@@ -185,7 +189,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 	})
 
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("reading contents of S3 bucket '%s' for index '%s' failed: %w", d.bucketName, indexName, err)
 	}
 
 	pages := []string{}
@@ -211,7 +215,7 @@ func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*o
 
 }
 
-func (d BucketDriver) downloadToFile(remotePath string, dest *os.File) error {
+func (d BucketDriver) downloadToFile(remotePath string, indexName string, dest *os.File) error {
 	_, err := d.s3Downloader.Download(dest,
 		&s3.GetObjectInput{
 			Bucket: aws.String(d.bucketName),
@@ -221,7 +225,7 @@ func (d BucketDriver) downloadToFile(remotePath string, dest *os.File) error {
 
 	if err != nil {
 		if isS3NotExistErr(err) {
-			return ErrNotExist(remotePath)
+			return ErrNotExist(remotePath, indexName, err)
 		}
 		log.Errorf("error fetching remote file %s", remotePath)
 		return err
@@ -261,7 +265,11 @@ func (d BucketDriver) CreateAutoIndex(indexName string) error {
 		Body:   nil,
 	})
 
-	return err
+	if err != nil {
+		return ErrWriteFile(indexKey, indexName, err)
+	}
+
+	return nil
 }
 
 // CreateMapIndex creates the folder for a map index in the data dir
@@ -275,7 +283,11 @@ func (d BucketDriver) CreateMapIndex(indexName string) error {
 		Body:   nil,
 	})
 
-	return err
+	if err != nil {
+		return ErrWriteFile(indexKey, indexName, err)
+	}
+
+	return nil
 }
 
 // DeletePage deletes a map or index page from the S3 bucket
@@ -293,7 +305,11 @@ func (d BucketDriver) DeletePage(indexName string, fileName string) error {
 		Bucket: aws.String(d.bucketName),
 		Key:    aws.String(filePath),
 	})
-	return err
+
+	if err != nil {
+		return fmt.Errorf("deleting page file '%s' for index '%s' failed: %w", fileName, indexName, err)
+	}
+	return nil
 }
 
 // DeleteIndex deletes an index from the bucket
@@ -310,7 +326,11 @@ func (d BucketDriver) DeleteIndex(indexName string) error {
 		Bucket: aws.String(d.bucketName),
 		Key:    aws.String(indexName),
 	})
-	return err
+
+	if err != nil {
+		return fmt.Errorf("deleting index '%s' failed: %w", indexName, err)
+	}
+	return nil
 }
 
 // IndexIsLocked checks if the specified index is locked and returns the timestamp it expires at
@@ -321,9 +341,8 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 		Bucket: aws.String(d.bucketName),
 		Prefix: aws.String(prefix),
 	})
-
 	if err != nil {
-		return true, time.Now(), err
+		return true, time.Now(), fmt.Errorf("checking for lock files in index %s failed: %w", indexName, err)
 	}
 
 	var maxLockTs time.Time
@@ -334,6 +353,7 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 			log.Debugf("found lockfile %s in index %s", itemName, indexName)
 			ts, err := filenameToLockTimestamp(itemName)
 			if err != nil {
+				// file is not a lockfile
 				continue
 			}
 			if ts.After(maxLockTs) {
@@ -367,7 +387,10 @@ func (d BucketDriver) LockIndex(indexName string) error {
 
 	log.Debugf("created lockfile %s", filePath)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("locking index '%s' failed: %w", indexName, err)
+	}
+	return nil
 }
 
 // UnlockIndex deletes all write lockfiles in an index
@@ -392,7 +415,7 @@ func (d BucketDriver) UnlockIndex(indexName string) error {
 				Key:    aws.String(*item.Key),
 			})
 			if err != nil {
-				log.Errorf("Error deleting index write lockfile! %s", err.Error())
+				log.Errorf("deleting lockfile '%s' in index '%s' failed: %w", itemName, indexName, err)
 				continue
 			}
 		}
