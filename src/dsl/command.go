@@ -6,7 +6,6 @@ import (
 	"keybite/config"
 	"keybite/store"
 	"keybite/store/driver"
-	"keybite/util/log"
 	"strconv"
 )
 
@@ -38,15 +37,19 @@ var Query = command{
 
 		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
 		}
 
 		selector, err := ParseAutoSelector(tokens[2])
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("could not parse query: %w", err)
 		}
 
-		return index.Query(selector)
+		result, err := index.Query(selector)
+		if err != nil {
+			return result, fmt.Errorf("query on index %s failed: %w", tokens[1], err)
+		}
+		return result, nil
 	},
 }
 
@@ -58,7 +61,6 @@ var Insert = command{
 	example:     "insert index_name the string to insert",
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		storageDriver, err := driver.GetConfiguredDriver(conf)
-		log.Debugf("inserting with storage driver %T %+v", storageDriver, storageDriver)
 		if err != nil {
 			return store.EmptyResult(), err
 		}
@@ -70,18 +72,17 @@ var Insert = command{
 
 		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
 		}
 
 		result, err := index.Insert(payload)
 		if err != nil {
-			log.Errorf("error inserting into index %s: %s", index.Name, err.Error())
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("inserting into index %s failed: %w", index.Name, err)
 		}
 
 		resultStr, err := strconv.FormatUint(result, 10), nil
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("error formatting insert result %d: %w", result, err)
 		}
 
 		return store.SingleResult(resultStr), nil
@@ -107,7 +108,7 @@ var Update = command{
 
 		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
 		}
 
 		selector, err := ParseAutoSelector(tokens[2])
@@ -117,9 +118,8 @@ var Update = command{
 
 		result, err := index.Update(selector, payload)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("updating index %s failed: %w", tokens[1], err)
 		}
-
 		return result, nil
 	},
 }
@@ -143,7 +143,7 @@ var Delete = command{
 
 		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
 		}
 
 		selector, err := ParseAutoSelector(tokens[2])
@@ -151,7 +151,11 @@ var Delete = command{
 			return store.EmptyResult(), fmt.Errorf("cannot delete non-integer ID %s", tokens[2])
 		}
 
-		return index.Delete(selector)
+		result, err := index.Delete(selector)
+		if err != nil {
+			return result, fmt.Errorf("delete from index %s failed: %w", tokens[1], err)
+		}
+		return result, nil
 
 	},
 }
@@ -214,9 +218,14 @@ var QueryKey = command{
 
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", indexName, err)
 		}
-		return mapIndex.Query(selector)
+
+		result, err := mapIndex.Query(selector)
+		if err != nil {
+			return result, fmt.Errorf("query on index %s failed: %w", indexName, err)
+		}
+		return result, nil
 	},
 }
 
@@ -242,12 +251,12 @@ var InsertKey = command{
 		selector := ParseMapSelector(tokens[2])
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", indexName, err)
 		}
 
 		resultStr, err := mapIndex.Insert(selector, payload)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("inserting into index %s failed: %w", indexName, err)
 		}
 
 		return store.SingleResult(resultStr), nil
@@ -275,7 +284,7 @@ var UpdateKey = command{
 
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
 		}
 		return mapIndex.Update(selector, payload)
 	},
@@ -302,10 +311,14 @@ var UpsertKey = command{
 
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
 		}
 
-		return mapIndex.Upsert(selector, payload)
+		result, err := mapIndex.Upsert(selector, payload)
+		if err != nil {
+			return result, fmt.Errorf("upserting into index %s failed: %w", tokens[1], err)
+		}
+		return result, nil
 	},
 }
 
@@ -330,10 +343,14 @@ var DeleteKey = command{
 
 		mapIndex, err := store.NewMapIndex(indexName, storageDriver, pageSize)
 		if err != nil {
-			return store.EmptyResult(), err
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", indexName, err)
 		}
 
-		return mapIndex.Delete(selector)
+		result, err := mapIndex.Delete(selector)
+		if err != nil {
+			return result, fmt.Errorf("delete from index %s failed: %w", tokens[1], err)
+		}
+		return result, nil
 	},
 }
 
