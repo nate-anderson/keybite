@@ -19,7 +19,7 @@ type FileError struct {
 
 // Error returns the error message
 func (e FileError) Error() string {
-	return fmt.Sprintf(e.msgFmt, e.filename, e.original)
+	return fmt.Sprintf(e.msgFmt, e.filename, e.indexname, e.original)
 }
 
 // Unwrap the underlying error
