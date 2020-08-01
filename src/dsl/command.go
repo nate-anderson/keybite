@@ -254,12 +254,12 @@ var InsertKey = command{
 			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", indexName, err)
 		}
 
-		resultStr, err := mapIndex.Insert(selector, payload)
+		result, err := mapIndex.Insert(selector, payload)
 		if err != nil {
 			return store.EmptyResult(), fmt.Errorf("inserting into index %s failed: %w", indexName, err)
 		}
 
-		return store.SingleResult(resultStr), nil
+		return result, nil
 	},
 }
 
