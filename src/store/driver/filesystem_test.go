@@ -121,9 +121,9 @@ func TestFSWriteMapPageReadMapPage(t *testing.T) {
 	err = fsd.CreateMapIndex(indexName)
 	util.Ok(t, err)
 
-	testMap := map[uint64]string{
-		1: "hello",
-		2: "world",
+	testMap := map[string]string{
+		"1": "hello",
+		"2": "world",
 	}
 
 	testFileName := "1"
@@ -137,8 +137,8 @@ func TestFSWriteMapPageReadMapPage(t *testing.T) {
 	vals, err := fsd.ReadMapPage(testFileName, indexName, 10)
 	util.Ok(t, err)
 
-	util.Equals(t, "hello", vals[1])
-	util.Equals(t, "world", vals[2])
+	util.Equals(t, "hello", vals["1"])
+	util.Equals(t, "world", vals["2"])
 }
 
 // test that ListPages returns the pages in an index dir
