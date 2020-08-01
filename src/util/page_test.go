@@ -107,7 +107,7 @@ func TestHashString(t *testing.T) {
 
 	for i, testCase := range testCases {
 		var err error
-		outcomes[i], err = util.HashString(testCase)
+		outcomes[i], err = util.HashStringToKey(testCase)
 		if err != nil {
 			t.FailNow()
 		}
@@ -127,7 +127,7 @@ func TestHashString(t *testing.T) {
 
 func TestHashStringNotAcceptOverMaxLength(t *testing.T) {
 	testString := strings.Repeat("s", 200)
-	_, err := util.HashString(testString)
+	_, err := util.HashStringToKey(testString)
 	if err == nil {
 		t.Fail()
 	}

@@ -106,7 +106,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 }
 
 // ReadMapPage reads a remote file into a map page
-func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
+func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, error) {
 	d.setDownloaderIfNil()
 
 	// download the remote file into a local temp file to read into memory
@@ -114,14 +114,14 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	// download's contents to a string instead of writing then reading a temp file
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
-		return map[uint64]string{}, err
+		return map[string]string{}, err
 	}
 
 	defer tempFile.Close()
 
 	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 
-	vals := make(map[uint64]string, pageSize)
+	vals := make(map[string]string, pageSize)
 
 	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
@@ -159,10 +159,10 @@ func (d BucketDriver) WritePage(vals map[uint64]string, fileName string, indexNa
 }
 
 // WriteMapPage persists a new or updated map page as a file in the remote bucket
-func (d BucketDriver) WriteMapPage(vals map[uint64]string, fileName string, indexName string) error {
+func (d BucketDriver) WriteMapPage(vals map[string]string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewPageReader(vals)
+	pageReader := NewMapPageReader(vals)
 	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 

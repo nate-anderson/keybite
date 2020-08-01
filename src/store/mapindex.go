@@ -71,13 +71,13 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			id, err := util.HashString(s.Select())
+			hashAddr, err := util.HashStringToKey(s.Select())
 			if err != nil {
 				log.Infof("error hashing string key %s :: %s", key, err.Error())
 				continue
 			}
 
-			pageID := id / uint64(m.pageSize)
+			pageID := hashAddr / uint64(m.pageSize)
 			// if the page housing the queried ID is different than the loaded page, or no page has been loaded
 			// load the needed page
 			if pageID != lastPageID || !loaded {
@@ -90,9 +90,9 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 				lastPageID = pageID
 			}
 
-			resultStrs[i], err = page.Query(id)
+			resultStrs[i], err = page.Query(key)
 			if err != nil {
-				log.Infof("error querying page %d for ID %d (key '%s') :: %s", pageID, id, key, err.Error())
+				log.Infof("error querying page %d for key %s :: %s", pageID, key, err.Error())
 				continue
 			}
 		}
@@ -100,61 +100,123 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 	}
 
 	// else return a single result
-	id, err := util.HashString(s.Select())
+	key := s.Select()
+	hashAddr, err := util.HashStringToKey(key)
 	if err != nil {
 		return EmptyResult(), err
 	}
 
-	pageID := id / uint64(m.pageSize)
+	pageID := hashAddr / uint64(m.pageSize)
 	page, err := m.readPage(pageID)
 	if err != nil {
 		return
 	}
-	resultStr, err := page.Query(id)
+	resultStr, err := page.Query(key)
 	result = SingleResult(resultStr)
 	return
 }
 
 // Insert value at key
-func (m MapIndex) Insert(s MapSelector, value string) (string, error) {
-	key := s.Select()
-	id, err := util.HashString(s.Select())
-	if err != nil {
-		return "", err
+func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
+	// if there are multiple query selections, update all
+	if s.Length() > 1 {
+		updatedKeys := make([]string, s.Length())
+		var lastPageID uint64
+		var page MapPage
+		var loaded bool
+		for i := 0; s.Next(); i++ {
+			key := s.Select()
+			hashAddr, err := util.HashStringToKey(key)
+			if err != nil {
+				log.Infof("error hashing key '%s' :: %s", key, err.Error())
+				continue
+			}
+
+			pageID := hashAddr / uint64(m.pageSize)
+			// if the page housing the update ID is different than the loaded page, or no page has been loaded yet,
+			// load the needed page
+			if !loaded {
+				page, err = m.readOrCreatePage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				loaded = true
+				lastPageID = pageID
+				// if a page has been loaded and a new page is needed, write the changes to the previous page first
+			} else if pageID != lastPageID {
+				err := m.writePage(page)
+				if err != nil {
+					log.Infof("error in locked page write: %s", err.Error())
+					continue
+				}
+
+				// then load the next page
+				page, err = m.readPage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
+			}
+
+			// insert the value into the loaded page
+			_, err = page.Add(key, value)
+			if err != nil {
+				log.Infof("error inserting key %s into page %d :: %s", key, pageID, err.Error())
+				continue
+			}
+
+			updatedKeys[i] = key
+		}
+
+		// write the updated map to file, conscious of other requests
+		err := m.writePage(page)
+		if err != nil {
+			log.Infof("error in locked page write: %s", err.Error())
+		}
+		return CollectionResult(updatedKeys), err
 	}
 
-	pageID := id / uint64(m.pageSize)
+	key := s.Select()
+	hashAddr, err := util.HashStringToKey(key)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	pageID := hashAddr / uint64(m.pageSize)
 	page, err := m.readOrCreatePage(pageID)
 	if err != nil {
-		return "", err
+		return EmptyResult(), err
 	}
 
-	_, err = page.Add(id, value)
+	_, err = page.Add(key, value)
 	if err != nil {
-		return s.Select(), err
+		return EmptyResult(), err
 	}
 
 	err = m.writePage(page)
-	return key, err
+
+	return SingleResult(key), err
 }
 
 // Update existing data
 func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		updatedIds := make([]string, s.Length())
+		updatedIDs := make([]string, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			id, err := util.HashString(key)
+			hashAddr, err := util.HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing key '%s' :: %s", key, err.Error())
 				continue
 			}
 
-			pageID := id / uint64(m.pageSize)
+			pageID := hashAddr / uint64(m.pageSize)
 			// if the page housing the update ID is different than the loaded page, or no page has been loaded yet,
 			// load the needed page
 			if !loaded {
@@ -183,13 +245,13 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 			}
 
 			// update the value in the loaded page
-			err = page.Overwrite(id, newValue)
+			err = page.Overwrite(key, newValue)
 			if err != nil {
-				log.Infof("error overwriting ID %d in page %d :: %s", id, pageID, err.Error())
+				log.Infof("error overwriting key %s in page %d :: %s", key, pageID, err.Error())
 				continue
 			}
 
-			updatedIds[i] = key
+			updatedIDs[i] = key
 		}
 
 		// write the updated map to file, conscious of other requests
@@ -197,11 +259,11 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(updatedIds), err
+		return CollectionResult(updatedIDs), err
 	}
 
 	key := s.Select()
-	id, err := util.HashString(key)
+	id, err := util.HashStringToKey(key)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -212,7 +274,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 		return EmptyResult(), err
 	}
 
-	err = page.Overwrite(id, newValue)
+	err = page.Overwrite(key, newValue)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -231,12 +293,12 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			id, err := util.HashString(key)
+			hashAddr, err := util.HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 				continue
 			}
-			pageID := id / uint64(m.pageSize)
+			pageID := hashAddr / uint64(m.pageSize)
 			// if the page housing the update ID is different than the loaded page, or no page has been loaded yet,
 			// load the needed page
 			if !loaded {
@@ -257,7 +319,7 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 			}
 
 			// update or insert value in loaded page
-			page.Upsert(id, newValue)
+			page.Upsert(key, newValue)
 			upsertedKeys[i] = key
 		}
 
@@ -271,18 +333,18 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 	}
 
 	key := s.Select()
-	id, err := util.HashString(key)
+	hashAddr, err := util.HashStringToKey(key)
 	if err != nil {
 		log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 		return EmptyResult(), err
 	}
-	pageID := id / uint64(m.pageSize)
+	pageID := hashAddr / uint64(m.pageSize)
 	page, err := m.readOrCreatePage(pageID)
 	if err != nil {
 		return EmptyResult(), err
 	}
 
-	page.Upsert(id, newValue)
+	page.Upsert(key, newValue)
 
 	err = m.writePage(page)
 	if err != nil {
@@ -303,12 +365,12 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 		var err error
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			id, err := util.HashString(key)
+			hashAddr, err := util.HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 				continue
 			}
-			pageID := id / uint64(m.pageSize)
+			pageID := hashAddr / uint64(m.pageSize)
 			if !loaded {
 				page, err = m.readPage(pageID)
 				if err != nil {
@@ -334,9 +396,9 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 			}
 
 			// delete the value in the loaded page
-			err = page.Delete(id)
+			err = page.Delete(key)
 			if err != nil {
-				log.Infof("error deleting ID %d in page %d :: %s", id, pageID, err.Error())
+				log.Infof("error deleting key %s in page %d :: %s", key, pageID, err.Error())
 				continue
 			}
 
@@ -352,19 +414,19 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 	}
 
 	key := s.Select()
-	id, err := util.HashString(key)
+	hashAddr, err := util.HashStringToKey(key)
 	if err != nil {
 		log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 		return EmptyResult(), err
 	}
 
-	pageID := id / uint64(m.pageSize)
+	pageID := hashAddr / uint64(m.pageSize)
 	page, err := m.readPage(pageID)
 	if err != nil {
 		return EmptyResult(), err
 	}
 
-	err = page.Delete(id)
+	err = page.Delete(key)
 	if err != nil {
 		return EmptyResult(), err
 	}

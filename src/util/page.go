@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -26,18 +27,13 @@ func StringToKeyValue(str string) (uint64, string, error) {
 }
 
 // StringToMapKeyValue converts a line of text to a key-value pair used to read a map page file
-func StringToMapKeyValue(str string) (uint64, string, error) {
+func StringToMapKeyValue(str string) (string, string, error) {
 	parts, err := SplitOnFirst(str, ':')
 	if err != nil || len(parts) != 2 {
-		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
+		return "", "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
 	}
 
-	key, err := strconv.ParseUint(parts[0], 10, 64)
-	if err != nil {
-		return 0, "", fmt.Errorf("cannot parse archive entry %s into key-value pair: key %v is not a valid int64", str, parts[0])
-	}
-
-	return key, parts[1], nil
+	return parts[0], parts[1], nil
 }
 
 // SplitOnFirst splits a string into two substrings after the first appearance of rune 'split'
@@ -65,15 +61,23 @@ func MaxMapKey(m map[uint64]string) uint64 {
 	return maxNumber
 }
 
-// HashString to unique unsigned integer. Strings that can be parses as integers are not hashed.
+// chars not allowed in map keys
+var forbiddenKeyChar = regexp.MustCompile(`(:|\s+)`)
+
+// HashStringToKey to unique unsigned integer. Strings that can be parses as integers are not hashed.
 // https://stackoverflow.com/a/16524816
-func HashString(s string) (uint64, error) {
+func HashStringToKey(s string) (uint64, error) {
 	if num, err := strconv.ParseUint(s, 10, 64); err == nil {
 		return num, nil
 	}
-	pow := 27
+
+	if forbiddenKeyChar.MatchString(s) {
+		return 0, fmt.Errorf("cannot hash string containing whitespace or colon into a map key")
+	}
+
+	const pow = 27
 	if len(s) > MaxKeyLength {
-		return 0, errors.New("cannot hash string longer than 150 characters")
+		return 0, fmt.Errorf("cannot hash string longer than %d characters", MaxKeyLength)
 	}
 	var result uint64 = 0
 	for i, char := range s {
