@@ -60,8 +60,8 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 }
 
 // ReadMapPage reads a file into a map page
-func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
-	vals := map[uint64]string{}
+func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, error) {
+	vals := map[string]string{}
 	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(filePath)
@@ -113,7 +113,7 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, ind
 }
 
 // WriteMapPage persists a new or updated map page as a file in the dataDir
-func (d FilesystemDriver) WriteMapPage(vals map[uint64]string, fileName string, indexName string) error {
+func (d FilesystemDriver) WriteMapPage(vals map[string]string, fileName string, indexName string) error {
 	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
@@ -130,7 +130,7 @@ func (d FilesystemDriver) WriteMapPage(vals map[uint64]string, fileName string, 
 	defer file.Close()
 
 	for key, value := range vals {
-		line := fmt.Sprintf("%d:%s\n", key, value)
+		line := fmt.Sprintf("%s:%s\n", key, value)
 		_, err = file.Write([]byte(line))
 		if err != nil {
 			return fmt.Errorf("writing line to map index file '%s' in index '%s' failed: %w", fileName, indexName, err)
