@@ -49,7 +49,7 @@ func (i AutoIndex) writePage(p Page) error {
 func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
-		resultStrs := make([]string, s.Length())
+		resultStrs := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page Page
 		var loaded bool
@@ -69,11 +69,12 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 				lastPageID = pageID
 			}
 
-			resultStrs[j], err = page.Query(id)
+			resultStr, err := page.Query(id)
 			if err != nil {
 				log.Infof("error querying page %d for id %d :: %s", pageID, id, err.Error())
 				continue
 			}
+			resultStrs = append(resultStrs, resultStr)
 		}
 		return CollectionResult(resultStrs), nil
 	}
@@ -177,7 +178,7 @@ func (i AutoIndex) Insert(val string) (id uint64, err error) {
 func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		insertedIDs := make([]string, s.Length())
+		insertedIDs := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page Page
 		var loaded bool
@@ -253,7 +254,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 // Delete a value stored in the autoindex
 func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 	if s.Length() > 1 {
-		deletedIDs := make([]string, s.Length())
+		deletedIDs := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page Page
 		var loaded bool
