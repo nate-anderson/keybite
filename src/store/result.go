@@ -3,6 +3,8 @@ package store
 import (
 	"encoding/json"
 	"fmt"
+	"keybite/util"
+	"keybite/util/log"
 )
 
 // Result contains a single result or collection of results
@@ -20,7 +22,15 @@ func (r SingleResult) MarshalJSON() ([]byte, error) {
 	if r == "" {
 		return []byte("null"), nil
 	}
-	return []byte(`"` + string(r) + `"`), nil
+
+	if json.Valid([]byte(r)) {
+		return []byte(r), nil
+	}
+
+	log.Debugf("marshaling JSON from '%s'", r)
+	escaped := util.EscapeDoubleQuotes(string(r))
+
+	return []byte(`"` + escaped + `"`), nil
 }
 
 // String returns a string encoding of the result

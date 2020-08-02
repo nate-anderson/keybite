@@ -2,6 +2,7 @@ package util
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -26,4 +27,11 @@ func StripStringPrefixes(ss []string, n int) []string {
 // StripExtension drops file extension from a file name
 func StripExtension(filename string) string {
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
+}
+
+var doubleQuotesRegex = regexp.MustCompile("\"")
+
+// EscapeDoubleQuotes escapes all double quotes in a string
+func EscapeDoubleQuotes(str string) string {
+	return doubleQuotesRegex.ReplaceAllString(str, `\"`)
 }
