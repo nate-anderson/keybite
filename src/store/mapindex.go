@@ -65,7 +65,7 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
-		resultStrs := make([]string, s.Length())
+		resultStrs := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -90,11 +90,12 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 				lastPageID = pageID
 			}
 
-			resultStrs[i], err = page.Query(key)
+			resultStr, err := page.Query(key)
 			if err != nil {
 				log.Infof("error querying page %d for key %s :: %s", pageID, key, err.Error())
 				continue
 			}
+			resultStrs = append(resultStrs, resultStr)
 		}
 		return CollectionResult(resultStrs), nil
 	}
@@ -120,7 +121,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		updatedKeys := make([]string, s.Length())
+		updatedKeys := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -167,7 +168,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 				continue
 			}
 
-			updatedKeys[i] = key
+			updatedKeys = append(updatedKeys, key)
 		}
 
 		// write the updated map to file, conscious of other requests
@@ -204,7 +205,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		updatedIDs := make([]string, s.Length())
+		updatedKeys := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -251,7 +252,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 				continue
 			}
 
-			updatedIDs[i] = key
+			updatedKeys = append(updatedKeys, key)
 		}
 
 		// write the updated map to file, conscious of other requests
@@ -259,7 +260,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(updatedIDs), err
+		return CollectionResult(updatedKeys), err
 	}
 
 	key := s.Select()
@@ -287,7 +288,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 // Upsert inserts or modifies a value at the given key
 func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 	if s.Length() > 1 {
-		upsertedKeys := make([]string, s.Length())
+		upsertedKeys := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -320,7 +321,7 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 
 			// update or insert value in loaded page
 			page.Upsert(key, newValue)
-			upsertedKeys[i] = key
+			upsertedKeys = append(upsertedKeys, key)
 		}
 
 		// write the updated map to file, conscious of other requests
@@ -358,7 +359,7 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 // Delete an item from the map index
 func (m MapIndex) Delete(s MapSelector) (Result, error) {
 	if s.Length() > 1 {
-		deletedKeys := make([]string, s.Length())
+		deletedKeys := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -402,7 +403,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 				continue
 			}
 
-			deletedKeys[i] = key
+			deletedKeys = append(deletedKeys, key)
 		}
 
 		// write the updated map to file
