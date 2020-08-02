@@ -61,7 +61,7 @@ func NewRangeSelector(min, max uint64) RangeSelector {
 
 // Next indicates whether the selector has more values
 func (s *RangeSelector) Next() bool {
-	if s.from < s.to {
+	if s.from <= s.to {
 		s.from++
 		return true
 	}
