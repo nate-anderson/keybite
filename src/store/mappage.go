@@ -24,7 +24,7 @@ func EmptyMapPage(name string) MapPage {
 func (m MapPage) Query(key string) (string, error) {
 	val, ok := m.vals[key]
 	if !ok {
-		return "", fmt.Errorf("ID %d not found in this page", key)
+		return "", fmt.Errorf("key %s not found in this page", key)
 	}
 
 	return val, nil
