@@ -49,7 +49,7 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 
 	scanner := bufio.NewScanner(pageFile)
 	for scanner.Scan() {
-		key, value, err := util.StringToKeyValue(scanner.Text())
+		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
 			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
@@ -75,7 +75,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 
 	scanner := bufio.NewScanner(pageFile)
 	for scanner.Scan() {
-		key, value, err := util.StringToMapKeyValue(scanner.Text())
+		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
 			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}

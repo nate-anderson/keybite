@@ -94,7 +94,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
-		key, value, err := util.StringToKeyValue(scanner.Text())
+		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
 			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
@@ -130,7 +130,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
-		key, value, err := util.StringToMapKeyValue(scanner.Text())
+		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
 			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}

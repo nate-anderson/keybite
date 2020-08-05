@@ -2,7 +2,6 @@ package store
 
 import (
 	"keybite/store/driver"
-	"keybite/util"
 	"keybite/util/log"
 	"strconv"
 )
@@ -71,7 +70,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			hashAddr, err := util.HashStringToKey(s.Select())
+			hashAddr, err := HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing string key %s :: %s", key, err.Error())
 				continue
@@ -102,7 +101,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 
 	// else return a single result
 	key := s.Select()
-	hashAddr, err := util.HashStringToKey(key)
+	hashAddr, err := HashStringToKey(key)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -127,7 +126,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			hashAddr, err := util.HashStringToKey(key)
+			hashAddr, err := HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing key '%s' :: %s", key, err.Error())
 				continue
@@ -180,7 +179,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 	}
 
 	key := s.Select()
-	hashAddr, err := util.HashStringToKey(key)
+	hashAddr, err := HashStringToKey(key)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -211,7 +210,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			hashAddr, err := util.HashStringToKey(key)
+			hashAddr, err := HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing key '%s' :: %s", key, err.Error())
 				continue
@@ -264,7 +263,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 	}
 
 	key := s.Select()
-	id, err := util.HashStringToKey(key)
+	id, err := HashStringToKey(key)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -294,7 +293,7 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 		var loaded bool
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			hashAddr, err := util.HashStringToKey(key)
+			hashAddr, err := HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 				continue
@@ -334,7 +333,7 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 	}
 
 	key := s.Select()
-	hashAddr, err := util.HashStringToKey(key)
+	hashAddr, err := HashStringToKey(key)
 	if err != nil {
 		log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 		return EmptyResult(), err
@@ -366,7 +365,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 		var err error
 		for i := 0; s.Next(); i++ {
 			key := s.Select()
-			hashAddr, err := util.HashStringToKey(key)
+			hashAddr, err := HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 				continue
@@ -415,7 +414,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 	}
 
 	key := s.Select()
-	hashAddr, err := util.HashStringToKey(key)
+	hashAddr, err := HashStringToKey(key)
 	if err != nil {
 		log.Infof("error hashing string key '%s' :: %s", key, err.Error())
 		return EmptyResult(), err
