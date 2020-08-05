@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	"keybite/util"
 )
 
 // Page is an easily transported relevant portion of an index
@@ -44,7 +43,7 @@ func (p Page) Query(id uint64) (string, error) {
 // Append a single value to this page and return the ID
 func (p *Page) Append(val string) uint64 {
 	// the insert ID should either be the greater of the current max key +1, and the minimum key set for this page
-	id := util.Max((MaxMapKey(p.vals) + 1), p.minKey)
+	id := Max((MaxMapKey(p.vals) + 1), p.minKey)
 	p.vals[id] = val
 	return id
 }
