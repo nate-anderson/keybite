@@ -3,7 +3,6 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"keybite/util"
 	"keybite/util/log"
 )
 
@@ -28,7 +27,7 @@ func (r SingleResult) MarshalJSON() ([]byte, error) {
 	}
 
 	log.Debugf("marshaling JSON from '%s'", r)
-	escaped := util.EscapeDoubleQuotes(string(r))
+	escaped := EscapeDoubleQuotes(string(r))
 
 	return []byte(`"` + escaped + `"`), nil
 }

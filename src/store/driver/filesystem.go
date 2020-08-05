@@ -36,7 +36,7 @@ func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time
 // ReadPage reads a file into a map
 func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
 	vals := make(map[uint64]string, pageSize)
-	path := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	path := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(path)
 	if err != nil {
@@ -62,7 +62,7 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 // ReadMapPage reads a file into a map page
 func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, error) {
 	vals := map[string]string{}
-	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(filePath)
 	if err != nil {
@@ -87,7 +87,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 
 // WritePage persists a new or updated page as a file in the datadir
 func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, indexName string) error {
-	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(filename, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(filename, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -114,7 +114,7 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, ind
 
 // WriteMapPage persists a new or updated map page as a file in the dataDir
 func (d FilesystemDriver) WriteMapPage(vals map[string]string, fileName string, indexName string) error {
-	filePath := path.Join(d.dataDir, indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
 		if os.IsNotExist(err) {

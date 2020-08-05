@@ -78,7 +78,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	// download the remote file into a local temp file to read into memory
 	// @TODO this can be improved by implementing a WriterAt and writing the
 	// download's contents to a string instead of writing then reading a temp file
-	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
 		return map[uint64]string{}, fmt.Errorf("creating temp file '%s' for index '%s' failed: %w", fileName, indexName, err)
@@ -119,7 +119,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 
 	defer tempFile.Close()
 
-	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	vals := make(map[string]string, pageSize)
 
@@ -145,7 +145,7 @@ func (d BucketDriver) WritePage(vals map[uint64]string, fileName string, indexNa
 	d.setUploaderIfNil()
 
 	pageReader := NewPageReader(vals)
-	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
+	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload temporary file to S3
@@ -163,7 +163,7 @@ func (d BucketDriver) WriteMapPage(vals map[string]string, fileName string, inde
 	d.setUploaderIfNil()
 
 	pageReader := NewMapPageReader(vals)
-	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
+	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload to S3

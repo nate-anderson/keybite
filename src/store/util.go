@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -67,4 +68,16 @@ func PathToIndexPage(path string) (fileName string, indexName string, err error)
 	indexName = tokens[0]
 	fileName = tokens[1]
 	return
+}
+
+// StripExtension drops file extension from a file name
+func StripExtension(filename string) string {
+	return strings.TrimSuffix(filename, filepath.Ext(filename))
+}
+
+var doubleQuotesRegex = regexp.MustCompile("\"")
+
+// EscapeDoubleQuotes escapes all double quotes in a string
+func EscapeDoubleQuotes(str string) string {
+	return doubleQuotesRegex.ReplaceAllString(str, `\"`)
 }

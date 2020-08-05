@@ -5,7 +5,6 @@ import (
 	"keybite/config"
 	"keybite/dsl"
 	"keybite/store"
-	"keybite/util"
 	"regexp"
 	"strconv"
 )
@@ -44,7 +43,7 @@ func (q *Query) UnmarshalJSON(data []byte) error {
 // populate the query's variable name list by parsing the raw query
 func (q *Query) setQueryVars() int {
 	varMarkers := findVariableRegex.FindAllString(q.raw, -1)
-	q.depVars = util.StripStringPrefixes(varMarkers, 1)
+	q.depVars = StripStringPrefixes(varMarkers, 1)
 	return len(q.depVars)
 }
 
@@ -92,4 +91,13 @@ func (q Query) Execute(conf config.Config, results ResultSet) (store.Result, err
 	}
 
 	return dsl.Execute(toExecute, conf)
+}
+
+// StripStringPrefixes removes n characters from each string in the given slice
+func StripStringPrefixes(ss []string, n int) []string {
+	results := make([]string, len(ss))
+	for i, s := range ss {
+		results[i] = s[n:]
+	}
+	return results
 }
