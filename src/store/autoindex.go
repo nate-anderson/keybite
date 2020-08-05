@@ -3,7 +3,6 @@ package store
 import (
 	"fmt"
 	"keybite/store/driver"
-	"keybite/util"
 	"keybite/util/log"
 	"strconv"
 )
@@ -110,7 +109,7 @@ func (i AutoIndex) getLatestPage() (Page, uint64, error) {
 			return Page{}, 0, err
 		}
 
-		pageIDStr := util.StripExtension(fileName)
+		pageIDStr := StripExtension(fileName)
 		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
 		if err != nil {
 			return Page{}, 0, fmt.Errorf("error determining page ID from filename '%s' :: %w", fileName, err)

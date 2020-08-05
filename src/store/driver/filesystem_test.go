@@ -10,7 +10,7 @@ import (
 )
 
 var testConf config.Config
-var testLogDuration = util.ToMillisDuration(50)
+var testLogDuration = driver.ToMillisDuration(50)
 
 // test that CreateAutoIndex creates a folder
 func TestFSCreateAutoIndex(t *testing.T) {

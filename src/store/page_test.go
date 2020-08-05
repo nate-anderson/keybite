@@ -1,6 +1,8 @@
-package util_test
+package store_test
 
 import (
+	"keybite/store"
+	"keybite/store/driver"
 	"keybite/util"
 	"strings"
 	"testing"
@@ -22,7 +24,7 @@ func TestStringToKeyValue(t *testing.T) {
 	}
 
 	for _, testCase := range cases {
-		key, val, err := util.StringToKeyValue(testCase.Line)
+		key, val, err := driver.StringToKeyValue(testCase.Line)
 		util.Equals(t, err == nil, testCase.ShouldSucceed)
 		if testCase.ShouldSucceed {
 			util.Equals(t, key, testCase.Key)
@@ -48,7 +50,7 @@ func TestStringToMapKeyValue(t *testing.T) {
 	}
 
 	for _, testCase := range cases {
-		key, val, err := util.StringToMapKeyValue(testCase.Line)
+		key, val, err := driver.StringToMapKeyValue(testCase.Line)
 		util.Equals(t, err == nil, testCase.ShouldSucceed)
 		if testCase.ShouldSucceed {
 			util.Equals(t, key, testCase.Key)
@@ -73,7 +75,7 @@ func TestSplitOnFirst(t *testing.T) {
 	}
 
 	for i, in := range ins {
-		actual, err := util.SplitOnFirst(in, ':')
+		actual, err := driver.SplitOnFirst(in, ':')
 		util.Ok(t, err)
 		util.Equals(t, outs[i][0], actual[0])
 		util.Equals(t, outs[i][1], actual[1])
@@ -88,7 +90,7 @@ func TestMaxMapKey(t *testing.T) {
 		150: "highest",
 	}
 
-	maxKey := util.MaxMapKey(testMap)
+	maxKey := store.MaxMapKey(testMap)
 	util.Equals(t, maxKey, int64(150))
 }
 
@@ -107,7 +109,7 @@ func TestHashString(t *testing.T) {
 
 	for i, testCase := range testCases {
 		var err error
-		outcomes[i], err = util.HashStringToKey(testCase)
+		outcomes[i], err = store.HashStringToKey(testCase)
 		if err != nil {
 			t.FailNow()
 		}
@@ -127,7 +129,7 @@ func TestHashString(t *testing.T) {
 
 func TestHashStringNotAcceptOverMaxLength(t *testing.T) {
 	testString := strings.Repeat("s", 200)
-	_, err := util.HashStringToKey(testString)
+	_, err := store.HashStringToKey(testString)
 	if err == nil {
 		t.Fail()
 	}
@@ -140,7 +142,7 @@ func TestPathToIndexPage(t *testing.T) {
 	}
 
 	for in, exp := range exps {
-		pf, ind, err := util.PathToIndexPage(in)
+		pf, ind, err := store.PathToIndexPage(in)
 		util.Ok(t, err)
 		t.Logf("ind should be %s, pf should be %s", exp[0], exp[1])
 		t.Logf("got ind %s, pf %s", ind, pf)
@@ -150,7 +152,7 @@ func TestPathToIndexPage(t *testing.T) {
 
 	// test that unusable path throws err
 	badPath := "/too/many/levels.kb"
-	_, _, err := util.PathToIndexPage(badPath)
+	_, _, err := store.PathToIndexPage(badPath)
 	if err == nil {
 		t.Log("no err thrown on bad path", badPath)
 		t.Fail()

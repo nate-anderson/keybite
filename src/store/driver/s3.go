@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"keybite/util"
 	"keybite/util/log"
 	"os"
 	"path"
@@ -78,7 +77,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	// download the remote file into a local temp file to read into memory
 	// @TODO this can be improved by implementing a WriterAt and writing the
 	// download's contents to a string instead of writing then reading a temp file
-	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
 		return map[uint64]string{}, fmt.Errorf("creating temp file '%s' for index '%s' failed: %w", fileName, indexName, err)
@@ -94,7 +93,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
-		key, value, err := util.StringToKeyValue(scanner.Text())
+		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
 			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
@@ -119,7 +118,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 
 	defer tempFile.Close()
 
-	remotePath := path.Join(indexName, util.AddSuffixIfNotExist(fileName, d.pageExtension))
+	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	vals := make(map[string]string, pageSize)
 
@@ -130,7 +129,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 
 	scanner := bufio.NewScanner(tempFile)
 	for scanner.Scan() {
-		key, value, err := util.StringToMapKeyValue(scanner.Text())
+		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
 			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
@@ -145,7 +144,7 @@ func (d BucketDriver) WritePage(vals map[uint64]string, fileName string, indexNa
 	d.setUploaderIfNil()
 
 	pageReader := NewPageReader(vals)
-	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
+	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload temporary file to S3
@@ -163,7 +162,7 @@ func (d BucketDriver) WriteMapPage(vals map[string]string, fileName string, inde
 	d.setUploaderIfNil()
 
 	pageReader := NewMapPageReader(vals)
-	cleanFileName := util.AddSuffixIfNotExist(fileName, d.pageExtension)
+	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload to S3
@@ -208,7 +207,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 
 // create a temporary file
 func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*os.File, error) {
-	currentMillis := util.MakeTimestamp()
+	currentMillis := MakeTimestamp()
 	tempName := fmt.Sprintf("%s-%s-%d%s.tmp", indexName, fileName, currentMillis, d.pageExtension)
 	tempPath := path.Join("/tmp", tempName)
 	return os.Create(tempPath)
@@ -373,7 +372,7 @@ func (d BucketDriver) LockIndex(indexName string) error {
 	log.Debugf("locking index %s for writes", indexName)
 	d.setUploaderIfNil()
 
-	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
+	currentMillis := strconv.FormatInt(MakeTimestamp(), 10)
 	lockfileName := currentMillis + d.pageExtension + lockfileExtension
 
 	filePath := path.Join(indexName, lockfileName)

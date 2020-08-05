@@ -3,8 +3,8 @@ package driver
 import (
 	"fmt"
 	"keybite/config"
-	"keybite/util"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -56,7 +56,7 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 			return nil, err
 		}
 
-		lockDuration := util.ToMillisDuration(lockMs)
+		lockDuration := ToMillisDuration(lockMs)
 
 		return NewFilesystemDriver(dataDir, pageExtension, lockDuration)
 
@@ -83,7 +83,7 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 			return nil, err
 		}
 
-		lockDuration := util.ToMillisDuration(lockMs)
+		lockDuration := ToMillisDuration(lockMs)
 
 		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, lockDuration)
 
@@ -103,5 +103,25 @@ func filenameToLockTimestamp(fileName string) (time.Time, error) {
 	// split on dots to get filename before extensions
 	nameTokens := strings.Split(cleanName, ".")
 	timeString := nameTokens[0]
-	return util.ParseMillisString(timeString)
+	return ParseMillisString(timeString)
+}
+
+// ToMillisDuration turn an int64 millisecond duration into time.Duration
+func ToMillisDuration(millis int64) time.Duration {
+	return (time.Duration(millis) * time.Millisecond)
+}
+
+// ParseMillisString parses a string containing an integer milliseconds since epoch into time.Time
+func ParseMillisString(millis string) (time.Time, error) {
+	msInt, err := strconv.ParseInt(millis, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(0, msInt*int64(time.Millisecond)), nil
+}
+
+// MakeTimestamp returns an int64 of current milliseconds
+func MakeTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }
