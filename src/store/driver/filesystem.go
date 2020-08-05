@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"keybite/util"
 	"keybite/util/log"
 	"os"
 	"path"
@@ -181,7 +180,7 @@ func (d FilesystemDriver) CreateMapIndex(indexName string) error {
 // LockIndex creates a lockfile in the specified index
 func (d FilesystemDriver) LockIndex(indexName string) error {
 	log.Debugf("locking index %s for writes", indexName)
-	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
+	currentMillis := strconv.FormatInt(MakeTimestamp(), 10)
 	lockfileName := currentMillis + d.pageExtension + lockfileExtension
 
 	filePath := path.Join(d.dataDir, indexName, lockfileName)

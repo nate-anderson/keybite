@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"keybite/util"
 	"keybite/util/log"
 	"os"
 	"path"
@@ -208,7 +207,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 
 // create a temporary file
 func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*os.File, error) {
-	currentMillis := util.MakeTimestamp()
+	currentMillis := MakeTimestamp()
 	tempName := fmt.Sprintf("%s-%s-%d%s.tmp", indexName, fileName, currentMillis, d.pageExtension)
 	tempPath := path.Join("/tmp", tempName)
 	return os.Create(tempPath)
@@ -373,7 +372,7 @@ func (d BucketDriver) LockIndex(indexName string) error {
 	log.Debugf("locking index %s for writes", indexName)
 	d.setUploaderIfNil()
 
-	currentMillis := strconv.FormatInt(util.MakeTimestamp(), 10)
+	currentMillis := strconv.FormatInt(MakeTimestamp(), 10)
 	lockfileName := currentMillis + d.pageExtension + lockfileExtension
 
 	filePath := path.Join(indexName, lockfileName)
