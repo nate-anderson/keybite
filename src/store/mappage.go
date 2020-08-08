@@ -3,20 +3,22 @@ package store
 import (
 	"errors"
 	"fmt"
+	"sort"
 )
 
 // MapPage is an easily transported relevant portion of a MapIndex
 type MapPage struct {
-	vals map[string]string
-	name string
+	vals        map[string]string
+	orderedKeys []string
+	name        string
 }
 
 // EmptyMapPage returns an initialized empty map page. Does not create a file for the page.
 func EmptyMapPage(name string) MapPage {
-	vals := map[string]string{}
 	return MapPage{
-		name: name,
-		vals: vals,
+		name:        name,
+		vals:        map[string]string{},
+		orderedKeys: []string{},
 	}
 }
 
@@ -31,12 +33,15 @@ func (m MapPage) Query(key string) (string, error) {
 }
 
 // Add a value with a key
-func (m MapPage) Add(key string, val string) (string, error) {
+func (m *MapPage) Add(key string, val string) (string, error) {
 	_, exists := m.vals[key]
 	if exists {
 		return "", errors.New("cannot add key to map page: key exists")
 	}
 	m.vals[key] = val
+	m.orderedKeys = append(m.orderedKeys, key)
+	// sort s.t. new key is in proper place
+	sort.Strings(m.orderedKeys)
 	return key, nil
 }
 
@@ -51,7 +56,15 @@ func (m MapPage) Overwrite(key string, val string) error {
 }
 
 // Upsert == idempotent insert
-func (m MapPage) Upsert(key string, val string) string {
+func (m *MapPage) Upsert(key string, val string) string {
+	// if this is an insert, add the key to the ordered keys slice & sort
+	_, ok := m.vals[key]
+	if !ok {
+		m.orderedKeys = append(m.orderedKeys, key)
+		// sort s.t. new key is in proper place
+		sort.Strings(m.orderedKeys)
+	}
+
 	m.vals[key] = val
 	return key
 }
@@ -63,5 +76,15 @@ func (m MapPage) Delete(key string) error {
 		return fmt.Errorf("cannot delete key from map page: key doesn't exist")
 	}
 	delete(m.vals, key)
+	m.orderedKeys = removeStringFromSlice(m.orderedKeys, key)
 	return nil
+}
+
+func removeStringFromSlice(slice []string, item string) []string {
+	for i, el := range slice {
+		if el == item {
+			return append(slice[:i], slice[i+1:]...)
+		}
+	}
+	return slice
 }

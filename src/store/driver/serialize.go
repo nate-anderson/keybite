@@ -2,7 +2,9 @@ package driver
 
 import (
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
 )
 
 // StringToKeyValue converts a line of text to a key-value pair used to read a page file
@@ -39,4 +41,26 @@ func SplitOnFirst(str string, split rune) ([]string, error) {
 	}
 	return []string{}, fmt.Errorf("provided string '%s' does not contain split character '%v'", str, split)
 
+}
+
+// NewPageReader constructs a page reader for an auto index page
+func NewPageReader(vals map[uint64]string, orderedKeys []uint64) io.Reader {
+	var body string
+	for _, key := range orderedKeys {
+		line := fmt.Sprintf("%d:%s\n", key, vals[key])
+		body += line
+	}
+
+	return strings.NewReader(body)
+}
+
+// NewMapPageReader constructs a page reader for a map page
+func NewMapPageReader(vals map[string]string, orderedKeys []string) io.Reader {
+	var body string
+	for _, key := range orderedKeys {
+		line := fmt.Sprintf("%s:%s\n", key, vals[key])
+		body += line
+	}
+
+	return strings.NewReader(body)
 }

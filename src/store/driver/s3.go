@@ -71,7 +71,7 @@ func NewBucketDriver(
 }
 
 // ReadPage reads the contents of a page into a map
-func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
+func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, []uint64, error) {
 	d.setDownloaderIfNil()
 
 	// download the remote file into a local temp file to read into memory
@@ -80,32 +80,36 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
-		return map[uint64]string{}, fmt.Errorf("creating temp file '%s' for index '%s' failed: %w", fileName, indexName, err)
+		return map[uint64]string{}, []uint64{}, fmt.Errorf("creating temp file '%s' for index '%s' failed: %w", fileName, indexName, err)
 	}
 	defer tempFile.Close()
 
 	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
-		return map[uint64]string{}, ErrWriteFile(fileName, indexName, err)
+		return map[uint64]string{}, []uint64{}, ErrWriteFile(fileName, indexName, err)
 	}
 
 	vals := make(map[uint64]string, pageSize)
+	keys := make([]uint64, 0, pageSize)
 
 	scanner := bufio.NewScanner(tempFile)
+	i := 0
 	for scanner.Scan() {
 		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, keys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
+		keys[i] = key
+		i++
 	}
 
-	return vals, nil
+	return vals, keys, nil
 
 }
 
 // ReadMapPage reads a remote file into a map page
-func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, error) {
+func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, []string, error) {
 	d.setDownloaderIfNil()
 
 	// download the remote file into a local temp file to read into memory
@@ -113,7 +117,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	// download's contents to a string instead of writing then reading a temp file
 	tempFile, err := d.createTemporaryFile(fileName, indexName)
 	if err != nil {
-		return map[string]string{}, err
+		return map[string]string{}, []string{}, err
 	}
 
 	defer tempFile.Close()
@@ -121,29 +125,33 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	vals := make(map[string]string, pageSize)
+	keys := make([]string, 0, pageSize)
 
 	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
-		return vals, ErrWriteFile(fileName, indexName, err)
+		return vals, keys, ErrWriteFile(fileName, indexName, err)
 	}
 
 	scanner := bufio.NewScanner(tempFile)
+	i := 0
 	for scanner.Scan() {
 		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, keys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
+		keys[i] = key
+		i++
 	}
 
-	return vals, nil
+	return vals, keys, nil
 }
 
 // WritePage persists a new or updated page as a file in the remote bucket
-func (d BucketDriver) WritePage(vals map[uint64]string, fileName string, indexName string) error {
+func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewPageReader(vals)
+	pageReader := NewPageReader(vals, orderedKeys)
 	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
@@ -158,10 +166,10 @@ func (d BucketDriver) WritePage(vals map[uint64]string, fileName string, indexNa
 }
 
 // WriteMapPage persists a new or updated map page as a file in the remote bucket
-func (d BucketDriver) WriteMapPage(vals map[string]string, fileName string, indexName string) error {
+func (d BucketDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewMapPageReader(vals)
+	pageReader := NewMapPageReader(vals, orderedKeys)
 	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 

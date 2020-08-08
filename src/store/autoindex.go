@@ -26,21 +26,22 @@ func NewAutoIndex(name string, driver driver.StorageDriver, pageSize int) (AutoI
 // readPage returns page with provided ID belonging to this index
 func (i AutoIndex) readPage(pageID uint64) (Page, error) {
 	pageIDStr := strconv.FormatUint(pageID, 10)
-	vals, err := i.driver.ReadPage(pageIDStr, i.Name, i.pageSize)
+	vals, orderedKeys, err := i.driver.ReadPage(pageIDStr, i.Name, i.pageSize)
 	if err != nil {
 		return Page{}, err
 	}
 
 	return Page{
-		vals: vals,
-		name: pageIDStr,
+		vals:        vals,
+		name:        pageIDStr,
+		orderedKeys: orderedKeys,
 	}, nil
 }
 
 // write a page to storage using a mutex for concurrency safety
 func (i AutoIndex) writePage(p Page) error {
 	return wrapInWriteLock(i.driver, i.Name, func() error {
-		return i.driver.WritePage(p.vals, p.name, i.Name)
+		return i.driver.WritePage(p.vals, p.orderedKeys, p.name, i.Name)
 	})
 }
 
@@ -104,7 +105,7 @@ func (i AutoIndex) getLatestPage() (Page, uint64, error) {
 			continue
 		}
 
-		vals, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
+		vals, orderedKeys, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
 		if err != nil {
 			return Page{}, 0, err
 		}
@@ -116,8 +117,9 @@ func (i AutoIndex) getLatestPage() (Page, uint64, error) {
 		}
 
 		return Page{
-			vals: vals,
-			name: fileName,
+			vals:        vals,
+			name:        fileName,
+			orderedKeys: orderedKeys,
 		}, pageID, nil
 	}
 
@@ -134,7 +136,7 @@ func (i AutoIndex) createInitialPage() (Page, error) {
 func (i AutoIndex) createEmptyPage(id uint64) (Page, error) {
 	fileName := strconv.FormatUint(id, 10)
 	emptyVals := map[uint64]string{}
-	err := i.driver.WritePage(emptyVals, fileName, i.Name)
+	err := i.driver.WritePage(emptyVals, []uint64{}, fileName, i.Name)
 	if err != nil {
 		return Page{}, err
 	}
