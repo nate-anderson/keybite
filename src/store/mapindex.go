@@ -25,21 +25,22 @@ func NewMapIndex(name string, driver driver.StorageDriver, pageSize int) (MapInd
 // readPage returns page with provided ID belonging to this index
 func (m MapIndex) readPage(pageID uint64) (MapPage, error) {
 	pageIDStr := strconv.FormatUint(pageID, 10)
-	vals, err := m.driver.ReadMapPage(pageIDStr, m.Name, m.pageSize)
+	vals, orderedKeys, err := m.driver.ReadMapPage(pageIDStr, m.Name, m.pageSize)
 	if err != nil {
 		return MapPage{}, err
 	}
 
 	return MapPage{
-		vals: vals,
-		name: pageIDStr,
+		vals:        vals,
+		name:        pageIDStr,
+		orderedKeys: orderedKeys,
 	}, nil
 }
 
 // write a map page to storage using a mutex for concurrency safety
 func (m MapIndex) writePage(p MapPage) error {
 	return wrapInWriteLock(m.driver, m.Name, func() error {
-		return m.driver.WriteMapPage(p.vals, p.name, m.Name)
+		return m.driver.WriteMapPage(p.vals, p.orderedKeys, p.name, m.Name)
 	})
 }
 
@@ -443,6 +444,6 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
 	fileName := pageIDStr
 	mapPage := EmptyMapPage(fileName)
-	err := m.driver.WriteMapPage(mapPage.vals, mapPage.name, m.Name)
+	err := m.driver.WriteMapPage(mapPage.vals, mapPage.orderedKeys, mapPage.name, m.Name)
 	return mapPage, err
 }

@@ -91,15 +91,17 @@ func TestFSWritePageReadPage(t *testing.T) {
 		2: "world",
 	}
 
+	testKeys := []uint64{1, 2}
+
 	testFileName := "1"
 	testDataPath := path.Join(dirName, indexName, (testFileName + ".kb"))
 	_, err = os.Create(testDataPath)
 	util.Ok(t, err)
 
-	err = fsd.WritePage(testMap, testFileName, indexName)
+	err = fsd.WritePage(testMap, testKeys, testFileName, indexName)
 	util.Ok(t, err)
 
-	vals, err := fsd.ReadPage(testFileName, indexName, 10)
+	vals, _, err := fsd.ReadPage(testFileName, indexName, 10)
 	util.Ok(t, err)
 
 	util.Equals(t, "hello", vals[1])
@@ -126,15 +128,17 @@ func TestFSWriteMapPageReadMapPage(t *testing.T) {
 		"2": "world",
 	}
 
+	testKeys := []string{"1", "2"}
+
 	testFileName := "1"
 	testDataPath := path.Join(dirName, indexName, (testFileName + ".kb"))
 	_, err = os.Create(testDataPath)
 	util.Ok(t, err)
 
-	err = fsd.WriteMapPage(testMap, testFileName, indexName)
+	err = fsd.WriteMapPage(testMap, testKeys, testFileName, indexName)
 	util.Ok(t, err)
 
-	vals, err := fsd.ReadMapPage(testFileName, indexName, 10)
+	vals, _, err := fsd.ReadMapPage(testFileName, indexName, 10)
 	util.Ok(t, err)
 
 	util.Equals(t, "hello", vals["1"])

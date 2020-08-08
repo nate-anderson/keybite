@@ -134,14 +134,16 @@ func TestBucketWritePageReadPage(t *testing.T) {
 		2: "world",
 	}
 
+	testKeys := []uint64{1, 2}
+
 	const fileName = "0"
 
-	err = bd.WritePage(testVals, fileName, indexName)
+	err = bd.WritePage(testVals, testKeys, fileName, indexName)
 	util.Ok(t, err)
 
 	defer bd.DeletePage(indexName, fileName)
 
-	vals, err := bd.ReadPage(fileName, indexName, 10)
+	vals, _, err := bd.ReadPage(fileName, indexName, 10)
 	util.Ok(t, err)
 
 	t.Log(vals)

@@ -6,17 +6,18 @@ import (
 
 // Page is an easily transported relevant portion of an index
 type Page struct {
-	vals   map[uint64]string
-	name   string
-	minKey uint64
+	vals        map[uint64]string
+	name        string
+	minKey      uint64
+	orderedKeys []uint64
 }
 
 // EmptyPage returns an initialized empty page. Does not create a file for the page
 func EmptyPage(name string) Page {
-	vals := map[uint64]string{}
 	return Page{
-		name: name,
-		vals: vals,
+		name:        name,
+		vals:        map[uint64]string{},
+		orderedKeys: []uint64{},
 	}
 }
 
@@ -45,6 +46,7 @@ func (p *Page) Append(val string) uint64 {
 	// the insert ID should either be the greater of the current max key +1, and the minimum key set for this page
 	id := Max((MaxMapKey(p.vals) + 1), p.minKey)
 	p.vals[id] = val
+	p.orderedKeys = append(p.orderedKeys, id)
 	return id
 }
 
@@ -66,5 +68,15 @@ func (p Page) Delete(id uint64) error {
 		return fmt.Errorf("cannot delete id %d from page: key doesn't exist", id)
 	}
 	delete(p.vals, id)
+	p.orderedKeys = removeUint64FromSlice(p.orderedKeys, id)
 	return nil
+}
+
+func removeUint64FromSlice(slice []uint64, item uint64) []uint64 {
+	for i, el := range slice {
+		if el == item {
+			return append(slice[:i], slice[i+1:]...)
+		}
+	}
+	return slice
 }

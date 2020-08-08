@@ -33,42 +33,47 @@ func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time
 }
 
 // ReadPage reads a file into a map
-func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, error) {
+func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, []uint64, error) {
 	vals := make(map[uint64]string, pageSize)
+	orderedKeys := make([]uint64, 0, pageSize)
 	path := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return vals, ErrNotExist(path, indexName, err)
+			return vals, orderedKeys, ErrNotExist(path, indexName, err)
 		}
-		return vals, ErrReadFile(fileName, indexName, err)
+		return vals, orderedKeys, ErrReadFile(fileName, indexName, err)
 	}
 	defer pageFile.Close()
 
 	scanner := bufio.NewScanner(pageFile)
+	i := 0
 	for scanner.Scan() {
 		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
+		orderedKeys = append(orderedKeys, key)
+		i++
 	}
 
-	return vals, nil
+	return vals, orderedKeys, nil
 }
 
 // ReadMapPage reads a file into a map page
-func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, error) {
+func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, []string, error) {
 	vals := map[string]string{}
+	orderedKeys := make([]string, 0, pageSize)
 	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return vals, ErrNotExist(filePath, indexName, err)
+			return vals, orderedKeys, ErrNotExist(filePath, indexName, err)
 		}
-		return vals, ErrReadFile(fileName, indexName, err)
+		return vals, orderedKeys, ErrReadFile(fileName, indexName, err)
 	}
 	defer pageFile.Close()
 
@@ -76,16 +81,17 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 	for scanner.Scan() {
 		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
+		orderedKeys = append(orderedKeys, key)
 	}
 
-	return vals, nil
+	return vals, orderedKeys, nil
 }
 
 // WritePage persists a new or updated page as a file in the datadir
-func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, indexName string) error {
+func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, filename string, indexName string) error {
 	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(filename, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
@@ -100,8 +106,8 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, ind
 	}
 	defer file.Close()
 
-	for key, value := range vals {
-		line := fmt.Sprintf("%d:%s\n", key, value)
+	for _, key := range orderedKeys {
+		line := fmt.Sprintf("%d:%s\n", key, vals[key])
 		_, err = file.Write([]byte(line))
 		if err != nil {
 			return err
@@ -112,7 +118,7 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, filename string, ind
 }
 
 // WriteMapPage persists a new or updated map page as a file in the dataDir
-func (d FilesystemDriver) WriteMapPage(vals map[string]string, fileName string, indexName string) error {
+func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
 	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
@@ -128,8 +134,8 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, fileName string, 
 	}
 	defer file.Close()
 
-	for key, value := range vals {
-		line := fmt.Sprintf("%s:%s\n", key, value)
+	for _, key := range orderedKeys {
+		line := fmt.Sprintf("%s:%s\n", key, vals[key])
 		_, err = file.Write([]byte(line))
 		if err != nil {
 			return fmt.Errorf("writing line to map index file '%s' in index '%s' failed: %w", fileName, indexName, err)
