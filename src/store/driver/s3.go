@@ -90,21 +90,21 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	}
 
 	vals := make(map[uint64]string, pageSize)
-	keys := make([]uint64, 0, pageSize)
+	orderedKeys := make([]uint64, 0, pageSize)
 
 	scanner := bufio.NewScanner(tempFile)
 	i := 0
 	for scanner.Scan() {
 		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, keys, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
-		keys[i] = key
+		orderedKeys[i] = key
 		i++
 	}
 
-	return vals, keys, nil
+	return vals, orderedKeys, nil
 
 }
 
@@ -125,11 +125,11 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	vals := make(map[string]string, pageSize)
-	keys := make([]string, 0, pageSize)
+	orderedKeys := make([]string, 0, pageSize)
 
 	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
-		return vals, keys, ErrWriteFile(fileName, indexName, err)
+		return vals, orderedKeys, ErrWriteFile(fileName, indexName, err)
 	}
 
 	scanner := bufio.NewScanner(tempFile)
@@ -137,14 +137,14 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	for scanner.Scan() {
 		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, keys, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
-		keys[i] = key
+		orderedKeys[i] = key
 		i++
 	}
 
-	return vals, keys, nil
+	return vals, orderedKeys, nil
 }
 
 // WritePage persists a new or updated page as a file in the remote bucket

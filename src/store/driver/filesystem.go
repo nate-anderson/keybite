@@ -35,15 +35,15 @@ func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time
 // ReadPage reads a file into a map
 func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize int) (map[uint64]string, []uint64, error) {
 	vals := make(map[uint64]string, pageSize)
-	keys := make([]uint64, 0, pageSize)
+	orderedKeys := make([]uint64, 0, pageSize)
 	path := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return vals, keys, ErrNotExist(path, indexName, err)
+			return vals, orderedKeys, ErrNotExist(path, indexName, err)
 		}
-		return vals, keys, ErrReadFile(fileName, indexName, err)
+		return vals, orderedKeys, ErrReadFile(fileName, indexName, err)
 	}
 	defer pageFile.Close()
 
@@ -52,20 +52,20 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 	for scanner.Scan() {
 		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, keys, fmt.Errorf("pagefile parsing failed: %w", err)
+			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
-		keys = append(keys, key)
+		orderedKeys = append(orderedKeys, key)
 		i++
 	}
 
-	return vals, keys, nil
+	return vals, orderedKeys, nil
 }
 
 // ReadMapPage reads a file into a map page
 func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSize int) (map[string]string, []string, error) {
 	vals := map[string]string{}
-	orderedKeys := []string{}
+	orderedKeys := make([]string, 0, pageSize)
 	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 
 	pageFile, err := os.Open(filePath)
