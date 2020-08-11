@@ -358,8 +358,8 @@ var DeleteKey = command{
 // List returns a range of results with limit and offset
 var List = command{
 	keyword:     "list",
-	numTokens:   1, // "list default 10 50" offset is optional
-	description: "List records from an auto index with specified limit and offset",
+	numTokens:   1, // "list default 10 50" limit, offset are optional
+	description: "List records from an auto index with (optional) specified limit and offset",
 	example:     "list default 10 50",
 	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
 		indexName := tokens[1]
@@ -412,6 +412,63 @@ var List = command{
 	},
 }
 
+// ListKey returns a range of map index results with limit and offset
+var ListKey = command{
+	keyword:     "list_key",
+	numTokens:   1, // "list_key map_default 10 50" limit, offset are optional
+	description: "List records from a map index with (optional) specified limit and offset",
+	example:     "list_key map_default 10 50",
+	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
+		indexName := tokens[1]
+
+		payloadTokens := strings.Fields(payload)
+
+		storageDriver, err := driver.GetConfiguredDriver(conf)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return store.EmptyResult(), errors.New("Invalid auto index page size from environment")
+		}
+
+		index, err := store.NewMapIndex(tokens[1], storageDriver, pageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
+		}
+
+		// payload tokens will look like [indexName], or [indexName limit], or [indexName limit offset]
+		// @todo issue #45 needs to make the division between command tokens and command payload more clear
+
+		var limit int
+		if len(payloadTokens) < 2 {
+			limit = 0
+		} else {
+			limit, err = strconv.Atoi(payloadTokens[1])
+			if err != nil {
+				return store.EmptyResult(), fmt.Errorf("list query failed: token %s could not be parsed into a valid limit: %w", payloadTokens[1], err)
+			}
+		}
+
+		var offset int
+		if len(payloadTokens) < 3 {
+			offset = 0
+		} else {
+			offset, err = strconv.Atoi(payloadTokens[2])
+			if err != nil {
+				return store.EmptyResult(), fmt.Errorf("list query failed: token %s could not be parsed into a valid limit: %w", payloadTokens[2], err)
+			}
+		}
+
+		result, err := index.List(limit, offset)
+		if err != nil {
+			return result, fmt.Errorf("list query on index %s failed: %w", indexName, err)
+		}
+		return result, nil
+	},
+}
+
 // Commands available to the DSL
 var Commands = []command{
 	Query,
@@ -426,4 +483,5 @@ var Commands = []command{
 	UpsertKey,
 	DeleteKey,
 	List,
+	ListKey,
 }
