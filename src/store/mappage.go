@@ -80,6 +80,11 @@ func (m MapPage) Delete(key string) error {
 	return nil
 }
 
+// Length of the underlying map
+func (m MapPage) Length() int {
+	return len(m.vals)
+}
+
 func removeStringFromSlice(slice []string, item string) []string {
 	for i, el := range slice {
 		if el == item {

@@ -72,6 +72,11 @@ func (p Page) Delete(id uint64) error {
 	return nil
 }
 
+// Length of the underlying map
+func (p Page) Length() int {
+	return len(p.vals)
+}
+
 func removeUint64FromSlice(slice []uint64, item uint64) []uint64 {
 	for i, el := range slice {
 		if el == item {
