@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 // Result contains a single result or collection of results
@@ -68,4 +69,56 @@ func (r CollectionResult) Valid() bool {
 // EmptyResult returns a null result
 func EmptyResult() Result {
 	return SingleResult("")
+}
+
+// ListItem interface is used to allow type enforcement for ListResult
+type ListItem interface {
+	keyValue() (string, string)
+}
+
+// AutoListItem is a named value in a list result with a uint64 key
+type AutoListItem struct {
+	Key   uint64 `json:"key"`
+	Value string `json:"value"`
+}
+
+func (i AutoListItem) keyValue() (key string, value string) {
+	key = strconv.FormatUint(i.Key, 10)
+	value = i.Value
+	return
+}
+
+// MapListItem is a named value in a list result with a string key
+type MapListItem struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (i MapListItem) keyValue() (key string, value string) {
+	key = i.Key
+	value = i.Value
+	return
+}
+
+// ListResult contains the result of a list query
+type ListResult []ListItem
+
+// MarshalJSON returns a JSON byte array representation of the result
+func (r ListResult) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]ListItem(r))
+}
+
+// String returns a string encoding of the result
+func (r ListResult) String() string {
+	var str string
+	for _, item := range r {
+		key, value := item.keyValue()
+		str += fmt.Sprintf("%s\t%s\n", key, value)
+	}
+	return str
+}
+
+// Valid indicates whether the result was resolved successfully
+func (r ListResult) Valid() bool {
+	return len(r) > 0
 }

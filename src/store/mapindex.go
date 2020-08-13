@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"keybite/store/driver"
 	"keybite/util/log"
 	"strconv"
@@ -438,6 +439,62 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 	}
 
 	return SingleResult(key), nil
+}
+
+// List a subset of results from the map index
+func (m MapIndex) List(limit, offset int) (ListResult, error) {
+	pageNames, err := m.driver.ListPages(m.Name)
+	if err != nil {
+		return ListResult{}, err
+	}
+
+	// keep track of the number of records read for limit
+	recordsRead := 0
+
+	// keep track of the number of records skipped for offset
+	recordsSkipped := 0
+
+	results := make(ListResult, 0, limit)
+
+PageLoop:
+	for _, fileName := range pageNames {
+		pageIDStr := StripExtension(fileName)
+		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
+		if err != nil {
+			log.Errorf("corrupted data! found page file with unparseable filename '%s'", fileName)
+			return ListResult{}, fmt.Errorf("corrupt data error: could not parse filename :: %w", err)
+		}
+
+		page, err := m.readPage(pageID)
+		if err != nil {
+			return ListResult{}, err
+		}
+
+		// if this page is excluded by the offset, move along
+		if (recordsRead + page.Length()) <= offset {
+			recordsRead += page.Length()
+			continue PageLoop
+		}
+
+		// read any relevant records from the page
+	RecordLoop:
+		for _, key := range page.orderedKeys {
+			// skip offset values
+			if recordsSkipped < offset {
+				recordsSkipped++
+				continue RecordLoop
+			}
+
+			if recordsRead >= limit && limit != 0 {
+				break PageLoop
+			}
+
+			results = append(results, MapListItem{Key: key, Value: page.vals[key]})
+			recordsRead++
+		}
+	}
+
+	return results, nil
 }
 
 // WriteEmptyPage creates an empty page file for the specified page ID
