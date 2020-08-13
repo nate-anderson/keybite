@@ -381,3 +381,32 @@ PageLoop:
 
 	return results, nil
 }
+
+// Count the number of records present in the index
+func (i AutoIndex) Count() (Result, error) {
+	var count uint64
+	pageNames, err := i.driver.ListPages(i.Name)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	for _, fileName := range pageNames {
+		pageIDStr := StripExtension(fileName)
+		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
+		if err != nil {
+			log.Errorf("corrupted data! found page file with unparseable filename '%s'", fileName)
+			return EmptyResult(), fmt.Errorf("corrupt data error: could not parse filename :: %w", err)
+		}
+
+		page, err := i.readPage(pageID)
+		if err != nil {
+			return EmptyResult(), err
+		}
+
+		count += uint64(page.Length())
+	}
+
+	countStr := strconv.FormatUint(count, 10)
+
+	return SingleResult(countStr), nil
+}

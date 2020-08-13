@@ -497,6 +497,35 @@ PageLoop:
 	return results, nil
 }
 
+// Count the number of records present in the index
+func (m MapIndex) Count() (Result, error) {
+	var count uint64
+	pageNames, err := m.driver.ListPages(m.Name)
+	if err != nil {
+		return EmptyResult(), err
+	}
+
+	for _, fileName := range pageNames {
+		pageIDStr := StripExtension(fileName)
+		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
+		if err != nil {
+			log.Errorf("corrupted data! found page file with unparseable filename '%s'", fileName)
+			return EmptyResult(), fmt.Errorf("corrupt data error: could not parse filename :: %w", err)
+		}
+
+		page, err := m.readPage(pageID)
+		if err != nil {
+			return EmptyResult(), err
+		}
+
+		count += uint64(page.Length())
+	}
+
+	countStr := strconv.FormatUint(count, 10)
+
+	return SingleResult(countStr), nil
+}
+
 // WriteEmptyPage creates an empty page file for the specified page ID
 func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
 	fileName := pageIDStr
