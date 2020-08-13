@@ -469,6 +469,70 @@ var ListKey = command{
 	},
 }
 
+// Count returns the number of records in an auto index
+var Count = command{
+	keyword:     "count",
+	numTokens:   1,
+	description: "Count records in an auto index",
+	example:     "count default",
+	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
+		indexName := tokens[1]
+
+		storageDriver, err := driver.GetConfiguredDriver(conf)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		pageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
+		if err != nil {
+			return store.EmptyResult(), errors.New("Invalid auto index page size from environment")
+		}
+
+		index, err := store.NewAutoIndex(tokens[1], storageDriver, pageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
+		}
+
+		result, err := index.Count()
+		if err != nil {
+			return result, fmt.Errorf("count query on index %s failed: %w", indexName, err)
+		}
+		return result, nil
+	},
+}
+
+// CountKey returns the number of records in a map index
+var CountKey = command{
+	keyword:     "count_key",
+	numTokens:   1,
+	description: "Count records in a map index",
+	example:     "count_key map_default",
+	execute: func(tokens []string, payload string, conf config.Config) (store.Result, error) {
+		indexName := tokens[1]
+
+		storageDriver, err := driver.GetConfiguredDriver(conf)
+		if err != nil {
+			return store.EmptyResult(), err
+		}
+
+		pageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+		if err != nil {
+			return store.EmptyResult(), errors.New("Invalid map index page size from environment")
+		}
+
+		index, err := store.NewMapIndex(tokens[1], storageDriver, pageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", tokens[1], err)
+		}
+
+		result, err := index.Count()
+		if err != nil {
+			return result, fmt.Errorf("count_key query on index %s failed: %w", indexName, err)
+		}
+		return result, nil
+	},
+}
+
 // Commands available to the DSL
 var Commands = []command{
 	Query,
@@ -484,4 +548,6 @@ var Commands = []command{
 	DeleteKey,
 	List,
 	ListKey,
+	Count,
+	CountKey,
 }
