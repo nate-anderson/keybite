@@ -122,3 +122,8 @@ func (r ListResult) String() string {
 func (r ListResult) Valid() bool {
 	return len(r) > 0
 }
+
+func IDResult(id uint64) SingleResult {
+	idStr := strconv.FormatUint(id, 10)
+	return SingleResult(idStr)
+}
