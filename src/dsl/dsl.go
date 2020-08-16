@@ -134,13 +134,3 @@ func Execute(input string, conf config.Config) (store.Result, error) {
 
 	return store.EmptyResult(), errors.New("query keyword did not match any commands")
 }
-
-func displayCommandList() {
-	fmt.Println("Available query commands: ")
-	for _, command := range Commands {
-		fmt.Println(command.keyword)
-		fmt.Println("  ", command.description)
-		fmt.Println("   Example:", command.example)
-		fmt.Println()
-	}
-}
