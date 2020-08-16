@@ -113,7 +113,7 @@ func TestParseUpsertKey(t *testing.T) {
 	util.Equals(t, uint64(0), queryObj.offset)
 }
 
-func TestDelete(t *testing.T) {
+func TestParseDelete(t *testing.T) {
 	deleteText := "delete default_index 26"
 	deleteParser := newParser(deleteText)
 	queryObj, err := deleteParser.Parse()
@@ -128,7 +128,7 @@ func TestDelete(t *testing.T) {
 	util.Equals(t, uint64(0), queryObj.offset)
 }
 
-func TestDeleteKey(t *testing.T) {
+func TestParseDeleteKey(t *testing.T) {
 	deleteKeyText := "delete_key map_default theDeleteKey"
 	deleteKeyParser := newParser(deleteKeyText)
 	queryObj, err := deleteKeyParser.Parse()
@@ -143,7 +143,7 @@ func TestDeleteKey(t *testing.T) {
 	util.Equals(t, uint64(0), queryObj.offset)
 }
 
-func TestList(t *testing.T) {
+func TestParseList(t *testing.T) {
 	listText := "list default 10 50"
 	listParser := newParser(listText)
 	queryObj, err := listParser.Parse()
@@ -157,7 +157,7 @@ func TestList(t *testing.T) {
 	util.Equals(t, uint64(50), queryObj.offset)
 }
 
-func TestListKey(t *testing.T) {
+func TestParseListKey(t *testing.T) {
 	listKeyText := "list_key map_default 25 500"
 	listKeyParser := newParser(listKeyText)
 	queryObj, err := listKeyParser.Parse()
@@ -171,7 +171,7 @@ func TestListKey(t *testing.T) {
 	util.Equals(t, uint64(500), queryObj.offset)
 }
 
-func TestCount(t *testing.T) {
+func TestParseCount(t *testing.T) {
 	countText := "count my_index"
 	countParser := newParser(countText)
 	queryObj, err := countParser.Parse()
@@ -181,6 +181,48 @@ func TestCount(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "my_index", queryObj.indexName)
+	util.Equals(t, uint64(0), queryObj.limit)
+	util.Equals(t, uint64(0), queryObj.offset)
+}
+
+func TestParseCountKey(t *testing.T) {
+	countText := "count_key my_map_index"
+	countParser := newParser(countText)
+	queryObj, err := countParser.Parse()
+	util.Ok(t, err)
+
+	util.Equals(t, typeCountKey, queryObj.oType)
+	util.Equals(t, nil, queryObj.mapSel)
+	util.Equals(t, nil, queryObj.autoSel)
+	util.Equals(t, "my_map_index", queryObj.indexName)
+	util.Equals(t, uint64(0), queryObj.limit)
+	util.Equals(t, uint64(0), queryObj.offset)
+}
+
+func TestParseCreateAutoIndex(t *testing.T) {
+	countText := "create_auto_index my_map_index"
+	countParser := newParser(countText)
+	queryObj, err := countParser.Parse()
+	util.Ok(t, err)
+
+	util.Equals(t, typeCreateAutoIndex, queryObj.oType)
+	util.Equals(t, nil, queryObj.mapSel)
+	util.Equals(t, nil, queryObj.autoSel)
+	util.Equals(t, "my_map_index", queryObj.indexName)
+	util.Equals(t, uint64(0), queryObj.limit)
+	util.Equals(t, uint64(0), queryObj.offset)
+}
+
+func TestParseCreateMapIndex(t *testing.T) {
+	countText := "create_map_index my_map_index"
+	countParser := newParser(countText)
+	queryObj, err := countParser.Parse()
+	util.Ok(t, err)
+
+	util.Equals(t, typeCreateMapIndex, queryObj.oType)
+	util.Equals(t, nil, queryObj.mapSel)
+	util.Equals(t, nil, queryObj.autoSel)
+	util.Equals(t, "my_map_index", queryObj.indexName)
 	util.Equals(t, uint64(0), queryObj.limit)
 	util.Equals(t, uint64(0), queryObj.offset)
 }
