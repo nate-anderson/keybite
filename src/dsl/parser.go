@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+/*
+This file implements an LR(0) parser for keybite's Query DSL
+The syntax of the DSL is super simple which allows parsing with
+a relatively simple state machine
+*/
+
+// finite state machine transitions
 type step int
 
 const (
