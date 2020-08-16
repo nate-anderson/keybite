@@ -1,0 +1,256 @@
+package dsl
+
+import (
+	"fmt"
+	"keybite/store"
+	"keybite/util/log"
+	"strconv"
+	"strings"
+)
+
+type step int
+
+const (
+	stepInitial                    step = iota //
+	stepFinalAutoSelector                      //
+	stepFinalMapSelector                       //
+	stepFinalIndexName                         //
+	stepFinalPayload                           //
+	stepFinalOptionalOffset                    //
+	stepQueryIndexName                         //
+	stepInsertIndexName                        //
+	stepQueryKeyIndexName                      //
+	stepUpdateInsertKeyMapSelector             //
+	stepUpdateAutoSelector                     //
+	stepListOptionalLimit
+	stepUpdateInsertKeyIndexName //
+	stepUpdateIndexName          //
+	stepDeleteIndexName          //
+	stepDeleteKeyIndexName       //
+	stepListIndexName            //
+	stepListKeyIndexName         //
+)
+
+type operationType int
+
+const (
+	typeQuery operationType = iota
+	typeQueryKey
+	typeInsert
+	typeInsertKey
+	typeUpdate
+	typeUpdateKey
+	typeUpsertKey
+	typeDelete
+	typeDeleteKey
+	typeList
+	typeListKey
+	typeCount
+	typeCountKey
+)
+
+// Operation is a query
+type Operation struct {
+	oType     operationType
+	indexName string
+	limit     uint64
+	offset    uint64
+	i         int
+	autoSel   store.AutoSelector
+	mapSel    store.MapSelector
+	payload   string
+}
+
+// parser parses DSL into query objects
+type parser struct {
+	i        int
+	raw      string
+	tokens   []string
+	nextStep step
+}
+
+// newParser constructs a parser
+func newParser(dsl string) parser {
+	return parser{
+		raw:      dsl,
+		tokens:   strings.Fields(dsl),
+		nextStep: stepInitial,
+	}
+}
+
+func (p parser) current() string {
+	if len(p.tokens) > p.i {
+		return p.tokens[p.i]
+	}
+	return ""
+}
+
+func (p *parser) increment() {
+	p.i++
+}
+
+func (p parser) remaining() []string {
+	return p.tokens[p.i:]
+}
+
+// Parse the provided query
+func (p parser) Parse() (o Operation, err error) {
+	for p.i < len(p.tokens) {
+		switch p.nextStep {
+		case stepInitial:
+			keyword := p.current()
+			// determine the query type and expected next token
+			switch keyword {
+			case "query":
+				o.oType = typeQuery
+				p.nextStep = stepQueryIndexName
+
+			case "query_key":
+				o.oType = typeQueryKey
+				p.nextStep = stepQueryKeyIndexName
+
+			case "insert":
+				o.oType = typeInsert
+				p.nextStep = stepInsertIndexName
+
+			case "insert_key":
+				o.oType = typeInsertKey
+				p.nextStep = stepUpdateInsertKeyIndexName
+
+			case "update":
+				o.oType = typeUpdate
+				p.nextStep = stepUpdateIndexName
+
+			case "update_key":
+				o.oType = typeUpdateKey
+				p.nextStep = stepUpdateInsertKeyIndexName
+
+			case "upsert_key":
+				o.oType = typeUpsertKey
+				p.nextStep = stepUpdateInsertKeyIndexName
+
+			case "delete":
+				o.oType = typeDelete
+				p.nextStep = stepDeleteIndexName
+
+			case "delete_key":
+				o.oType = typeDeleteKey
+				p.nextStep = stepDeleteKeyIndexName
+
+			case "list":
+				o.oType = typeList
+				p.nextStep = stepListIndexName
+
+			case "list_key":
+				o.oType = typeListKey
+				p.nextStep = stepListKeyIndexName
+
+			case "count":
+				o.oType = typeCount
+				p.nextStep = stepFinalIndexName
+
+			case "count_key":
+				o.oType = typeCountKey
+				p.nextStep = stepFinalIndexName
+
+			default:
+				err = fmt.Errorf("unknown keyword '%s'", keyword)
+				return
+			}
+		case stepQueryIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepFinalAutoSelector
+
+		case stepQueryKeyIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepFinalMapSelector
+
+		case stepInsertIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepFinalPayload
+
+		case stepUpdateInsertKeyIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepUpdateInsertKeyMapSelector
+
+		case stepUpdateIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepUpdateAutoSelector
+
+		case stepDeleteIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepFinalAutoSelector
+
+		case stepDeleteKeyIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepFinalMapSelector
+
+		case stepListIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepListOptionalLimit
+
+		case stepListKeyIndexName:
+			o.indexName = p.current()
+			p.nextStep = stepListOptionalLimit
+
+		case stepFinalIndexName:
+			o.indexName = p.current()
+			return
+
+		case stepFinalAutoSelector:
+			o.autoSel, err = ParseAutoSelector(p.current())
+			return
+
+		case stepFinalMapSelector:
+			o.mapSel = ParseMapSelector(p.current())
+			return
+
+		case stepFinalPayload:
+			o.payload = strings.Join(p.remaining(), " ")
+			return
+
+		case stepFinalOptionalOffset:
+			token := p.current()
+			o.offset, err = strconv.ParseUint(token, 10, 64)
+			if err != nil {
+				// if token is not empty, offset was invalid
+				if token != "" {
+					err = fmt.Errorf("error parsing offset '%s': %s", token, err.Error())
+				}
+			}
+			return
+
+		case stepUpdateInsertKeyMapSelector:
+			o.mapSel = ParseMapSelector(p.current())
+			p.nextStep = stepFinalPayload
+
+		case stepUpdateAutoSelector:
+			o.autoSel, err = ParseAutoSelector(p.current())
+			if err != nil {
+				err = fmt.Errorf("error parsing auto selector '%s'", p.current())
+				return
+			}
+			p.nextStep = stepFinalPayload
+
+		case stepListOptionalLimit:
+			token := p.current()
+			o.limit, err = strconv.ParseUint(token, 10, 64)
+			if err != nil {
+				// if token is not empty, limit was invalid
+				if token != "" {
+					err = fmt.Errorf("error parsing limit '%s': %s", token, err.Error())
+				}
+			}
+			p.nextStep = stepFinalOptionalOffset
+
+		default:
+			err = fmt.Errorf("internal error: unexpected state encountered while parsing query '%s'", p.raw)
+			log.Errorf(err.Error())
+			return
+		}
+
+		p.increment()
+	}
+
+	return
+}
