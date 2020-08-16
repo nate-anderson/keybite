@@ -81,12 +81,7 @@ var Insert = command{
 			return store.EmptyResult(), fmt.Errorf("inserting into index %s failed: %w", index.Name, err)
 		}
 
-		resultStr, err := strconv.FormatUint(result, 10), nil
-		if err != nil {
-			return store.EmptyResult(), fmt.Errorf("error formatting insert result %d: %w", result, err)
-		}
-
-		return store.SingleResult(resultStr), nil
+		return result, nil
 	},
 }
 

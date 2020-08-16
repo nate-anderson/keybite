@@ -145,7 +145,7 @@ func (i AutoIndex) createEmptyPage(id uint64) (Page, error) {
 }
 
 // Insert a value into this index's latest page, returning its ID
-func (i AutoIndex) Insert(val string) (id uint64, err error) {
+func (i AutoIndex) Insert(val string) (result Result, err error) {
 	latestPage, latestPageID, err := i.getLatestPage()
 	if err != nil {
 		return
@@ -164,11 +164,12 @@ func (i AutoIndex) Insert(val string) (id uint64, err error) {
 		// set minimum key of new page to maximum key of previous page + 1
 		latestPage.SetMinimumKey(latestID + 1)
 		if err != nil {
-			return 0, fmt.Errorf("error creating new page for insert: %w", err)
+			return EmptyResult(), fmt.Errorf("error creating new page for insert: %w", err)
 		}
 	}
 
-	id = latestPage.Append(val)
+	id := latestPage.Append(val)
+	result = IDResult(id)
 
 	err = i.writePage(latestPage)
 
