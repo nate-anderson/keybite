@@ -166,8 +166,6 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 		fileNames = append(fileNames, fName)
 	}
 
-	log.Debugf("found %d page files %v", len(fileNames), fileNames)
-
 	return fileNames, nil
 }
 
