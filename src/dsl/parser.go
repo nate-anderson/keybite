@@ -47,6 +47,8 @@ const (
 	typeListKey
 	typeCount
 	typeCountKey
+	typeCreateAutoIndex
+	typeCreateMapIndex
 )
 
 // Operation is a query
@@ -153,6 +155,14 @@ func (p parser) Parse() (o Operation, err error) {
 
 			case "count_key":
 				o.oType = typeCountKey
+				p.nextStep = stepFinalIndexName
+
+			case "create_auto_index":
+				o.oType = typeCreateAutoIndex
+				p.nextStep = stepFinalIndexName
+
+			case "create_map_index":
+				o.oType = typeCreateMapIndex
 				p.nextStep = stepFinalIndexName
 
 			default:
