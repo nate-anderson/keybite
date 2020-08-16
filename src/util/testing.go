@@ -37,3 +37,13 @@ func Equals(tb testing.TB, exp, act interface{}) {
 		tb.FailNow()
 	}
 }
+
+// StrSliceContains string slice contains
+func StrSliceContains(str string, sl []string) bool {
+	for _, el := range sl {
+		if el == str {
+			return true
+		}
+	}
+	return false
+}
