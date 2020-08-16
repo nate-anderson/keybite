@@ -11,24 +11,24 @@ import (
 type step int
 
 const (
-	stepInitial                    step = iota //
-	stepFinalAutoSelector                      //
-	stepFinalMapSelector                       //
-	stepFinalIndexName                         //
-	stepFinalPayload                           //
-	stepFinalOptionalOffset                    //
-	stepQueryIndexName                         //
-	stepInsertIndexName                        //
-	stepQueryKeyIndexName                      //
-	stepUpdateInsertKeyMapSelector             //
-	stepUpdateAutoSelector                     //
+	stepInitial step = iota
+	stepFinalAutoSelector
+	stepFinalMapSelector
+	stepFinalIndexName
+	stepFinalPayload
+	stepFinalOptionalOffset
+	stepQueryIndexName
+	stepInsertIndexName
+	stepQueryKeyIndexName
+	stepUpdateInsertKeyMapSelector
+	stepUpdateAutoSelector
 	stepListOptionalLimit
-	stepUpdateInsertKeyIndexName //
-	stepUpdateIndexName          //
-	stepDeleteIndexName          //
-	stepDeleteKeyIndexName       //
-	stepListIndexName            //
-	stepListKeyIndexName         //
+	stepUpdateInsertKeyIndexName
+	stepUpdateIndexName
+	stepDeleteIndexName
+	stepDeleteKeyIndexName
+	stepListIndexName
+	stepListKeyIndexName
 )
 
 type operationType int
@@ -55,7 +55,6 @@ type Operation struct {
 	indexName string
 	limit     uint64
 	offset    uint64
-	i         int
 	autoSel   store.AutoSelector
 	mapSel    store.MapSelector
 	payload   string
@@ -63,9 +62,12 @@ type Operation struct {
 
 // parser parses DSL into query objects
 type parser struct {
-	i        int
-	raw      string
-	tokens   []string
+	// the head of the parser against the list of tokens
+	i int
+	// the raw DSL query string
+	raw    string
+	tokens []string
+	// the state of the parser state machine
 	nextStep step
 }
 
