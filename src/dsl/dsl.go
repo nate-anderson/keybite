@@ -1,59 +1,136 @@
 package dsl
 
 import (
+	"errors"
 	"fmt"
 	"keybite/config"
 	"keybite/store"
-	"strings"
+	"keybite/store/driver"
 )
 
 // Execute a statement on the data in the provided datadir
 func Execute(input string, conf config.Config) (store.Result, error) {
-	action := getAction(input)
+	parser := newParser(input)
 
-	for _, command := range Commands {
-		if action == command.keyword {
-			tokens, payload, err := getTokensUntil(input, command.numTokens)
-			if err != nil {
-				return store.EmptyResult(), err
-			}
-			res, err := command.execute(tokens, payload, conf)
-			return res, err
+	query, err := parser.Parse()
+	if err != nil {
+		return store.EmptyResult(), err
+	}
+
+	autoPageSize, err := conf.GetInt("AUTO_PAGE_SIZE")
+	if err != nil {
+		return store.EmptyResult(), errors.New("Invalid auto index page size from environment")
+	}
+
+	mapPageSize, err := conf.GetInt("MAP_PAGE_SIZE")
+	if err != nil {
+		return store.EmptyResult(), errors.New("Invalid map index page size from environment")
+	}
+
+	storageDriver, err := driver.GetConfiguredDriver(conf)
+	if err != nil {
+		return store.EmptyResult(), err
+	}
+
+	// handle query based on type
+	switch query.oType {
+	case typeQuery:
+		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
 		}
+		return autoIndex.Query(query.autoSel)
+
+	case typeQueryKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.Query(query.mapSel)
+
+	case typeInsert:
+		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return autoIndex.Insert(query.payload)
+
+	case typeInsertKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.Insert(query.mapSel, query.payload)
+
+	case typeUpdate:
+		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return autoIndex.Update(query.autoSel, query.payload)
+
+	case typeUpdateKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.Update(query.mapSel, query.payload)
+
+	case typeUpsertKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.Upsert(query.mapSel, query.payload)
+
+	case typeDelete:
+		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return autoIndex.Delete(query.autoSel)
+
+	case typeDeleteKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.Delete(query.mapSel)
+
+	case typeList:
+		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return autoIndex.List(query.limit, query.offset)
+
+	case typeListKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.List(query.limit, query.offset)
+
+	case typeCount:
+		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return autoIndex.Count()
+
+	case typeCountKey:
+		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
+		if err != nil {
+			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
+		}
+		return mapIndex.Count()
+
+	case typeCreateAutoIndex:
+		return store.SingleResult(query.indexName), storageDriver.CreateAutoIndex(query.indexName)
+
+	case typeCreateMapIndex:
+		return store.SingleResult(query.indexName), storageDriver.CreateMapIndex(query.indexName)
 	}
-	return store.EmptyResult(), fmt.Errorf("'%s' is not a valid query command", action)
-}
 
-func getTokensUntil(s string, until int) (tokens []string, payload string, err error) {
-	fields := strings.Fields(s)
-
-	if len(fields) < until {
-		err = fmt.Errorf("malformed query: minimum length of %d tokens not met", (until + 1))
-		return
-	}
-	tokens = fields[0 : until+1]
-	payload = strings.Join(fields[until:], " ")
-	return
-}
-
-// extract the action keyword from a query
-func getAction(q string) string {
-	tokens := strings.Fields(q)
-	if len(tokens) == 0 {
-		return ""
-	}
-
-	return strings.ToLower(
-		tokens[0],
-	)
-}
-
-func displayCommandList() {
-	fmt.Println("Available query commands: ")
-	for _, command := range Commands {
-		fmt.Println(command.keyword)
-		fmt.Println("  ", command.description)
-		fmt.Println("   Example:", command.example)
-		fmt.Println()
-	}
+	return store.EmptyResult(), errors.New("query keyword did not match any commands")
 }
