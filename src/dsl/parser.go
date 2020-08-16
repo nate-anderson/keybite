@@ -55,8 +55,8 @@ const (
 type Operation struct {
 	oType     operationType
 	indexName string
-	limit     uint64
-	offset    uint64
+	limit     int
+	offset    int
 	autoSel   store.AutoSelector
 	mapSel    store.MapSelector
 	payload   string
@@ -223,7 +223,7 @@ func (p parser) Parse() (o Operation, err error) {
 
 		case stepFinalOptionalOffset:
 			token := p.current()
-			o.offset, err = strconv.ParseUint(token, 10, 64)
+			o.offset, err = strconv.Atoi(token)
 			if err != nil {
 				// if token is not empty, offset was invalid
 				if token != "" {
@@ -246,7 +246,7 @@ func (p parser) Parse() (o Operation, err error) {
 
 		case stepListOptionalLimit:
 			token := p.current()
-			o.limit, err = strconv.ParseUint(token, 10, 64)
+			o.limit, err = strconv.Atoi(token)
 			if err != nil {
 				// if token is not empty, limit was invalid
 				if token != "" {
