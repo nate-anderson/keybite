@@ -9,7 +9,7 @@ const errReadFileMsg = "File or directory '%s' (index '%s') could not be read: %
 const errWriteFileMsg = "File or directory '%s' (index '%s') could not be written: %w"
 const errNoDataDirMsg = "Data directory at '%s' was inaccessible or could not be found: %w"
 
-// FileError should be used accross drivers to indicate a file could not be found
+// FileError should be used across drivers to indicate a file could not be found
 type FileError struct {
 	msgFmt    string
 	filename  string

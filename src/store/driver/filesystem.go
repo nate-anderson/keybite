@@ -124,6 +124,9 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []str
 	if err != nil {
 		if os.IsNotExist(err) {
 			file, err = os.Create(filePath)
+			if err != nil {
+				return err
+			}
 		} else {
 			return ErrReadFile(fileName, indexName, err)
 		}
