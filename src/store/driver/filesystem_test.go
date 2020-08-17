@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 )
 
 var testConf config.Config
@@ -173,4 +174,38 @@ func TestFSListPages(t *testing.T) {
 	for i, pageName := range pages {
 		util.Equals(t, pageName, pages[i])
 	}
+}
+
+func TestFSLockUnlockIndex(t *testing.T) {
+	dirName := "test_data"
+	err := os.Mkdir(dirName, 0755)
+	util.Ok(t, err)
+
+	defer os.RemoveAll(dirName)
+
+	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_index"
+	err = fsd.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	err = fsd.LockIndex(indexName)
+	util.Ok(t, err)
+
+	beforeLock := time.Now()
+
+	isLocked, until, err := fsd.IndexIsLocked(indexName)
+	util.Ok(t, err)
+
+	util.Assert(t, isLocked, "index is locked")
+	util.Assert(t, until.After(beforeLock), "index is locked until after initial operation")
+
+	err = fsd.UnlockIndex(indexName)
+	util.Ok(t, err)
+
+	isLocked, _, err = fsd.IndexIsLocked(indexName)
+	util.Ok(t, err)
+
+	util.Assert(t, !isLocked, "index unlocked after unlock")
 }
