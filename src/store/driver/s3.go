@@ -86,7 +86,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 
 	err = d.downloadToFile(remotePath, indexName, tempFile)
 	if err != nil {
-		return map[uint64]string{}, []uint64{}, ErrWriteFile(fileName, indexName, err)
+		return map[uint64]string{}, []uint64{}, err
 	}
 
 	vals := make(map[uint64]string, pageSize)
@@ -100,7 +100,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
-		orderedKeys[i] = key
+		orderedKeys = append(orderedKeys, key)
 		i++
 	}
 
@@ -140,7 +140,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
-		orderedKeys[i] = key
+		orderedKeys = append(orderedKeys, key)
 		i++
 	}
 
@@ -215,7 +215,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 
 // create a temporary file
 func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*os.File, error) {
-	currentMillis := MakeTimestamp()
+	currentMillis := timeToMillis(time.Now())
 	tempName := fmt.Sprintf("%s-%s-%d%s.tmp", indexName, fileName, currentMillis, d.pageExtension)
 	tempPath := path.Join("/tmp", tempName)
 	return os.Create(tempPath)
@@ -357,10 +357,9 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 	for _, item := range resp.Contents {
 		itemName := path.Base(*item.Key)
 		if isLockfile(itemName) {
-			log.Debugf("found lockfile %s in index %s", itemName, indexName)
 			ts, err := filenameToLockTimestamp(itemName)
 			if err != nil {
-				// file is not a lockfile
+				// file is not a valid lockfile
 				continue
 			}
 			if ts.After(maxLockTs) {
@@ -380,8 +379,10 @@ func (d BucketDriver) LockIndex(indexName string) error {
 	log.Debugf("locking index %s for writes", indexName)
 	d.setUploaderIfNil()
 
-	currentMillis := strconv.FormatInt(MakeTimestamp(), 10)
-	lockfileName := currentMillis + d.pageExtension + lockfileExtension
+	lockExpires := time.Now().Add(d.lockDuration)
+	expiresMillis := strconv.FormatInt(timeToMillis(lockExpires), 10)
+
+	lockfileName := expiresMillis + d.pageExtension + lockfileExtension
 
 	filePath := path.Join(indexName, lockfileName)
 
