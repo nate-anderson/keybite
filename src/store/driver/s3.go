@@ -100,7 +100,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
 		vals[key] = value
-		orderedKeys[i] = key
+		orderedKeys = append(orderedKeys, key)
 		i++
 	}
 

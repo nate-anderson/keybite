@@ -87,7 +87,13 @@ func TestBucketCreateAutoIndex(t *testing.T) {
 	})
 	util.Ok(t, err)
 
-	util.Equals(t, 2, len(res.Contents))
+	objKeys := []string{}
+	for _, item := range res.Contents {
+		objKeys = append(objKeys, *item.Key)
+	}
+
+	util.Assert(t, util.StrSliceContains(indexName+"/", objKeys), "response contents contain target created index")
+
 }
 
 // test creating a map index in an s3 bucket
@@ -112,8 +118,12 @@ func TestBucketCreateMapIndex(t *testing.T) {
 	})
 	util.Ok(t, err)
 
-	t.Log(res.Contents)
-	util.Equals(t, 1, len(res.Contents))
+	objKeys := []string{}
+	for _, item := range res.Contents {
+		objKeys = append(objKeys, *item.Key)
+	}
+
+	util.Assert(t, util.StrSliceContains(indexName+"/", objKeys), "response contents contain target created index")
 }
 
 func TestBucketWritePageReadPage(t *testing.T) {
@@ -145,10 +155,6 @@ func TestBucketWritePageReadPage(t *testing.T) {
 
 	vals, _, err := bd.ReadPage(fileName, indexName, 10)
 	util.Ok(t, err)
-
-	t.Log(vals)
-	t.Log(testVals)
-	// t.FailNow()
 
 	for key, val := range testVals {
 		util.Equals(t, val, testVals[key])
