@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"keybite/config"
 	"keybite/dsl"
@@ -11,6 +12,13 @@ import (
 )
 
 func main() {
+	displayHelp := flag.Bool("help", false, "--help")
+	flag.Parse()
+	if *displayHelp {
+		dsl.DisplayHelp()
+		return
+	}
+
 	conf, err := config.MakeConfig()
 	if err != nil {
 		fmt.Printf("error loading environment configuration: %s\n", err.Error())
@@ -41,12 +49,6 @@ func main() {
 	err = server.StartConfiguredServer(conf)
 	if err != nil {
 		log.Error(err.Error())
-		displayHelp()
 	}
 
-}
-
-func displayHelp() {
-	fmt.Println("Keybite v0.0.2")
-	fmt.Println("Run binary with query as trailing args to query against the store locally, run without args to start configured server mode")
 }

@@ -52,7 +52,7 @@ func stringToLogLevel(str string) logLevel {
 	case "debug":
 		return LevelDebug
 	default:
-		log.Printf("Invalid log leve string '%s'", str)
+		log.Printf("Invalid log level string '%s'", str)
 		return LevelWarn
 	}
 }
