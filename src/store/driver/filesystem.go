@@ -184,8 +184,10 @@ func (d FilesystemDriver) CreateMapIndex(indexName string) error {
 // LockIndex creates a lockfile in the specified index
 func (d FilesystemDriver) LockIndex(indexName string) error {
 	log.Debugf("locking index %s for writes", indexName)
-	currentMillis := strconv.FormatInt(MakeTimestamp(), 10)
-	lockfileName := currentMillis + d.pageExtension + lockfileExtension
+	lockExpires := time.Now().Add(d.lockDuration)
+	expiresMillis := strconv.FormatInt(timeToMillis(lockExpires), 10)
+
+	lockfileName := expiresMillis + d.pageExtension + lockfileExtension
 
 	filePath := path.Join(d.dataDir, indexName, lockfileName)
 	file, err := os.Create(filePath)
