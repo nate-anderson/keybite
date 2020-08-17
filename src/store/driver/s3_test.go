@@ -5,6 +5,7 @@ import (
 	"keybite/store/driver"
 	"keybite/util"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -62,7 +63,7 @@ func TestNewBucketDriver(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	_, err = driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
+	_, err = driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 }
 
@@ -71,7 +72,7 @@ func TestBucketCreateAutoIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -101,7 +102,7 @@ func TestBucketCreateMapIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -130,7 +131,7 @@ func TestBucketWritePageReadPage(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLogDuration)
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -161,4 +162,120 @@ func TestBucketWritePageReadPage(t *testing.T) {
 	}
 
 	util.Equals(t, len(testVals), len(vals))
+}
+
+func TestBucketWriteReadMapPage(t *testing.T) {
+	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
+	util.Ok(t, err)
+
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_map_index"
+	err = bd.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	defer bd.DeleteIndex(indexName)
+
+	testVals := map[string]string{
+		"1": "hello",
+		"2": "world",
+	}
+
+	testKeys := []string{"1", "2"}
+
+	const fileName = "0"
+
+	err = bd.WriteMapPage(testVals, testKeys, fileName, indexName)
+	util.Ok(t, err)
+
+	defer bd.DeletePage(indexName, fileName)
+
+	vals, _, err := bd.ReadMapPage(fileName, indexName, 10)
+	util.Ok(t, err)
+
+	for key, val := range testVals {
+		util.Equals(t, val, testVals[key])
+	}
+
+	util.Equals(t, len(testVals), len(vals))
+}
+
+func TestBucketDriverListPages(t *testing.T) {
+	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
+	util.Ok(t, err)
+
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_index_2"
+	err = bd.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	testVals := map[string]string{
+		"1": "hello",
+		"2": "world",
+	}
+
+	testKeys := []string{"1", "2"}
+
+	fileName := "1"
+	err = bd.WriteMapPage(testVals, testKeys, fileName, indexName)
+	util.Ok(t, err)
+
+	pages, err := bd.ListPages(indexName)
+	util.Ok(t, err)
+
+	util.Assert(t, util.StrSliceContains(fileName+pageExtension, pages), "page file not present in listPages results")
+}
+
+func TestBucketDriverLockUnlockIndex(t *testing.T) {
+	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
+	util.Ok(t, err)
+
+	longerLockDuration := driver.ToMillisDuration(500)
+
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_index_3"
+	err = bd.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	now := time.Now()
+
+	err = bd.LockIndex(indexName)
+	util.Ok(t, err)
+
+	isLocked, until, err := bd.IndexIsLocked(indexName)
+	util.Ok(t, err)
+
+	util.Assert(t, isLocked, "index is not locked")
+	util.Assert(t, until.After(now), "locked until TS is not after initial lock")
+
+	err = bd.UnlockIndex(indexName)
+	util.Ok(t, err)
+
+	isLocked, _, err = bd.IndexIsLocked(indexName)
+	util.Ok(t, err)
+	util.Assert(t, !isLocked, "index is locked after unlock operation")
+}
+
+func TestBucketDriverErrNotExist(t *testing.T) {
+	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
+	util.Ok(t, err)
+
+	longerLockDuration := driver.ToMillisDuration(500)
+
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_index_notexist"
+
+	vals, keys, err := bd.ReadPage("1", indexName, pageSize)
+
+	util.Assert(t, driver.IsNotExistError(err), "error should be of type FileError (not exist)")
+	util.Equals(t, 0, len(vals))
+	util.Equals(t, 0, len(keys))
+
 }

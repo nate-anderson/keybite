@@ -121,7 +121,7 @@ func ParseMillisString(millis string) (time.Time, error) {
 	return time.Unix(0, msInt*int64(time.Millisecond)), nil
 }
 
-// MakeTimestamp returns an int64 of current milliseconds
-func MakeTimestamp() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
+// timeToMillis returns an int64 of current milliseconds
+func timeToMillis(t time.Time) int64 {
+	return t.UnixNano() / int64(time.Millisecond)
 }
