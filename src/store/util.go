@@ -44,7 +44,7 @@ func HashStringToKey(s string) (uint64, error) {
 	if len(s) > MaxKeyLength {
 		return 0, fmt.Errorf("cannot hash string longer than %d characters", MaxKeyLength)
 	}
-	var result uint64 = 0
+	var result uint64
 	for i, char := range s {
 		result += ((uint64(MaxKeyLength) - uint64(i) - 1) ^ uint64(pow)) * (1 + uint64(char) - uint64('a'))
 	}

@@ -54,7 +54,7 @@ func (p *Page) Append(val string) uint64 {
 func (p *Page) Overwrite(id uint64, newVal string) error {
 	_, ok := p.vals[id]
 	if !ok {
-		return fmt.Errorf("cannot update non-existant record at id %d", id)
+		return fmt.Errorf("cannot update non-existent record at id %d", id)
 	}
 
 	p.vals[id] = newVal

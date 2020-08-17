@@ -69,7 +69,7 @@ ENVIRONMENT VARS:
 	AUTO_PAGE_SIZE
 		The number of records to store per file for auto indexes. This value should be decided based on
 		the environment and use case for the server. When using an S3 bucket, the entire page file must
-		be transmitted accross the network when retrieving records, so smaller sizes are preferable. In
+		be transmitted across the network when retrieving records, so smaller sizes are preferable. In
 		local environments. Because IDs are automatically incremented in auto-indexes, each page will be
 		completely filled before a new page is created. When records are deleted, the size of a page will
 		be reduced.

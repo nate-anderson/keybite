@@ -123,6 +123,7 @@ func (r ListResult) Valid() bool {
 	return len(r) > 0
 }
 
+// IDResult creates a single result of a uint64 ID
 func IDResult(id uint64) SingleResult {
 	idStr := strconv.FormatUint(id, 10)
 	return SingleResult(idStr)

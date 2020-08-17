@@ -169,6 +169,7 @@ func TestFSListPages(t *testing.T) {
 	}
 
 	pages, err := fsd.ListPages(indexName)
+	util.Ok(t, err)
 	util.Equals(t, 3, len(pages))
 
 	for i, pageName := range pages {
