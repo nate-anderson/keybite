@@ -9,7 +9,7 @@ import (
 )
 
 type KeyValueAssertion struct {
-	Key           int64
+	Key           uint64
 	Value         string
 	Line          string
 	ShouldSucceed bool
@@ -35,7 +35,7 @@ func TestStringToKeyValue(t *testing.T) {
 }
 
 type MapKeyValueAssertion struct {
-	Key           uint64
+	Key           string
 	Value         string
 	Line          string
 	ShouldSucceed bool
@@ -43,15 +43,16 @@ type MapKeyValueAssertion struct {
 
 func TestStringToMapKeyValue(t *testing.T) {
 	cases := []MapKeyValueAssertion{
-		{1, "hi", "1:hi", true},
-		{2, "hi:hi", "2:hi:hi", true},
-		{3, "hi", "3", false},
-		{3, "hi", ":", false},
+		{"1", "hi", "1:hi", true},
+		{"2", "hi:hi", "2:hi:hi", true},
+		{"3", "hi", "3", false},
+		{"3", "hi", ":", false},
 	}
 
 	for _, testCase := range cases {
 		key, val, err := driver.StringToMapKeyValue(testCase.Line)
-		util.Equals(t, err == nil, testCase.ShouldSucceed)
+		t.Logf("key: '%s' :: value '%s' :: line '%s' :: err '%s'", key, val, testCase.Line, err)
+		util.Equals(t, testCase.ShouldSucceed, err == nil)
 		if testCase.ShouldSucceed {
 			util.Equals(t, key, testCase.Key)
 			util.Equals(t, val, testCase.Value)
@@ -91,7 +92,7 @@ func TestMaxMapKey(t *testing.T) {
 	}
 
 	maxKey := store.MaxMapKey(testMap)
-	util.Equals(t, maxKey, int64(150))
+	util.Equals(t, maxKey, uint64(150))
 }
 
 func TestHashString(t *testing.T) {

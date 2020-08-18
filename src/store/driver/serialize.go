@@ -29,6 +29,10 @@ func StringToMapKeyValue(str string) (string, string, error) {
 		return "", "", fmt.Errorf("cannot parse archive entry %s into key-value pair: separator ':' count != 0", str)
 	}
 
+	if len(parts[0]) == 0 {
+		return "", "", fmt.Errorf("data invalid: contains empty key")
+	}
+
 	return parts[0], parts[1], nil
 }
 

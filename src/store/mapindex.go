@@ -385,7 +385,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 			} else if pageID != lastPageID {
 				err := m.writePage(page)
 				if err != nil {
-					log.Info("error in locked page write: %s", err.Error())
+					log.Infof("error in locked page write: %s", err.Error())
 					continue
 				}
 				// then load the correct page
