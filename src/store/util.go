@@ -97,3 +97,9 @@ func Min(x, y uint64) uint64 {
 	}
 	return x
 }
+
+// calculate the page ID from an auto index ID. ID - 1 because the final
+// id in a page should be a multiple of that page's size
+func autoPageID(id uint64, pageSize int) uint64 {
+	return (id - 1) / uint64(pageSize)
+}
