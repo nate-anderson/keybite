@@ -294,7 +294,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 				continue
 			}
 
-			deletedIDs[j] = strconv.FormatUint(id, 10)
+			deletedIDs = append(deletedIDs, strconv.FormatUint(id, 10))
 		}
 
 		// write the updated map to file
