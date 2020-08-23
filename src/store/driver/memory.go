@@ -2,20 +2,22 @@ package driver
 
 import (
 	"fmt"
+	"keybite/util"
+	"sort"
 	"time"
 )
 
 // MemoryDriver is an in-memory ephemeral storage driver for testing
 type MemoryDriver struct {
-	autoIndexes map[string]memoryAutoIndex
-	mapIndexes  map[string]memoryMapIndex
+	autoIndexes map[string]*memoryAutoIndex
+	mapIndexes  map[string]*memoryMapIndex
 }
 
 // NewMemoryDriver instantiates a memory storage driver
 func NewMemoryDriver() MemoryDriver {
 	return MemoryDriver{
-		autoIndexes: make(map[string]memoryAutoIndex, 10),
-		mapIndexes:  make(map[string]memoryMapIndex, 10),
+		autoIndexes: make(map[string]*memoryAutoIndex, 10),
+		mapIndexes:  make(map[string]*memoryMapIndex, 10),
 	}
 }
 
@@ -26,7 +28,18 @@ type memoryAutoPage struct {
 }
 
 // memoryAutoIndex is an in-memory datadir, mapping "filenames" to map pages
-type memoryAutoIndex map[string]memoryAutoPage
+type memoryAutoIndex struct {
+	pages            map[string]*memoryAutoPage
+	orderedPageNames []string
+}
+
+func (i *memoryAutoIndex) addPage(page *memoryAutoPage, name string) {
+	i.pages[name] = page
+	if !util.StrSliceContains(name, i.orderedPageNames) {
+		i.orderedPageNames = append(i.orderedPageNames, name)
+		sort.Strings(i.orderedPageNames)
+	}
+}
 
 // memoryMapPage is an in-memory map pagefile
 type memoryMapPage struct {
@@ -35,16 +48,27 @@ type memoryMapPage struct {
 }
 
 // memoryMapIndex is an in-memory map index
-type memoryMapIndex map[string]memoryMapPage
+type memoryMapIndex struct {
+	pages            map[string]*memoryMapPage
+	orderedPageNames []string
+}
+
+func (i *memoryMapIndex) addPage(page *memoryMapPage, name string) {
+	i.pages[name] = page
+	if !util.StrSliceContains(name, i.orderedPageNames) {
+		i.orderedPageNames = append(i.orderedPageNames, name)
+		sort.Strings(i.orderedPageNames)
+	}
+}
 
 // ReadPage reads a page
 func (d MemoryDriver) ReadPage(filename string, indexName string, pageSize int) (map[uint64]string, []uint64, error) {
-	index, ok := d.autoIndexes[indexName]
+	_, ok := d.autoIndexes[indexName]
 	if !ok {
 		return map[uint64]string{}, []uint64{}, ErrNotExist(filename, indexName, fmt.Errorf("auto index '%s' does not exist in memory", indexName))
 	}
 
-	page, ok := index[filename]
+	page, ok := d.autoIndexes[indexName].pages[filename]
 	if !ok {
 		return map[uint64]string{}, []uint64{}, ErrNotExist(filename, indexName, fmt.Errorf("page '%s' does not exist in memory auto index '%s'", filename, indexName))
 	}
@@ -54,12 +78,12 @@ func (d MemoryDriver) ReadPage(filename string, indexName string, pageSize int) 
 
 // ReadMapPage reads a map page
 func (d MemoryDriver) ReadMapPage(filename string, indexName string, pageSize int) (map[string]string, []string, error) {
-	index, ok := d.mapIndexes[indexName]
+	_, ok := d.mapIndexes[indexName]
 	if !ok {
 		return map[string]string{}, []string{}, ErrNotExist(filename, indexName, fmt.Errorf("map index '%s' does not exist in memory", indexName))
 	}
 
-	page, ok := index[filename]
+	page, ok := d.mapIndexes[indexName].pages[filename]
 	if !ok {
 		return map[string]string{}, []string{}, ErrNotExist(filename, indexName, fmt.Errorf("page '%s' does not exist in memory auto index '%s'", filename, indexName))
 	}
@@ -68,31 +92,31 @@ func (d MemoryDriver) ReadMapPage(filename string, indexName string, pageSize in
 }
 
 // WritePage commits an auto page to the memory store
-func (d MemoryDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, filename string, indexName string) error {
-	index, ok := d.autoIndexes[indexName]
+func (d *MemoryDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fileName string, indexName string) error {
+	_, ok := d.autoIndexes[indexName]
 	if !ok {
-		return ErrNotExist(filename, indexName, fmt.Errorf("auto index '%s' does not exist in memory", indexName))
+		return ErrNotExist(fileName, indexName, fmt.Errorf("auto index '%s' does not exist in memory", indexName))
 	}
 
-	index[filename] = memoryAutoPage{
+	d.autoIndexes[indexName].addPage(&memoryAutoPage{
 		vals,
 		orderedKeys,
-	}
+	}, fileName)
 
 	return nil
 }
 
 // WriteMapPage commits a map page to the memory store
-func (d MemoryDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
-	index, ok := d.mapIndexes[indexName]
+func (d *MemoryDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
+	_, ok := d.mapIndexes[indexName]
 	if !ok {
 		return ErrNotExist(fileName, indexName, fmt.Errorf("map index '%s' does not exist in memory", indexName))
 	}
 
-	index[fileName] = memoryMapPage{
+	d.mapIndexes[indexName].addPage(&memoryMapPage{
 		vals,
 		orderedKeys,
-	}
+	}, fileName)
 
 	return nil
 }
@@ -103,21 +127,13 @@ func (d MemoryDriver) WriteMapPage(vals map[string]string, orderedKeys []string,
 func (d MemoryDriver) ListPages(indexName string) ([]string, error) {
 	for name, index := range d.autoIndexes {
 		if name == indexName {
-			fileNames := make([]string, 0, len(index))
-			for key := range index {
-				fileNames = append(fileNames, key)
-			}
-			return fileNames, nil
+			return index.orderedPageNames, nil
 		}
 	}
 
 	for name, index := range d.mapIndexes {
 		if name == indexName {
-			fileNames := make([]string, 0, len(index))
-			for key := range index {
-				fileNames = append(fileNames, key)
-			}
-			return fileNames, nil
+			return index.orderedPageNames, nil
 		}
 	}
 
@@ -126,13 +142,19 @@ func (d MemoryDriver) ListPages(indexName string) ([]string, error) {
 
 // CreateAutoIndex creates an empty auto index in the memory store
 func (d MemoryDriver) CreateAutoIndex(indexName string) error {
-	d.autoIndexes[indexName] = make(memoryAutoIndex, 100)
+	d.autoIndexes[indexName] = &memoryAutoIndex{
+		pages:            make(map[string]*memoryAutoPage, 10),
+		orderedPageNames: []string{},
+	}
 	return nil
 }
 
 // CreateMapIndex creates an empty map index in the memory store
 func (d MemoryDriver) CreateMapIndex(indexName string) error {
-	d.mapIndexes[indexName] = make(memoryMapIndex, 100)
+	d.mapIndexes[indexName] = &memoryMapIndex{
+		pages:            make(map[string]*memoryMapPage, 10),
+		orderedPageNames: []string{},
+	}
 	return nil
 }
 
@@ -152,4 +174,30 @@ func (d MemoryDriver) LockIndex(indexName string) error {
 // UnlockIndex does nothing, since there are no locks
 func (d MemoryDriver) UnlockIndex(indexName string) error {
 	return nil
+}
+
+// DeepInspect creates a formatted inspection of the driver
+func (d MemoryDriver) DeepInspect() string {
+	result := "Auto indexes:\n"
+	for indexName, index := range d.autoIndexes {
+		result += fmt.Sprintf("\tindex %s\n", indexName)
+		for fileName, page := range index.pages {
+			result += fmt.Sprintf("\t\tpage %s\n", fileName)
+			for _, key := range page.orderedKeys {
+				result += fmt.Sprintf("\t\t\t%d : %s\n", key, page.vals[key])
+			}
+		}
+	}
+
+	result += "\nMap indexes:\n"
+	for indexName, index := range d.mapIndexes {
+		result += fmt.Sprintf("\tindex %s\n", indexName)
+		for fileName, page := range index.pages {
+			result += fmt.Sprintf("\t\tpage %s\n", fileName)
+			for _, key := range page.orderedKeys {
+				result += fmt.Sprintf("\t\t\t%s : %s\n", key, page.vals[key])
+			}
+		}
+	}
+	return result
 }

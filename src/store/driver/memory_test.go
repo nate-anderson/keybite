@@ -90,3 +90,45 @@ func TestMemoryDriverListPages(t *testing.T) {
 		util.Assert(t, util.StrSliceContains(el, pages), fmt.Sprintf("page %s not included in results", el))
 	}
 }
+
+func makeFakeAutoPage(size, min int) (map[uint64]string, []uint64) {
+	prefix := "test_value"
+	vals := make(map[uint64]string, size)
+	keys := make([]uint64, 0, size)
+	minKey := uint64(min)
+	for i := uint64(minKey + 1); i <= uint64(minKey)+uint64(size); i++ {
+		val := prefix + strconv.FormatUint(i, 10)
+		vals[i] = val
+		keys = append(keys, i)
+	}
+	return vals, keys
+}
+
+func TestMemoryDriverWriteManyAutoIndexPages(t *testing.T) {
+	d := driver.NewMemoryDriver()
+	indexName := "test_index"
+
+	err := d.CreateAutoIndex(indexName)
+	util.Ok(t, err)
+
+	filenames := []string{"1", "2", "3", "4", "5"}
+
+	minKey := 1
+	for _, name := range filenames {
+		pageVals, pageKeys := makeFakeAutoPage(pageSize, minKey)
+		err := d.WritePage(pageVals, pageKeys, name, indexName)
+		util.Ok(t, err)
+		minKey += pageSize
+	}
+
+	for _, name := range filenames {
+		vals, keys, err := d.ReadPage(name, indexName, pageSize)
+		util.Ok(t, err)
+		util.Equals(t, pageSize, len(vals))
+		util.Equals(t, pageSize, len(keys))
+		for _, key := range keys {
+			_, ok := vals[key]
+			util.Assert(t, ok, "page contains value at key")
+		}
+	}
+}
