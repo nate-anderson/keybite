@@ -56,7 +56,7 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 		var err error
 		for j := 0; s.Next(); j++ {
 			id := s.Select()
-			pageID := id / uint64(i.pageSize)
+			pageID := autoPageID(id, i.pageSize)
 			// if the page housing the queried ID is different than the loaded page, or no page has been loaded
 			// load the needed page
 			if pageID != lastPageID || !loaded {
@@ -81,7 +81,7 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 
 	// else return a single result
 	id := s.Select()
-	pageID := id / uint64(i.pageSize)
+	pageID := autoPageID(id, i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
 		return EmptyResult(), err
@@ -151,18 +151,16 @@ func (i AutoIndex) Insert(val string) (result Result, err error) {
 		return
 	}
 
-	latestID := latestPage.MaxKey()
-	// determine max ID that can be held by this page
-	maxIDForLatestPage := (latestPageID + 1) * uint64(i.pageSize)
+	nextID := (latestPage.MaxKey() + 1)
+	insertPageID := autoPageID(nextID, i.pageSize)
 
-	// if this value would oversize the latest map page, create a new one at latest page ID +1
-	if len(latestPage.vals) >= i.pageSize || latestID >= maxIDForLatestPage {
+	// if this insert would result in an ID belonging in the next page, create the next page
+	if insertPageID > latestPageID {
 		// increment page ID, create next page
-		latestPageID++
-		latestPage, err = i.createEmptyPage(latestPageID)
+		latestPage, err = i.createEmptyPage(insertPageID)
 
 		// set minimum key of new page to maximum key of previous page + 1
-		latestPage.SetMinimumKey(latestID + 1)
+		latestPage.SetMinimumKey(nextID)
 		if err != nil {
 			return EmptyResult(), fmt.Errorf("error creating new page for insert: %w", err)
 		}
@@ -187,7 +185,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 		var err error
 		for j := 0; s.Next(); j++ {
 			id := s.Select()
-			pageID := id / uint64(i.pageSize)
+			pageID := autoPageID(id, i.pageSize)
 			// if the page housing the update ID is different than the loaded page a no page has been loaded yet,
 			// load the needed page
 			if !loaded {
@@ -232,7 +230,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	}
 
 	id := s.Select()
-	pageID := id / uint64(i.pageSize)
+	pageID := autoPageID(id, i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
 		return EmptyResult(), err
@@ -263,7 +261,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 		var err error
 		for j := 0; s.Next(); j++ {
 			id := s.Select()
-			pageID := id / uint64(i.pageSize)
+			pageID := autoPageID(id, i.pageSize)
 			// if no page has been loaded, load the first page
 			if !loaded {
 				page, err = i.readPage(pageID)
@@ -308,7 +306,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 	}
 
 	id := s.Select()
-	pageID := id / uint64(i.pageSize)
+	pageID := autoPageID(id, i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
 		return EmptyResult(), err
