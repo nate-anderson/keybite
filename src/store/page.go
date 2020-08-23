@@ -65,7 +65,7 @@ func (p *Page) Overwrite(id uint64, newVal string) error {
 func (p Page) Delete(id uint64) error {
 	_, exists := p.vals[id]
 	if !exists {
-		return fmt.Errorf("cannot delete id %d from page: key doesn't exist", id)
+		return fmt.Errorf("cannot delete id %d from page '%s': key doesn't exist", id, p.name)
 	}
 	delete(p.vals, id)
 	p.orderedKeys = removeUint64FromSlice(p.orderedKeys, id)
