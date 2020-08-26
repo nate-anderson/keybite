@@ -62,7 +62,7 @@ func (p *Page) Overwrite(id uint64, newVal string) error {
 }
 
 // Delete an existing value
-func (p Page) Delete(id uint64) error {
+func (p *Page) Delete(id uint64) error {
 	_, exists := p.vals[id]
 	if !exists {
 		return fmt.Errorf("cannot delete id %d from page '%s': key doesn't exist", id, p.name)
