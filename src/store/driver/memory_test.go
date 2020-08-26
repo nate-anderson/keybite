@@ -90,3 +90,51 @@ func TestMemoryDriverListPages(t *testing.T) {
 		util.Assert(t, util.StrSliceContains(el, pages), fmt.Sprintf("page %s not included in results", el))
 	}
 }
+
+func TestMemoryDriverDropAutoIndex(t *testing.T) {
+	d := driver.NewMemoryDriver()
+
+	indexName := "test_auto_index_drop"
+	err := d.CreateAutoIndex(indexName)
+	util.Ok(t, err)
+
+	vals := map[uint64]string{
+		1: "test value",
+	}
+
+	keys := []uint64{1}
+
+	err = d.WritePage(vals, keys, "1", indexName)
+	util.Ok(t, err)
+
+	// delete index
+	err = d.DropAutoIndex(indexName)
+	util.Ok(t, err)
+
+	_, _, err = d.ReadPage("1", indexName, pageSize)
+	util.Assert(t, err != nil, "error should be non-nill reading page from deleted index")
+}
+
+func TestMemoryDriverDropMapIndex(t *testing.T) {
+	d := driver.NewMemoryDriver()
+
+	indexName := "test_map_index_drop"
+	err := d.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	vals := map[string]string{
+		"1": "test value",
+	}
+
+	keys := []string{"1"}
+
+	err = d.WriteMapPage(vals, keys, "1", indexName)
+	util.Ok(t, err)
+
+	// delete index
+	err = d.DropMapIndex(indexName)
+	util.Ok(t, err)
+
+	_, _, err = d.ReadMapPage("1", indexName, pageSize)
+	util.Assert(t, err != nil, "error should be non-nill reading page from deleted index")
+}

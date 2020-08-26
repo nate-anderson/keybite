@@ -153,3 +153,23 @@ func (d MemoryDriver) LockIndex(indexName string) error {
 func (d MemoryDriver) UnlockIndex(indexName string) error {
 	return nil
 }
+
+// DropAutoIndex deletes an index from the memory driver
+func (d MemoryDriver) DropAutoIndex(indexName string) error {
+	_, exists := d.autoIndexes[indexName]
+	if !exists {
+		return fmt.Errorf("failed deleting memory index '%s': does not exist", indexName)
+	}
+	delete(d.autoIndexes, indexName)
+	return nil
+}
+
+// DropMapIndex deletes an index from the memory driver
+func (d MemoryDriver) DropMapIndex(indexName string) error {
+	_, exists := d.mapIndexes[indexName]
+	if !exists {
+		return fmt.Errorf("failed deleting memory index '%s': does not exist", indexName)
+	}
+	delete(d.mapIndexes, indexName)
+	return nil
+}
