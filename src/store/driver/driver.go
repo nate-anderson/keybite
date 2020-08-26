@@ -20,6 +20,8 @@ type StorageDriver interface {
 	WriteMapPage(vals map[string]string, orderedKeys []string, filename string, indexName string) error
 	CreateAutoIndex(indexName string) error
 	CreateMapIndex(indexName string) error
+	DropAutoIndex(indexName string) error
+	DropMapIndex(indexName string) error
 	// return an ascending-sorted list of pagefiles in the index datadir
 	ListPages(indexName string) ([]string, error)
 	// check if an index is locked by another request process, returning the time at which it was locked if true

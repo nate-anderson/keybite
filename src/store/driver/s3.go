@@ -319,27 +319,6 @@ func (d BucketDriver) DeletePage(indexName string, fileName string) error {
 	return nil
 }
 
-// DeleteIndex deletes an index from the bucket
-func (d BucketDriver) DeleteIndex(indexName string) error {
-	_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(d.bucketName),
-		Key:    aws.String(indexName),
-	})
-	if err != nil {
-		return err
-	}
-
-	err = d.s3Client.WaitUntilObjectNotExists(&s3.HeadObjectInput{
-		Bucket: aws.String(d.bucketName),
-		Key:    aws.String(indexName),
-	})
-
-	if err != nil {
-		return fmt.Errorf("deleting index '%s' failed: %w", indexName, err)
-	}
-	return nil
-}
-
 // IndexIsLocked checks if the specified index is locked and returns the timestamp it expires at
 func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 	log.Debugf("checking index %s for write locks", indexName)
@@ -411,7 +390,7 @@ func (d BucketDriver) UnlockIndex(indexName string) error {
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed reading remote S3 directory: %w", err)
 	}
 
 	for _, item := range resp.Contents {
@@ -429,6 +408,78 @@ func (d BucketDriver) UnlockIndex(indexName string) error {
 		}
 	}
 
+	return nil
+}
+
+// DropAutoIndex permanently deletes all the data and directory for an auto index
+func (d BucketDriver) DropAutoIndex(indexName string) error {
+	// get list of object keys matching directory prefix
+	prefix := indexName + "/"
+
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+	if err != nil {
+		return fmt.Errorf("failed reading remote S3 directory: %w", err)
+	}
+
+	numItems := len(resp.Contents)
+	deleteObjects := make([]*s3.ObjectIdentifier, numItems)
+
+	for i, item := range resp.Contents {
+		deleteObjects[i] = &s3.ObjectIdentifier{
+			Key: item.Key,
+		}
+	}
+
+	deleteInput := &s3.DeleteObjectsInput{
+		Bucket: aws.String(d.bucketName),
+		Delete: &s3.Delete{
+			Objects: deleteObjects,
+		},
+	}
+
+	_, err = d.s3Client.DeleteObjects(deleteInput)
+	if err != nil {
+		return fmt.Errorf("failed removing '%d' remote objects: %w", numItems, err)
+	}
+	return nil
+}
+
+// DropMapIndex permanently deletes all the data and directory for a map index
+func (d BucketDriver) DropMapIndex(indexName string) error {
+	// get list of object keys matching directory prefix
+	prefix := indexName + "/"
+
+	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(d.bucketName),
+		Prefix: aws.String(prefix),
+	})
+	if err != nil {
+		return fmt.Errorf("failed reading remote S3 directory: %w", err)
+	}
+
+	numItems := len(resp.Contents)
+	deleteObjects := make([]*s3.ObjectIdentifier, numItems)
+
+	for i, item := range resp.Contents {
+		deleteObjects[i] = &s3.ObjectIdentifier{
+			Key: item.Key,
+		}
+	}
+
+	deleteInput := &s3.DeleteObjectsInput{
+		Bucket: aws.String(d.bucketName),
+		Delete: &s3.Delete{
+			Objects: deleteObjects,
+		},
+	}
+
+	_, err = d.s3Client.DeleteObjects(deleteInput)
+	if err != nil {
+		return fmt.Errorf("failed removing '%d' remote objects: %w", numItems, err)
+	}
 	return nil
 }
 

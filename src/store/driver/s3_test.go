@@ -108,7 +108,7 @@ func TestBucketCreateMapIndex(t *testing.T) {
 	indexName := "test_index"
 	err = bd.CreateMapIndex(indexName)
 	util.Ok(t, err)
-	defer bd.DeleteIndex(indexName)
+	defer bd.DropMapIndex(indexName)
 
 	// check that file/folder was created in bucket
 	_, client, err := getAWSSessionAndS3Client(accessKeyID, accessKeySecret)
@@ -138,7 +138,7 @@ func TestBucketWritePageReadPage(t *testing.T) {
 	err = bd.CreateAutoIndex(indexName)
 	util.Ok(t, err)
 
-	defer bd.DeleteIndex(indexName)
+	defer bd.DropAutoIndex(indexName)
 
 	testVals := map[uint64]string{
 		1: "hello",
@@ -175,7 +175,7 @@ func TestBucketWriteReadMapPage(t *testing.T) {
 	err = bd.CreateMapIndex(indexName)
 	util.Ok(t, err)
 
-	defer bd.DeleteIndex(indexName)
+	defer bd.DropMapIndex(indexName)
 
 	testVals := map[string]string{
 		"1": "hello",
@@ -278,4 +278,68 @@ func TestBucketDriverErrNotExist(t *testing.T) {
 	util.Equals(t, 0, len(vals))
 	util.Equals(t, 0, len(keys))
 
+}
+
+func TestBucketDriverDropAutoIndex(t *testing.T) {
+	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
+	util.Ok(t, err)
+
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_map_index"
+	err = bd.CreateAutoIndex(indexName)
+	util.Ok(t, err)
+
+	testVals := map[uint64]string{
+		1: "hello",
+		2: "world",
+	}
+
+	testKeys := []uint64{1, 2}
+
+	const fileName = "0"
+
+	err = bd.WritePage(testVals, testKeys, fileName, indexName)
+	util.Ok(t, err)
+
+	err = bd.DropAutoIndex(indexName)
+	util.Ok(t, err)
+
+	// test files deleted
+	pages, err := bd.ListPages(indexName)
+	t.Log(pages)
+	util.Equals(t, 0, len(pages))
+}
+
+func TestBucketDriverDropMapIndex(t *testing.T) {
+	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
+	util.Ok(t, err)
+
+	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_map_index"
+	err = bd.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	testVals := map[string]string{
+		"1": "hello",
+		"2": "world",
+	}
+
+	testKeys := []string{"1", "2"}
+
+	const fileName = "0"
+
+	err = bd.WriteMapPage(testVals, testKeys, fileName, indexName)
+	util.Ok(t, err)
+
+	err = bd.DropMapIndex(indexName)
+	util.Ok(t, err)
+
+	// test files deleted
+	pages, err := bd.ListPages(indexName)
+	t.Log(pages)
+	util.Equals(t, 0, len(pages))
 }

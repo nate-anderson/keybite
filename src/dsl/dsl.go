@@ -130,6 +130,12 @@ func Execute(input string, conf config.Config) (store.Result, error) {
 
 	case typeCreateMapIndex:
 		return store.SingleResult(query.indexName), storageDriver.CreateMapIndex(query.indexName)
+
+	case typeDropAutoIndex:
+		return store.SingleResult(query.indexName), storageDriver.DropAutoIndex(query.indexName)
+
+	case typeDropMapIndex:
+		return store.SingleResult(query.indexName), storageDriver.DropMapIndex(query.indexName)
 	}
 
 	return store.EmptyResult(), errors.New("query keyword did not match any commands")
