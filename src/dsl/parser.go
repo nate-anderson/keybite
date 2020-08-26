@@ -56,6 +56,8 @@ const (
 	typeCountKey
 	typeCreateAutoIndex
 	typeCreateMapIndex
+	typeDropAutoIndex
+	typeDropMapIndex
 )
 
 // Operation is a query
@@ -170,6 +172,14 @@ func (p parser) Parse() (o Operation, err error) {
 
 			case "create_map_index":
 				o.oType = typeCreateMapIndex
+				p.nextStep = stepFinalIndexName
+
+			case "drop_auto_index":
+				o.oType = typeDropAutoIndex
+				p.nextStep = stepFinalIndexName
+
+			case "drop_map_index":
+				o.oType = typeDropMapIndex
 				p.nextStep = stepFinalIndexName
 
 			default:

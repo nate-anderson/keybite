@@ -210,3 +210,67 @@ func TestFSLockUnlockIndex(t *testing.T) {
 
 	util.Assert(t, !isLocked, "index unlocked after unlock")
 }
+
+func TestFSDropAutoIndex(t *testing.T) {
+	// create auto index
+	dirName := "test_data"
+	err := os.Mkdir(dirName, 0755)
+	util.Ok(t, err)
+
+	defer os.RemoveAll(dirName)
+
+	driver, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_index_drop"
+	err = driver.CreateAutoIndex(indexName)
+	util.Ok(t, err)
+
+	// test drop existing index
+	err = driver.DropAutoIndex(indexName)
+	util.Ok(t, err)
+
+	if _, err := os.Stat(path.Join(dirName, indexName)); err == nil {
+		t.Logf("deleting existing index should not return error. error returned: %s", err.Error())
+		t.Fail()
+	}
+
+	// test that dropping non-existent index returns error
+	err = driver.DropAutoIndex(indexName)
+	if err == nil {
+		t.Log("deleting missing index should return error.")
+		t.Fail()
+	}
+
+}
+
+func TestFSDropMapIndex(t *testing.T) {
+	// create auto index
+	dirName := "test_data"
+	err := os.Mkdir(dirName, 0755)
+	util.Ok(t, err)
+
+	defer os.RemoveAll(dirName)
+
+	driver, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	util.Ok(t, err)
+
+	indexName := "test_index_drop"
+	err = driver.CreateMapIndex(indexName)
+	util.Ok(t, err)
+
+	// test drop existing index
+	err = driver.DropMapIndex(indexName)
+	if _, err := os.Stat(path.Join(dirName, indexName)); err == nil {
+		t.Logf("deleting existing index should not return error. error returned: %s", err.Error())
+		t.Fail()
+	}
+
+	// test that dropping non-existent index returns error
+	err = driver.DropMapIndex(indexName)
+	if err == nil {
+		t.Log("deleting missing index should return error.")
+		t.Fail()
+	}
+
+}

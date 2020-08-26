@@ -254,3 +254,21 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 
 	return false, time.Time{}, nil
 }
+
+// DropAutoIndex permanently deletes all the data and directory for an auto index
+func (d FilesystemDriver) DropAutoIndex(indexName string) error {
+	indexPath := path.Join(d.dataDir, indexName)
+	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+		return fmt.Errorf("failed dropping index '%s': directory does not exist", indexName)
+	}
+	return os.RemoveAll(indexPath)
+}
+
+// DropMapIndex permanently deletes all the data and directory for a map index
+func (d FilesystemDriver) DropMapIndex(indexName string) error {
+	indexPath := path.Join(d.dataDir, indexName)
+	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+		return fmt.Errorf("failed dropping index '%s': directory does not exist", indexName)
+	}
+	return os.RemoveAll(indexPath)
+}
