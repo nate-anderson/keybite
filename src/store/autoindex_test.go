@@ -108,12 +108,7 @@ func TestAutoIndexDeleteOne(t *testing.T) {
 }
 
 func TestAutoIndexDeleteMany(t *testing.T) {
-	dri, err := driver.NewFilesystemDriver("test_data", ".kb", testLockDuration)
-	util.Ok(t, err)
-	indexName := "test_index_deletemany"
-	err = dri.CreateAutoIndex(indexName)
-	index, err := store.NewAutoIndex(indexName, &dri, testPageSize)
-	util.Ok(t, err)
+	index := newTestingIndex(t)
 
 	testVal := "test_value_000"
 	numInserts := 10
@@ -133,8 +128,6 @@ func TestAutoIndexDeleteMany(t *testing.T) {
 	util.Ok(t, err)
 	util.Equals(t, "10", countResult.String())
 
-	// t.Log("DeIn", dri.DeepInspect())
-
 	selector := store.NewArraySelector(insertIds)
 	_, err = index.Delete(&selector)
 	util.Ok(t, err)
@@ -144,4 +137,70 @@ func TestAutoIndexDeleteMany(t *testing.T) {
 	util.Ok(t, err)
 
 	util.Equals(t, "0", countResult.String())
+}
+
+func TestAutoIndexUpdateOne(t *testing.T) {
+	index := newTestingIndex(t)
+
+	testVal := "test_value_000"
+	insertResult, err := index.Insert(testVal)
+	util.Ok(t, err)
+
+	id, err := strconv.ParseUint(insertResult.String(), 10, 64)
+	util.Ok(t, err)
+
+	newVal := "test_value_001"
+	updateSelector := store.NewSingleSelector(id)
+	updateResult, err := index.Update(&updateSelector, newVal)
+	util.Ok(t, err)
+
+	util.Equals(t, updateResult.String(), insertResult.String())
+
+	querySelector := store.NewSingleSelector(id)
+	queryResult, err := index.Query(&querySelector)
+	util.Ok(t, err)
+
+	util.Equals(t, queryResult.String(), newVal)
+}
+
+func TestAutoIndexUpdateMany(t *testing.T) {
+	index := newTestingIndex(t)
+
+	testVal := "test_value_000"
+	numInserts := 10
+
+	insertIds := make([]uint64, 0, numInserts)
+
+	for i := 0; i < numInserts; i++ {
+		insertResult, err := index.Insert(testVal)
+		util.Ok(t, err)
+		id, err := strconv.ParseUint(insertResult.String(), 10, 64)
+		util.Ok(t, err)
+		insertIds = append(insertIds, id)
+	}
+
+	selector := store.NewArraySelector(insertIds)
+	firstResult, err := index.Query(&selector)
+	util.Ok(t, err)
+
+	expected := util.RepeatString(testVal, numInserts)
+	expectedResult := store.CollectionResult(expected)
+
+	util.Equals(t, firstResult.String(), expectedResult.String())
+
+	newVal := "test_value_001"
+	selector = store.NewArraySelector(insertIds)
+	updateResult, err := index.Update(&selector, newVal)
+	util.Ok(t, err)
+	util.Assert(t, updateResult.Valid(), "update result is valid")
+
+	selector = store.NewArraySelector(insertIds)
+	updatedQueried, err := index.Query(&selector)
+	util.Ok(t, err)
+
+	expected = util.RepeatString(newVal, numInserts)
+	expectedResult = store.CollectionResult(expected)
+
+	util.Equals(t, updatedQueried.String(), expectedResult.String())
+
 }
