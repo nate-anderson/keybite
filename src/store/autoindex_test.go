@@ -1,6 +1,8 @@
 package store_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"keybite/store"
 	"keybite/store/driver"
 	"keybite/util"
@@ -22,7 +24,7 @@ func newTestingIndex(t *testing.T) store.AutoIndex {
 	return index
 }
 
-func TestAutoIndexInsertQuery(t *testing.T) {
+func TestAutoIndexInsertQueryOne(t *testing.T) {
 	index := newTestingIndex(t)
 	count, err := index.Count()
 	util.Ok(t, err)
@@ -50,7 +52,7 @@ func TestAutoIndexInsertQuery(t *testing.T) {
 	util.Equals(t, "", missingRes.String())
 }
 
-func TestAutoInsertMany(t *testing.T) {
+func TestAutoInsertQueryMany(t *testing.T) {
 	dri := driver.NewMemoryDriver()
 	indexName := "test_index"
 	err := dri.CreateAutoIndex(indexName)
@@ -58,21 +60,38 @@ func TestAutoInsertMany(t *testing.T) {
 	util.Ok(t, err)
 	numRecords := (testPageSize * 2) + 1
 	var currentResult store.Result
+	insertIDs := make([]uint64, 0, numRecords)
 
 	for i := 1; i <= numRecords; i++ {
 		testVal := "test_value_" + strconv.Itoa(i)
 		currentResult, err = index.Insert(testVal)
 		util.Ok(t, err)
 		util.Equals(t, strconv.Itoa(i), currentResult.String())
+		insertID, err := strconv.ParseUint(currentResult.String(), 10, 64)
+		util.Ok(t, err)
+		insertIDs = append(insertIDs, insertID)
 	}
 
 	countResult, err := index.Count()
-	t.Log("### COUNT", countResult.String())
-	t.Log("DI", dri.DeepInspect())
 	util.Equals(t, strconv.Itoa(numRecords), countResult.String())
 
 	idStr := strconv.Itoa(numRecords)
 	util.Equals(t, idStr, currentResult.String())
+
+	querySelector := store.NewArraySelector(insertIDs)
+	queryRes, err := index.Query(&querySelector)
+	util.Ok(t, err)
+
+	queryResults := make([]string, 0, numRecords)
+	queryResJSON, err := queryRes.MarshalJSON()
+	util.Ok(t, err)
+	err = json.Unmarshal(queryResJSON, &queryResults)
+	util.Ok(t, err)
+
+	for i, item := range queryResults {
+		expectedVal := fmt.Sprintf("test_value_%d", i+1)
+		util.Equals(t, expectedVal, item)
+	}
 }
 
 func TestAutoIndexDeleteOne(t *testing.T) {
@@ -111,7 +130,7 @@ func TestAutoIndexDeleteMany(t *testing.T) {
 	index := newTestingIndex(t)
 
 	testVal := "test_value_000"
-	numInserts := 10
+	numInserts := (testPageSize * 2) + 1
 
 	insertIds := make([]uint64, 0, numInserts)
 
@@ -126,7 +145,7 @@ func TestAutoIndexDeleteMany(t *testing.T) {
 	// confirm index size
 	countResult, err := index.Count()
 	util.Ok(t, err)
-	util.Equals(t, "10", countResult.String())
+	util.Equals(t, strconv.Itoa(numInserts), countResult.String())
 
 	selector := store.NewArraySelector(insertIds)
 	_, err = index.Delete(&selector)
@@ -167,7 +186,7 @@ func TestAutoIndexUpdateMany(t *testing.T) {
 	index := newTestingIndex(t)
 
 	testVal := "test_value_000"
-	numInserts := 10
+	numInserts := (testPageSize * 2) + 1
 
 	insertIds := make([]uint64, 0, numInserts)
 
@@ -203,4 +222,65 @@ func TestAutoIndexUpdateMany(t *testing.T) {
 
 	util.Equals(t, updatedQueried.String(), expectedResult.String())
 
+}
+
+func TestAutoIndexList(t *testing.T) {
+	indexName := "test_index"
+	driver := driver.NewMemoryDriver()
+	driver.CreateAutoIndex(indexName)
+	index, err := store.NewAutoIndex(indexName, &driver, testPageSize)
+	util.Ok(t, err)
+
+	numInserts := testPageSize * 10
+	insertKeys := make([]string, 0, numInserts)
+
+	for i := 0; i < numInserts; i++ {
+		testValue := fmt.Sprintf("test_value_%d", i)
+		id, err := index.Insert(testValue)
+		util.Ok(t, err)
+		insertKeys = append(insertKeys, id.String())
+		util.Ok(t, err)
+	}
+
+	results, err := index.List(0, 0)
+	util.Ok(t, err)
+
+	resultJSON, err := results.MarshalJSON()
+	util.Ok(t, err)
+
+	type keyValue struct {
+		key   string
+		value string
+	}
+
+	resultArr := make([]keyValue, numInserts)
+	err = json.Unmarshal(resultJSON, &resultArr)
+	util.Ok(t, err)
+
+	util.Equals(t, numInserts, len(resultArr))
+}
+
+func TestAutoIndexCount(t *testing.T) {
+	indexName := "test_index"
+	driver := driver.NewMemoryDriver()
+	driver.CreateAutoIndex(indexName)
+	index, err := store.NewAutoIndex(indexName, &driver, testPageSize)
+	util.Ok(t, err)
+
+	numInserts := testPageSize * 10
+	insertKeys := make([]string, 0, numInserts)
+
+	for i := 0; i < numInserts; i++ {
+		testValue := fmt.Sprintf("test_value_%d", i)
+
+		id, err := index.Insert(testValue)
+		util.Ok(t, err)
+		insertKeys = append(insertKeys, id.String())
+		util.Ok(t, err)
+	}
+
+	result, err := index.Count()
+	util.Ok(t, err)
+
+	util.Equals(t, strconv.Itoa(numInserts), result.String())
 }
