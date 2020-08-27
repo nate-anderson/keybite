@@ -73,7 +73,7 @@ func (m *MapPage) Upsert(key string, val string) string {
 func (m MapPage) Delete(key string) error {
 	_, exists := m.vals[key]
 	if !exists {
-		return fmt.Errorf("cannot delete key from map page: key doesn't exist")
+		return fmt.Errorf("cannot delete key '%s' from map page %s: key doesn't exist", key, m.name)
 	}
 	delete(m.vals, key)
 	m.orderedKeys = removeStringFromSlice(m.orderedKeys, key)
