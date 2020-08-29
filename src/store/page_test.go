@@ -9,7 +9,7 @@ import (
 )
 
 type KeyValueAssertion struct {
-	Key           int64
+	Key           uint64
 	Value         string
 	Line          string
 	ShouldSucceed bool
@@ -35,7 +35,7 @@ func TestStringToKeyValue(t *testing.T) {
 }
 
 type MapKeyValueAssertion struct {
-	Key           uint64
+	Key           string
 	Value         string
 	Line          string
 	ShouldSucceed bool
@@ -43,15 +43,16 @@ type MapKeyValueAssertion struct {
 
 func TestStringToMapKeyValue(t *testing.T) {
 	cases := []MapKeyValueAssertion{
-		{1, "hi", "1:hi", true},
-		{2, "hi:hi", "2:hi:hi", true},
-		{3, "hi", "3", false},
-		{3, "hi", ":", false},
+		{"1", "hi", "1:hi", true},
+		{"2", "hi:hi", "2:hi:hi", true},
+		{"3", "hi", "3", false},
+		{"3", "hi", ":", false},
 	}
 
 	for _, testCase := range cases {
 		key, val, err := driver.StringToMapKeyValue(testCase.Line)
-		util.Equals(t, err == nil, testCase.ShouldSucceed)
+		t.Logf("key: '%s' :: value '%s' :: line '%s' :: err '%s'", key, val, testCase.Line, err)
+		util.Equals(t, testCase.ShouldSucceed, err == nil)
 		if testCase.ShouldSucceed {
 			util.Equals(t, key, testCase.Key)
 			util.Equals(t, val, testCase.Value)
@@ -91,7 +92,7 @@ func TestMaxMapKey(t *testing.T) {
 	}
 
 	maxKey := store.MaxMapKey(testMap)
-	util.Equals(t, maxKey, int64(150))
+	util.Equals(t, maxKey, uint64(150))
 }
 
 func TestHashString(t *testing.T) {
@@ -157,4 +158,83 @@ func TestPathToIndexPage(t *testing.T) {
 		t.Log("no err thrown on bad path", badPath)
 		t.Fail()
 	}
+}
+
+func TestPageAppendQuery(t *testing.T) {
+	p := store.EmptyPage("test_page")
+	testVal := "the test value"
+
+	id := p.Append(testVal)
+
+	val, err := p.Query(id)
+	util.Ok(t, err)
+	util.Equals(t, testVal, val)
+	util.Equals(t, 1, p.Length())
+}
+
+func TestPageAppendDelete(t *testing.T) {
+	p := store.EmptyPage("test_page")
+	testVal := "the test value to delete"
+
+	id := p.Append(testVal)
+
+	val, err := p.Query(id)
+	util.Ok(t, err)
+	util.Equals(t, testVal, val)
+
+	err = p.Delete(id)
+	util.Ok(t, err)
+
+	util.Equals(t, 0, p.Length())
+
+	val, err = p.Query(id)
+	util.Assert(t, err != nil, "retrieving missing key should return error")
+	util.Equals(t, "", val)
+
+	err = p.Delete(id)
+	util.Assert(t, err != nil, "deleting missing key should return error")
+}
+
+func TestPageOverwrite(t *testing.T) {
+	p := store.EmptyPage("test_page")
+	initial := "initial"
+
+	id := p.Append(initial)
+
+	val, err := p.Query(id)
+	util.Ok(t, err)
+	util.Equals(t, initial, val)
+
+	// test updated value is stored
+	updated := "updated"
+	err = p.Overwrite(id, updated)
+	util.Ok(t, err)
+
+	val2, err := p.Query(id)
+	util.Ok(t, err)
+	util.Equals(t, updated, val2)
+
+	// test updating non-existent value fails
+	err = p.Overwrite(10, "uh-oh!")
+	util.Assert(t, err != nil, "updating unregistered key should throw error")
+}
+
+func TestSetMinimumKey(t *testing.T) {
+	p := store.EmptyPage("test_page")
+	testVal := "initial"
+	var minKey uint64 = 100
+
+	p.SetMinimumKey(minKey)
+	id := p.Append(testVal)
+
+	util.Assert(t, id == minKey, "first insert should be equal to miminum map key")
+
+	val, err := p.Query(id)
+	util.Ok(t, err)
+
+	util.Equals(t, testVal, val)
+
+	// for page of size 1, max key should equal min key
+	maxKey := p.MaxKey()
+	util.Equals(t, maxKey, minKey)
 }

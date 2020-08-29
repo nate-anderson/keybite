@@ -16,7 +16,7 @@ func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 	if !condition {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("%s:%d: "+msg+"\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
-		tb.FailNow()
+		tb.Fail()
 	}
 }
 
@@ -25,7 +25,7 @@ func Ok(tb testing.TB, err error) {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("%s:%d: unexpected error: %s\n\n", filepath.Base(file), line, err.Error())
-		tb.FailNow()
+		tb.Fail()
 	}
 }
 
@@ -34,7 +34,7 @@ func Equals(tb testing.TB, exp, act interface{}) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\n\n", filepath.Base(file), line, exp, act)
-		tb.FailNow()
+		tb.Fail()
 	}
 }
 
@@ -46,4 +46,12 @@ func StrSliceContains(str string, sl []string) bool {
 		}
 	}
 	return false
+}
+
+// RepeatString repeats a string n times in a slice
+func RepeatString(str string, n int) (result []string) {
+	for i := 0; i < n; i++ {
+		result = append(result, str)
+	}
+	return
 }

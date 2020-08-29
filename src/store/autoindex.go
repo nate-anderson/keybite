@@ -219,7 +219,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 				continue
 			}
 
-			insertedIDs[j] = strconv.FormatUint(id, 10)
+			insertedIDs = append(insertedIDs, strconv.FormatUint(id, 10))
 		}
 		// write the updated map to file, conscious of other requests
 		err = i.writePage(page)
@@ -294,7 +294,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 				continue
 			}
 
-			deletedIDs[j] = strconv.FormatUint(id, 10)
+			deletedIDs = append(deletedIDs, strconv.FormatUint(id, 10))
 		}
 
 		// write the updated map to file
@@ -303,6 +303,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			log.Infof("error in locked page write: %s", err.Error())
 			return EmptyResult(), err
 		}
+		return CollectionResult(deletedIDs), err
 	}
 
 	id := s.Select()

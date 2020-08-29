@@ -122,7 +122,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		updatedKeys := make([]string, 0, s.Length())
+		insertedKeys := make([]string, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -154,7 +154,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 				}
 
 				// then load the next page
-				page, err = m.readPage(pageID)
+				page, err = m.readOrCreatePage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
 					continue
@@ -169,7 +169,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 				continue
 			}
 
-			updatedKeys = append(updatedKeys, key)
+			insertedKeys = append(insertedKeys, key)
 		}
 
 		// write the updated map to file, conscious of other requests
@@ -177,7 +177,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(updatedKeys), err
+		return CollectionResult(insertedKeys), err
 	}
 
 	key := s.Select()
@@ -318,6 +318,14 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 					continue
 				}
 				lastPageID = pageID
+
+				// then load the next page
+				page, err = m.readOrCreatePage(pageID)
+				if err != nil {
+					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					continue
+				}
+				lastPageID = pageID
 			}
 
 			// update or insert value in loaded page
@@ -385,7 +393,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 			} else if pageID != lastPageID {
 				err := m.writePage(page)
 				if err != nil {
-					log.Info("error in locked page write: %s", err.Error())
+					log.Infof("error in locked page write: %s", err.Error())
 					continue
 				}
 				// then load the correct page
@@ -413,6 +421,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 			log.Infof("error in locked page write: %s", err.Error())
 			return EmptyResult(), err
 		}
+		return CollectionResult(deletedKeys), err
 	}
 
 	key := s.Select()
