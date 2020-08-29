@@ -16,8 +16,8 @@ func TestParseQuery(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, "default", queryObj.indexName)
 	util.Equals(t, uint64(1), queryObj.autoSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseQueryKey(t *testing.T) {
@@ -31,8 +31,8 @@ func TestParseQueryKey(t *testing.T) {
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "map_default", queryObj.indexName)
 	util.Equals(t, "testKey", queryObj.mapSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseInsert(t *testing.T) {
@@ -45,8 +45,8 @@ func TestParseInsert(t *testing.T) {
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "default", queryObj.indexName)
 	util.Equals(t, "test payload", queryObj.payload)
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseInsertKey(t *testing.T) {
@@ -61,8 +61,8 @@ func TestParseInsertKey(t *testing.T) {
 	util.Equals(t, "map_default", queryObj.indexName)
 	util.Equals(t, "payload strings", queryObj.payload)
 	util.Equals(t, "testKey", queryObj.mapSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseUpdate(t *testing.T) {
@@ -77,8 +77,8 @@ func TestParseUpdate(t *testing.T) {
 	util.Equals(t, "default", queryObj.indexName)
 	util.Equals(t, "new value", queryObj.payload)
 	util.Equals(t, uint64(2), queryObj.autoSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseUpdateKey(t *testing.T) {
@@ -93,8 +93,8 @@ func TestParseUpdateKey(t *testing.T) {
 	util.Equals(t, "map_default", queryObj.indexName)
 	util.Equals(t, "new value", queryObj.payload)
 	util.Equals(t, "theKey", queryObj.mapSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseUpsertKey(t *testing.T) {
@@ -109,8 +109,8 @@ func TestParseUpsertKey(t *testing.T) {
 	util.Equals(t, "map_default2", queryObj.indexName)
 	util.Equals(t, "new or updated value", queryObj.payload)
 	util.Equals(t, "theKey2", queryObj.mapSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseDelete(t *testing.T) {
@@ -124,8 +124,8 @@ func TestParseDelete(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, "default_index", queryObj.indexName)
 	util.Equals(t, uint64(26), queryObj.autoSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseDeleteKey(t *testing.T) {
@@ -139,8 +139,8 @@ func TestParseDeleteKey(t *testing.T) {
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "map_default", queryObj.indexName)
 	util.Equals(t, "theDeleteKey", queryObj.mapSel.Select())
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseList(t *testing.T) {
@@ -153,8 +153,8 @@ func TestParseList(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "default", queryObj.indexName)
-	util.Equals(t, uint64(10), queryObj.limit)
-	util.Equals(t, uint64(50), queryObj.offset)
+	util.Equals(t, 10, queryObj.limit)
+	util.Equals(t, 50, queryObj.offset)
 }
 
 func TestParseListKey(t *testing.T) {
@@ -167,8 +167,8 @@ func TestParseListKey(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "map_default", queryObj.indexName)
-	util.Equals(t, uint64(25), queryObj.limit)
-	util.Equals(t, uint64(500), queryObj.offset)
+	util.Equals(t, 25, queryObj.limit)
+	util.Equals(t, 500, queryObj.offset)
 }
 
 func TestParseCount(t *testing.T) {
@@ -181,8 +181,8 @@ func TestParseCount(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "my_index", queryObj.indexName)
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseCountKey(t *testing.T) {
@@ -195,8 +195,8 @@ func TestParseCountKey(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "my_map_index", queryObj.indexName)
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseCreateAutoIndex(t *testing.T) {
@@ -209,8 +209,8 @@ func TestParseCreateAutoIndex(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "my_map_index", queryObj.indexName)
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
 }
 
 func TestParseCreateMapIndex(t *testing.T) {
@@ -223,6 +223,43 @@ func TestParseCreateMapIndex(t *testing.T) {
 	util.Equals(t, nil, queryObj.mapSel)
 	util.Equals(t, nil, queryObj.autoSel)
 	util.Equals(t, "my_map_index", queryObj.indexName)
-	util.Equals(t, uint64(0), queryObj.limit)
-	util.Equals(t, uint64(0), queryObj.offset)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
+}
+
+func TestParseDropAutoIndex(t *testing.T) {
+	dropText := "drop_auto_index my_index"
+	dropParser := newParser(dropText)
+	queryObj, err := dropParser.Parse()
+	util.Ok(t, err)
+
+	util.Equals(t, typeDropAutoIndex, queryObj.oType)
+	util.Equals(t, nil, queryObj.mapSel)
+	util.Equals(t, nil, queryObj.autoSel)
+	util.Equals(t, "my_index", queryObj.indexName)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
+}
+
+func TestParseDropMapIndex(t *testing.T) {
+	dropText := "drop_map_index my_map_index"
+	dropParser := newParser(dropText)
+	queryObj, err := dropParser.Parse()
+	util.Ok(t, err)
+
+	util.Equals(t, typeDropMapIndex, queryObj.oType)
+	util.Equals(t, nil, queryObj.mapSel)
+	util.Equals(t, nil, queryObj.autoSel)
+	util.Equals(t, "my_map_index", queryObj.indexName)
+	util.Equals(t, 0, queryObj.limit)
+	util.Equals(t, 0, queryObj.offset)
+}
+
+// Test errors
+
+func TestParseError(t *testing.T) {
+	errText := "expectError my_index"
+	errParser := newParser(errText)
+	_, err := errParser.Parse()
+	util.Assert(t, err != nil, "unknown keyword returns error")
 }
