@@ -3,7 +3,6 @@ package driver
 import (
 	"fmt"
 	"keybite/config"
-	"keybite/util/log"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -89,11 +88,6 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 		lockDuration := ToMillisDuration(lockMs)
 
 		return NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, accessKeyToken, lockDuration)
-
-	case "memory":
-		log.Warn("using ephemeral memory driver intended only for testing")
-		driver := NewMemoryDriver()
-		return &driver, nil
 
 	default:
 		err := fmt.Errorf("there is no driver available with name %s", driverType)
