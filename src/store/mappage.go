@@ -70,7 +70,7 @@ func (m *MapPage) Upsert(key string, val string) string {
 }
 
 // Delete an existing value
-func (m MapPage) Delete(key string) error {
+func (m *MapPage) Delete(key string) error {
 	_, exists := m.vals[key]
 	if !exists {
 		return fmt.Errorf("cannot delete key '%s' from map page %s: key doesn't exist", key, m.name)
