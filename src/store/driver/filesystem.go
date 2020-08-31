@@ -181,7 +181,7 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 		fileNames = append(fileNames, fName)
 	}
 
-	return fileNames, nil
+	return sortFileNames(fileNames, d.pageExtension), nil
 }
 
 // CreateAutoIndex creates the folder for an auto index in the data dir

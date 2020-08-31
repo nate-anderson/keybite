@@ -6,6 +6,8 @@ import (
 	"keybite/util"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -161,7 +163,7 @@ func TestFSListPages(t *testing.T) {
 	err = fsd.CreateMapIndex(indexName)
 	util.Ok(t, err)
 
-	testFileNames := []string{"1", "2", "3"}
+	testFileNames := []string{"1", "2", "3", "6", "5", "4", "10", "500"}
 	for _, fileName := range testFileNames {
 		testDataPath := path.Join(dirName, indexName, (fileName + ".kb"))
 		_, err = os.Create(testDataPath)
@@ -170,11 +172,18 @@ func TestFSListPages(t *testing.T) {
 
 	pages, err := fsd.ListPages(indexName)
 	util.Ok(t, err)
-	util.Equals(t, 3, len(pages))
+	util.Equals(t, len(testFileNames), len(pages))
 
+	lastPageID := uint64(0)
 	for i, pageName := range pages {
 		util.Equals(t, pageName, pages[i])
+		stripped := strings.TrimSuffix(pageName, ".kb")
+		pageID, err := strconv.ParseUint(stripped, 10, 64)
+		util.Ok(t, err)
+		util.Assert(t, pageID > lastPageID, "file list should be sorted")
+		lastPageID = pageID
 	}
+
 }
 
 func TestFSLockUnlockIndex(t *testing.T) {

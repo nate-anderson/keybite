@@ -456,7 +456,6 @@ func (m MapIndex) List(limit, offset int) (ListResult, error) {
 	if err != nil {
 		return ListResult{}, err
 	}
-
 	// keep track of the number of records read for limit
 	recordsRead := 0
 
