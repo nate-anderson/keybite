@@ -48,6 +48,12 @@ func createTestIndexes(t *testing.T, conf config.Config) (autoIndexName, mapInde
 func dropTestIndexes(t *testing.T, conf config.Config) {
 	dataPath, err := conf.GetString("DATA_DIR")
 	util.Ok(t, err)
+
+	autoIndexName, mapIndexName := "test_auto_index", "test_map_index"
+	_, err = Execute(fmt.Sprintf("drop_auto_index %s", autoIndexName), conf)
+	util.Ok(t, err)
+	_, err = Execute(fmt.Sprintf("drop_map_index %s", mapIndexName), conf)
+	util.Ok(t, err)
 	err = os.RemoveAll(dataPath)
 	util.Ok(t, err)
 }
@@ -489,12 +495,210 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 
 	// @TODO #39 delete multiple-selector should return an error on partial or whole failure
 	// util.Assert(t, err != nil, "querying deleted ids should return error")
+}
 
+func TestExecuteAutoList(t *testing.T) {
+	autoIndex, _ := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	testValueFmt := "test_value_%d"
+
+	for i := 0; i < nBatch; i++ {
+		value := fmt.Sprintf(testValueFmt, i)
+		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
+		res, err := Execute(insertStmt, testConf)
+		util.Ok(t, err)
+		_, err = strconv.ParseUint(res.String(), 10, 64)
+		util.Ok(t, err)
+	}
+
+	listStr := fmt.Sprintf("list %s", autoIndex)
+	listRes, err := Execute(listStr, testConf)
+	util.Ok(t, err)
+
+	listResArr := parseListResult(listRes)
+	util.Equals(t, nBatch, len(listResArr))
+
+	// test limit
+	limit := 10
+	listLimitStr := fmt.Sprintf("list %s %d", autoIndex, limit)
+	listLimitRes, err := Execute(listLimitStr, testConf)
+	util.Ok(t, err)
+
+	listLimitResArr := parseListResult(listLimitRes)
+	util.Equals(t, limit, len(listLimitResArr))
+
+	// test offset
+	offset := 10
+	listOffsetStr := fmt.Sprintf("list %s 0 %d", autoIndex, offset)
+	listOffsetRes, err := Execute(listOffsetStr, testConf)
+	util.Ok(t, err)
+
+	listOffsetResArr := parseListResult(listOffsetRes)
+
+	for _, item := range listOffsetResArr {
+		util.Assert(t, item.Key > uint64(offset), fmt.Sprintf("fetched IDs should all be greater than offset: id %d > %d", item.Key, offset))
+	}
+
+	// test limit + offset
+	listLimitOffsetStr := fmt.Sprintf("list %s %d %d", autoIndex, limit, offset)
+	listLimitOffsetRes, err := Execute(listLimitOffsetStr, testConf)
+	util.Ok(t, err)
+
+	listLimitOffsetResArr := parseListResult(listLimitOffsetRes)
+
+	util.Equals(t, limit, len(listLimitOffsetResArr))
+
+	for _, item := range listLimitOffsetResArr {
+		util.Assert(t, item.Key > uint64(offset), fmt.Sprintf("fetched IDs should all be greater than offset: id %d > %d", item.Key, offset))
+	}
+}
+
+func TestExecuteMapList(t *testing.T) {
+	_, mapIndex := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	testValueFmt := "test_value_%d"
+	testKeyFmt := "tk%d"
+
+	for i := 0; i < nBatch; i++ {
+		key := fmt.Sprintf(testKeyFmt, i)
+		value := fmt.Sprintf(testValueFmt, i)
+		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
+		_, err := Execute(insertStmt, testConf)
+		util.Ok(t, err)
+	}
+
+	listStr := fmt.Sprintf("list_key %s", mapIndex)
+	listRes, err := Execute(listStr, testConf)
+	util.Ok(t, err)
+
+	listResArr := parseMapListResult(listRes)
+	util.Equals(t, nBatch, len(listResArr))
+
+	// test limit
+	limit := 10
+
+	listLimitStr := fmt.Sprintf("list_key %s %d", mapIndex, limit)
+	listLimitRes, err := Execute(listLimitStr, testConf)
+	util.Ok(t, err)
+
+	listLimitResArr := parseMapListResult(listLimitRes)
+	util.Equals(t, limit, len(listLimitResArr))
+
+	// test offset
+	offset := 10
+	listOffsetStr := fmt.Sprintf("list_key %s %d %d", mapIndex, limit, offset)
+	listOffsetRes, err := Execute(listOffsetStr, testConf)
+	util.Ok(t, err)
+
+	listOffsetResArr := parseMapListResult(listOffsetRes)
+
+	for _, item := range listOffsetResArr {
+		minKey := fmt.Sprintf("test_key_%d", offset)
+		util.Assert(t, item.Key > minKey, fmt.Sprintf("fetched IDs should all be greater than offset: id %s > %d", item.Key, offset))
+	}
+
+	// test limit + offset
+	listLimitOffsetStr := fmt.Sprintf("list_key %s %d %d", mapIndex, limit, offset)
+	listLimitOffsetRes, err := Execute(listLimitOffsetStr, testConf)
+	util.Ok(t, err)
+
+	listLimitOffsetResArr := parseMapListResult(listLimitOffsetRes)
+	util.Equals(t, limit, len(listLimitOffsetResArr))
+
+	minKey := fmt.Sprintf(testKeyFmt, offset)
+
+	for _, item := range listLimitOffsetResArr {
+		util.Assert(t, item.Key > minKey, fmt.Sprintf("fetched IDs should all be greater than offset: id %s > %d", item.Key, offset))
+	}
+}
+
+func TestExecuteAutoCount(t *testing.T) {
+	autoIndex, _ := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	testValueFmt := "test_value_%d"
+
+	for i := 0; i < nBatch; i++ {
+		value := fmt.Sprintf(testValueFmt, i)
+		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
+		res, err := Execute(insertStmt, testConf)
+		util.Ok(t, err)
+		_, err = strconv.ParseUint(res.String(), 10, 64)
+		util.Ok(t, err)
+	}
+
+	countStr := fmt.Sprintf("count %s", autoIndex)
+	countRes, err := Execute(countStr, testConf)
+	util.Ok(t, err)
+
+	count, err := strconv.Atoi(countRes.String())
+	util.Equals(t, nBatch, count)
+}
+
+func TestExecuteMapCount(t *testing.T) {
+	_, mapIndex := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	testValueFmt := "test_value_%d"
+	testKeyFmt := "test_key_%d"
+
+	for i := 0; i < nBatch; i++ {
+		key := fmt.Sprintf(testKeyFmt, i)
+		value := fmt.Sprintf(testValueFmt, i)
+		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
+		_, err := Execute(insertStmt, testConf)
+		util.Ok(t, err)
+	}
+
+	countStr := fmt.Sprintf("count_key %s", mapIndex)
+	countRes, err := Execute(countStr, testConf)
+	util.Ok(t, err)
+
+	count, err := strconv.Atoi(countRes.String())
+	util.Equals(t, nBatch, count)
 }
 
 // this function uses panic because err should never be non-nil
 func parseArrayResult(result store.Result) []string {
 	arr := []string{}
+	jsonBytes, err := result.MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(jsonBytes, &arr)
+	if err != nil {
+		panic(err)
+	}
+	return arr
+}
+
+type keyValue struct {
+	Key   uint64 `json:"key"`
+	Value string `json:"value"`
+}
+
+type mapKeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func parseListResult(result store.Result) []keyValue {
+	arr := []keyValue{}
+	jsonBytes, err := result.MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(jsonBytes, &arr)
+	if err != nil {
+		panic(err)
+	}
+	return arr
+}
+
+func parseMapListResult(result store.Result) []mapKeyValue {
+	arr := []mapKeyValue{}
 	jsonBytes, err := result.MarshalJSON()
 	if err != nil {
 		panic(err)

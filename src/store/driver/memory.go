@@ -127,13 +127,13 @@ func (d *MemoryDriver) WriteMapPage(vals map[string]string, orderedKeys []string
 func (d MemoryDriver) ListPages(indexName string) ([]string, error) {
 	for name, index := range d.autoIndexes {
 		if name == indexName {
-			return index.orderedPageNames, nil
+			return sortFileNames(index.orderedPageNames, ""), nil
 		}
 	}
 
 	for name, index := range d.mapIndexes {
 		if name == indexName {
-			return index.orderedPageNames, nil
+			return sortFileNames(index.orderedPageNames, ""), nil
 		}
 	}
 
