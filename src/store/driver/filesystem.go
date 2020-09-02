@@ -106,6 +106,12 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64
 	}
 	defer file.Close()
 
+	// truncate file before writing
+	err = file.Truncate(0)
+	if err != nil {
+		return ErrWriteFile(filename, indexName, err)
+	}
+
 	for _, key := range orderedKeys {
 		line := fmt.Sprintf("%d:%s\n", key, vals[key])
 		_, err = file.Write([]byte(line))
@@ -136,6 +142,12 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []str
 		}
 	}
 	defer file.Close()
+
+	// truncate file before writing
+	err = file.Truncate(0)
+	if err != nil {
+		return ErrWriteFile(fileName, indexName, err)
+	}
 
 	for _, key := range orderedKeys {
 		line := fmt.Sprintf("%s:%s\n", key, vals[key])
@@ -169,7 +181,7 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 		fileNames = append(fileNames, fName)
 	}
 
-	return fileNames, nil
+	return sortFileNames(fileNames, d.pageExtension), nil
 }
 
 // CreateAutoIndex creates the folder for an auto index in the data dir

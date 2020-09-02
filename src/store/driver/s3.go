@@ -210,7 +210,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 		pages = append(pages, itemName)
 	}
 
-	return pages, nil
+	return sortFileNames(pages, d.pageExtension), nil
 }
 
 // create a temporary file

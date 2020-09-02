@@ -257,9 +257,36 @@ func TestParseDropMapIndex(t *testing.T) {
 
 // Test errors
 
-func TestParseError(t *testing.T) {
+func TestParseKeywordError(t *testing.T) {
 	errText := "expectError my_index"
 	errParser := newParser(errText)
 	_, err := errParser.Parse()
 	util.Assert(t, err != nil, "unknown keyword returns error")
+}
+
+func TestParseListInvalidLimit(t *testing.T) {
+	listText := "list my_index h"
+	listParser := newParser(listText)
+	_, err := listParser.Parse()
+	util.Assert(t, err != nil, "invalid limit returns error")
+}
+
+func TestParseListInvalidOffset(t *testing.T) {
+	listText := "list my_index 10 h"
+	listParser := newParser(listText)
+	_, err := listParser.Parse()
+	util.Assert(t, err != nil, "invalid limit returns error")
+}
+
+func TestInvalidAutoSelector(t *testing.T) {
+	invalidAutoSelectors := []string{
+		"update my_index h new_value",
+		"query my_index h",
+	}
+
+	for _, query := range invalidAutoSelectors {
+		parser := newParser(query)
+		_, err := parser.Parse()
+		util.Assert(t, err != nil, "invalid auto selector returns error")
+	}
 }

@@ -4,6 +4,8 @@ import (
 	"keybite/config"
 	"keybite/store/driver"
 	"keybite/util"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,6 +80,8 @@ func TestBucketCreateAutoIndex(t *testing.T) {
 	indexName := "test_index"
 	err = bd.CreateAutoIndex(indexName)
 	util.Ok(t, err)
+
+	defer bd.DropAutoIndex(indexName)
 
 	// check that file/folder was created in bucket
 	_, client, err := getAWSSessionAndS3Client(accessKeyID, accessKeySecret)
@@ -212,6 +216,8 @@ func TestBucketDriverListPages(t *testing.T) {
 	err = bd.CreateMapIndex(indexName)
 	util.Ok(t, err)
 
+	defer bd.DropAutoIndex(indexName)
+
 	testVals := map[string]string{
 		"1": "hello",
 		"2": "world",
@@ -219,14 +225,26 @@ func TestBucketDriverListPages(t *testing.T) {
 
 	testKeys := []string{"1", "2"}
 
-	fileName := "1"
-	err = bd.WriteMapPage(testVals, testKeys, fileName, indexName)
-	util.Ok(t, err)
+	testFileNames := []string{"1", "2", "3", "6", "5", "4", "10", "500"}
+	for _, fileName := range testFileNames {
+		err = bd.WriteMapPage(testVals, testKeys, fileName, indexName)
+		util.Ok(t, err)
+	}
 
 	pages, err := bd.ListPages(indexName)
-	util.Ok(t, err)
 
-	util.Assert(t, util.StrSliceContains(fileName+pageExtension, pages), "page file not present in listPages results")
+	util.Ok(t, err)
+	util.Equals(t, len(testFileNames), len(pages))
+
+	lastPageID := uint64(0)
+	for i, pageName := range pages {
+		util.Equals(t, pageName, pages[i])
+		stripped := strings.TrimSuffix(pageName, ".kb")
+		pageID, err := strconv.ParseUint(stripped, 10, 64)
+		util.Ok(t, err)
+		util.Assert(t, pageID > lastPageID, "file list should be sorted")
+		lastPageID = pageID
+	}
 }
 
 func TestBucketDriverLockUnlockIndex(t *testing.T) {
@@ -241,6 +259,8 @@ func TestBucketDriverLockUnlockIndex(t *testing.T) {
 	indexName := "test_index_3"
 	err = bd.CreateMapIndex(indexName)
 	util.Ok(t, err)
+
+	defer bd.DropAutoIndex(indexName)
 
 	now := time.Now()
 
@@ -291,6 +311,8 @@ func TestBucketDriverDropAutoIndex(t *testing.T) {
 	err = bd.CreateAutoIndex(indexName)
 	util.Ok(t, err)
 
+	defer bd.DropAutoIndex(indexName)
+
 	testVals := map[uint64]string{
 		1: "hello",
 		2: "world",
@@ -322,6 +344,8 @@ func TestBucketDriverDropMapIndex(t *testing.T) {
 	indexName := "test_map_index"
 	err = bd.CreateMapIndex(indexName)
 	util.Ok(t, err)
+
+	defer bd.DropAutoIndex(indexName)
 
 	testVals := map[string]string{
 		"1": "hello",

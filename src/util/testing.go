@@ -33,7 +33,7 @@ func Ok(tb testing.TB, err error) {
 func Equals(tb testing.TB, exp, act interface{}) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\n\n", filepath.Base(file), line, exp, act)
+		fmt.Printf("%s:%d:\n\n\texp: %#v (%T)\n\n\tgot: %#v (%T)\n\n", filepath.Base(file), line, exp, exp, act, act)
 		tb.Fail()
 	}
 }
@@ -42,6 +42,16 @@ func Equals(tb testing.TB, exp, act interface{}) {
 func StrSliceContains(str string, sl []string) bool {
 	for _, el := range sl {
 		if el == str {
+			return true
+		}
+	}
+	return false
+}
+
+// Uint64SliceContains uint64 slice contains
+func Uint64SliceContains(i uint64, sl []uint64) bool {
+	for _, el := range sl {
+		if el == i {
 			return true
 		}
 	}
