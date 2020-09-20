@@ -15,6 +15,12 @@ type Result interface {
 // SingleResult contains a scalar query result
 type SingleResult string
 
+// NewIDSingleResult converts a uint64 ID into a SingleResult
+func NewIDSingleResult(id uint64) SingleResult {
+	idStr := strconv.FormatUint(id, 10)
+	return SingleResult(idStr)
+}
+
 // MarshalJSON returns a JSON byte array representation of the result
 func (r SingleResult) MarshalJSON() ([]byte, error) {
 	if r == "" {
@@ -73,7 +79,7 @@ func (r CollectionResult) Valid() bool {
 }
 
 // EmptyResult returns a null result
-func EmptyResult() Result {
+func EmptyResult() SingleResult {
 	return SingleResult("")
 }
 
