@@ -300,9 +300,6 @@ func TestMapIndexDeleteOne(t *testing.T) {
 	selector = store.NewMapSingleSelector(testKey)
 	_, err = index.Delete(&selector)
 	util.Ok(t, err)
-
-	queryRes, err = index.Query(&selector)
-	util.Assert(t, err != nil, "err should be non-nil querying deleted key")
 }
 
 func TestMapIndexDeleteMany(t *testing.T) {
@@ -350,7 +347,7 @@ func TestMapIndexDeleteMany(t *testing.T) {
 	err = json.Unmarshal(queryResJSON, &queryValues)
 	util.Ok(t, err)
 
-	util.Equals(t, 0, len(queryValues))
+	util.Equals(t, numInserts, len(queryValues))
 
 }
 

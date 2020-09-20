@@ -424,7 +424,9 @@ func TestExecuteAutoDeleteMany(t *testing.T) {
 
 	queryResArr := parseArrayResult(queryRes)
 
-	util.Equals(t, 0, len(queryResArr))
+	for _, res := range queryResArr {
+		util.Equals(t, "", res)
+	}
 
 	// @TODO #39 delete multiple-selector should return an error on partial or whole failure
 	// util.Assert(t, err != nil, "querying deleted ids should return error")
@@ -455,7 +457,6 @@ func TestExecuteMapDeleteOne(t *testing.T) {
 	queryResArr := parseArrayResult(queryRes)
 	util.Equals(t, 0, len(queryResArr))
 
-	util.Assert(t, err != nil, "querying deleted key returns error")
 }
 
 // insert and update many records in a map index
@@ -491,7 +492,10 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 	queryRes, err := Execute(queryStr, testConf)
 
 	queryResultArr := parseArrayResult(queryRes)
-	util.Equals(t, 0, len(queryResultArr))
+	util.Equals(t, nBatch, len(queryResultArr))
+	for _, res := range queryResultArr {
+		util.Equals(t, "", res)
+	}
 
 	// @TODO #39 delete multiple-selector should return an error on partial or whole failure
 	// util.Assert(t, err != nil, "querying deleted ids should return error")
