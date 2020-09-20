@@ -64,7 +64,7 @@ func TestMapIndexInsertQueryMany(t *testing.T) {
 	util.Ok(t, err)
 
 	results := make([]string, numInserts)
-	resultJSON, err := queryRes.MarshalJSON()
+	resultJSON, err := json.Marshal(queryRes)
 	util.Ok(t, err)
 
 	err = json.Unmarshal(resultJSON, &results)
@@ -95,7 +95,7 @@ func TestMapIndexInsertManyQueryMany(t *testing.T) {
 	util.Ok(t, err)
 
 	insertedKeys := make([]string, 0, numInserts)
-	insertedKeysJSON, err := insertRes.MarshalJSON()
+	insertedKeysJSON, err := json.Marshal(insertRes)
 	util.Ok(t, err)
 	err = json.Unmarshal(insertedKeysJSON, &insertedKeys)
 	util.Ok(t, err)
@@ -111,7 +111,7 @@ func TestMapIndexInsertManyQueryMany(t *testing.T) {
 	util.Ok(t, err)
 
 	results := make([]string, numInserts)
-	resultJSON, err := queryRes.MarshalJSON()
+	resultJSON, err := json.Marshal(queryRes)
 	util.Ok(t, err)
 
 	err = json.Unmarshal(resultJSON, &results)
@@ -172,7 +172,7 @@ func TestMapIndexUpdateMany(t *testing.T) {
 	util.Ok(t, err)
 
 	updatedKeys := make([]string, 0, numInserts)
-	updatedKeyJSON, err := updateRes.MarshalJSON()
+	updatedKeyJSON, err := json.Marshal(updateRes)
 	util.Ok(t, err)
 
 	err = json.Unmarshal(updatedKeyJSON, &updatedKeys)
@@ -186,7 +186,7 @@ func TestMapIndexUpdateMany(t *testing.T) {
 	util.Ok(t, err)
 
 	queryValues := make([]string, 0, numInserts)
-	queryResJSON, err := queryRes.MarshalJSON()
+	queryResJSON, err := json.Marshal(queryRes)
 	util.Ok(t, err)
 	err = json.Unmarshal(queryResJSON, &queryValues)
 	util.Ok(t, err)
@@ -251,7 +251,7 @@ func TestMapIndexUpsertMany(t *testing.T) {
 	util.Ok(t, err)
 
 	updatedKeys := make([]string, 0, numInserts)
-	updatedKeyJSON, err := updateRes.MarshalJSON()
+	updatedKeyJSON, err := json.Marshal(updateRes)
 	util.Ok(t, err)
 
 	err = json.Unmarshal(updatedKeyJSON, &updatedKeys)
@@ -265,7 +265,7 @@ func TestMapIndexUpsertMany(t *testing.T) {
 	util.Ok(t, err)
 
 	queryValues := make([]string, 0, numInserts)
-	queryResJSON, err := queryRes.MarshalJSON()
+	queryResJSON, err := json.Marshal(queryRes)
 	util.Ok(t, err)
 	err = json.Unmarshal(queryResJSON, &queryValues)
 	util.Ok(t, err)
@@ -331,7 +331,7 @@ func TestMapIndexDeleteMany(t *testing.T) {
 	util.Ok(t, err)
 
 	deletedKeys := make([]string, 0, numInserts)
-	deletedKeysJSON, err := deleteRes.MarshalJSON()
+	deletedKeysJSON, err := json.Marshal(deleteRes)
 	util.Ok(t, err)
 
 	err = json.Unmarshal(deletedKeysJSON, &deletedKeys)
@@ -345,7 +345,7 @@ func TestMapIndexDeleteMany(t *testing.T) {
 	util.Ok(t, err)
 
 	queryValues := make([]string, 0, numInserts)
-	queryResJSON, err := queryRes.MarshalJSON()
+	queryResJSON, err := json.Marshal(queryRes)
 	util.Ok(t, err)
 	err = json.Unmarshal(queryResJSON, &queryValues)
 	util.Ok(t, err)

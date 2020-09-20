@@ -76,7 +76,7 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 			}
 			resultStrs = append(resultStrs, resultStr)
 		}
-		return CollectionResult(resultStrs), nil
+		return NewCollectionResult(resultStrs), nil
 	}
 
 	// else return a single result
@@ -226,7 +226,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(insertedIDs), err
+		return NewCollectionResult(insertedIDs), err
 	}
 
 	id := s.Select()
@@ -303,7 +303,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			log.Infof("error in locked page write: %s", err.Error())
 			return EmptyResult(), err
 		}
-		return CollectionResult(deletedIDs), err
+		return NewCollectionResult(deletedIDs), err
 	}
 
 	id := s.Select()

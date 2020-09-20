@@ -8,7 +8,6 @@ import (
 
 // Result contains a single result or collection of results
 type Result interface {
-	MarshalJSON() ([]byte, error)
 	String() string
 	Valid() bool
 }
@@ -45,17 +44,24 @@ func (r SingleResult) Valid() bool {
 }
 
 // CollectionResult contains an array of results
-type CollectionResult []string
+type CollectionResult []SingleResult
 
-// MarshalJSON returns a JSON byte array representation of the result
-func (r CollectionResult) MarshalJSON() ([]byte, error) {
-	strs := []string(r)
-	return json.Marshal(strs)
+// NewCollectionResult creates a collection result from a string slice
+func NewCollectionResult(strs []string) CollectionResult {
+	collection := make(CollectionResult, len(strs))
+	for i, str := range strs {
+		collection[i] = SingleResult(str)
+	}
+	return collection
 }
 
 // String returns a string encoding of the result
 func (r CollectionResult) String() string {
-	return fmt.Sprint([]string(r))
+	out := make([]string, len(r))
+	for i, res := range r {
+		out[i] = string(res)
+	}
+	return fmt.Sprint(out)
 }
 
 // Valid indicates whether the result was resolved successfully

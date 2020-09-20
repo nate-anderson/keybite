@@ -98,7 +98,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 			}
 			resultStrs = append(resultStrs, resultStr)
 		}
-		return CollectionResult(resultStrs), nil
+		return NewCollectionResult(resultStrs), nil
 	}
 
 	// else return a single result
@@ -177,7 +177,7 @@ func (m MapIndex) Insert(s MapSelector, value string) (Result, error) {
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(insertedKeys), err
+		return NewCollectionResult(insertedKeys), err
 	}
 
 	key := s.Select()
@@ -261,7 +261,7 @@ func (m MapIndex) Update(s MapSelector, newValue string) (Result, error) {
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(updatedKeys), err
+		return NewCollectionResult(updatedKeys), err
 	}
 
 	key := s.Select()
@@ -339,7 +339,7 @@ func (m MapIndex) Upsert(s MapSelector, newValue string) (Result, error) {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
 
-		return CollectionResult(upsertedKeys), err
+		return NewCollectionResult(upsertedKeys), err
 	}
 
 	key := s.Select()
@@ -421,7 +421,7 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 			log.Infof("error in locked page write: %s", err.Error())
 			return EmptyResult(), err
 		}
-		return CollectionResult(deletedKeys), err
+		return NewCollectionResult(deletedKeys), err
 	}
 
 	key := s.Select()
