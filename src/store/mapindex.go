@@ -63,10 +63,10 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 }
 
 // Query the MapIndex for the specified key
-func (m MapIndex) Query(s MapSelector) (result Result, err error) {
+func (m MapIndex) Query(s MapSelector) (Result, error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
-		resultStrs := make([]string, 0, s.Length())
+		results := make(CollectionResult, 0, s.Length())
 		var lastPageID uint64
 		var page MapPage
 		var loaded bool
@@ -75,6 +75,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 			hashAddr, err := HashStringToKey(key)
 			if err != nil {
 				log.Infof("error hashing string key %s :: %s", key, err.Error())
+				results = append(results, EmptyResult())
 				continue
 			}
 
@@ -85,6 +86,7 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 				page, err = m.readPage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					results = append(results, EmptyResult())
 					continue
 				}
 				loaded = true
@@ -94,11 +96,12 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 			resultStr, err := page.Query(key)
 			if err != nil {
 				log.Infof("error querying page %d for key %s :: %s", pageID, key, err.Error())
+				results = append(results, EmptyResult())
 				continue
 			}
-			resultStrs = append(resultStrs, resultStr)
+			results = append(results, SingleResult(resultStr))
 		}
-		return NewCollectionResult(resultStrs), nil
+		return results, nil
 	}
 
 	// else return a single result
@@ -111,11 +114,11 @@ func (m MapIndex) Query(s MapSelector) (result Result, err error) {
 	pageID := hashAddr / uint64(m.pageSize)
 	page, err := m.readPage(pageID)
 	if err != nil {
-		return
+		return EmptyResult(), err
 	}
+
 	resultStr, err := page.Query(key)
-	result = SingleResult(resultStr)
-	return
+	return SingleResult(resultStr), nil
 }
 
 // Insert value at key
