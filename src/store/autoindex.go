@@ -49,7 +49,7 @@ func (i AutoIndex) writePage(p Page) error {
 func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 	// if there are multiple query selections, return a collection result
 	if s.Length() > 1 {
-		resultStrs := make([]string, 0, s.Length())
+		results := make(CollectionResult, 0, s.Length())
 		var lastPageID uint64
 		var page Page
 		var loaded bool
@@ -63,6 +63,7 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 				page, err = i.readPage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					results = append(results, EmptyResult())
 					continue
 				}
 				loaded = true
@@ -72,11 +73,12 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 			resultStr, err := page.Query(id)
 			if err != nil {
 				log.Infof("error querying page %d for id %d :: %s", pageID, id, err.Error())
+				results = append(results, EmptyResult())
 				continue
 			}
-			resultStrs = append(resultStrs, resultStr)
+			results = append(results, SingleResult(resultStr))
 		}
-		return CollectionResult(resultStrs), nil
+		return results, nil
 	}
 
 	// else return a single result
@@ -178,7 +180,7 @@ func (i AutoIndex) Insert(val string) (result Result, err error) {
 func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	// if there are multiple query selections, update all
 	if s.Length() > 1 {
-		insertedIDs := make([]string, 0, s.Length())
+		insertedIDs := make(CollectionResult, 0, s.Length())
 		var lastPageID uint64
 		var page Page
 		var loaded bool
@@ -192,6 +194,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 				page, err = i.readPage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					insertedIDs = append(insertedIDs, EmptyResult())
 					continue
 				}
 				loaded = true
@@ -201,12 +204,14 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 				err := i.writePage(page)
 				if err != nil {
 					log.Infof("error in locked page write: %s", err.Error())
+					insertedIDs = append(insertedIDs, EmptyResult())
 					continue
 				}
 				// then load the next page
 				page, err = i.readPage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					insertedIDs = append(insertedIDs, EmptyResult())
 					continue
 				}
 				lastPageID = pageID
@@ -216,17 +221,18 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 			err = page.Overwrite(id, newVal)
 			if err != nil {
 				log.Infof("error overwriting ID %d in page %d :: %s", id, pageID, err.Error())
+				insertedIDs = append(insertedIDs, EmptyResult())
 				continue
 			}
 
-			insertedIDs = append(insertedIDs, strconv.FormatUint(id, 10))
+			insertedIDs = append(insertedIDs, NewIDSingleResult(id))
 		}
 		// write the updated map to file, conscious of other requests
 		err = i.writePage(page)
 		if err != nil {
 			log.Infof("error in locked page write: %s", err.Error())
 		}
-		return CollectionResult(insertedIDs), err
+		return insertedIDs, err
 	}
 
 	id := s.Select()
@@ -254,7 +260,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 // Delete a value stored in the autoindex
 func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 	if s.Length() > 1 {
-		deletedIDs := make([]string, 0, s.Length())
+		deletedIDs := make(CollectionResult, 0, s.Length())
 		var lastPageID uint64
 		var page Page
 		var loaded bool
@@ -267,6 +273,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 				page, err = i.readPage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					deletedIDs = append(deletedIDs, EmptyResult())
 					continue
 				}
 				loaded = true
@@ -276,12 +283,14 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 				err := i.writePage(page)
 				if err != nil {
 					log.Infof("error in locked page write: %s", err.Error())
+					deletedIDs = append(deletedIDs, EmptyResult())
 					continue
 				}
 				// then load the correct page
 				page, err = i.readPage(pageID)
 				if err != nil {
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					deletedIDs = append(deletedIDs, EmptyResult())
 					continue
 				}
 				lastPageID = pageID
@@ -291,10 +300,11 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			err := page.Delete(id)
 			if err != nil {
 				log.Infof("error deleting ID %d in page %d :: %s", id, pageID, err.Error())
+				deletedIDs = append(deletedIDs, EmptyResult())
 				continue
 			}
 
-			deletedIDs = append(deletedIDs, strconv.FormatUint(id, 10))
+			deletedIDs = append(deletedIDs, NewIDSingleResult(id))
 		}
 
 		// write the updated map to file
@@ -303,7 +313,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			log.Infof("error in locked page write: %s", err.Error())
 			return EmptyResult(), err
 		}
-		return CollectionResult(deletedIDs), err
+		return deletedIDs, err
 	}
 
 	id := s.Select()

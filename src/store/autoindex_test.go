@@ -83,7 +83,7 @@ func TestAutoInsertQueryMany(t *testing.T) {
 	util.Ok(t, err)
 
 	queryResults := make([]string, 0, numRecords)
-	queryResJSON, err := queryRes.MarshalJSON()
+	queryResJSON, err := json.Marshal(queryRes)
 	util.Ok(t, err)
 	err = json.Unmarshal(queryResJSON, &queryResults)
 	util.Ok(t, err)
@@ -203,7 +203,7 @@ func TestAutoIndexUpdateMany(t *testing.T) {
 	util.Ok(t, err)
 
 	expected := util.RepeatString(testVal, numInserts)
-	expectedResult := store.CollectionResult(expected)
+	expectedResult := store.NewCollectionResult(expected)
 
 	util.Equals(t, firstResult.String(), expectedResult.String())
 
@@ -218,7 +218,7 @@ func TestAutoIndexUpdateMany(t *testing.T) {
 	util.Ok(t, err)
 
 	expected = util.RepeatString(newVal, numInserts)
-	expectedResult = store.CollectionResult(expected)
+	expectedResult = store.NewCollectionResult(expected)
 
 	util.Equals(t, updatedQueried.String(), expectedResult.String())
 

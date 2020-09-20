@@ -212,7 +212,7 @@ func TestExecuteAutoUpdateMany(t *testing.T) {
 	updateRes, err := Execute(updateStr, testConf)
 	util.Ok(t, err)
 
-	updateResultArr := parseArrayResult(updateRes)
+	updateResultArr := parseIDArrayResult(updateRes)
 
 	util.Equals(t, nBatch, len(updateResultArr))
 
@@ -415,7 +415,7 @@ func TestExecuteAutoDeleteMany(t *testing.T) {
 	deleteRes, err := Execute(deleteStr, testConf)
 	util.Ok(t, err)
 
-	deleteResultArr := parseArrayResult(deleteRes)
+	deleteResultArr := parseIDArrayResult(deleteRes)
 
 	util.Equals(t, nBatch, len(deleteResultArr))
 
@@ -424,7 +424,9 @@ func TestExecuteAutoDeleteMany(t *testing.T) {
 
 	queryResArr := parseArrayResult(queryRes)
 
-	util.Equals(t, 0, len(queryResArr))
+	for _, res := range queryResArr {
+		util.Equals(t, "", res)
+	}
 
 	// @TODO #39 delete multiple-selector should return an error on partial or whole failure
 	// util.Assert(t, err != nil, "querying deleted ids should return error")
@@ -455,7 +457,6 @@ func TestExecuteMapDeleteOne(t *testing.T) {
 	queryResArr := parseArrayResult(queryRes)
 	util.Equals(t, 0, len(queryResArr))
 
-	util.Assert(t, err != nil, "querying deleted key returns error")
 }
 
 // insert and update many records in a map index
@@ -491,7 +492,10 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 	queryRes, err := Execute(queryStr, testConf)
 
 	queryResultArr := parseArrayResult(queryRes)
-	util.Equals(t, 0, len(queryResultArr))
+	util.Equals(t, nBatch, len(queryResultArr))
+	for _, res := range queryResultArr {
+		util.Equals(t, "", res)
+	}
 
 	// @TODO #39 delete multiple-selector should return an error on partial or whole failure
 	// util.Assert(t, err != nil, "querying deleted ids should return error")
@@ -663,7 +667,23 @@ func TestExecuteMapCount(t *testing.T) {
 // this function uses panic because err should never be non-nil
 func parseArrayResult(result store.Result) []string {
 	arr := []string{}
-	jsonBytes, err := result.MarshalJSON()
+	// json as intermediate structure
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(jsonBytes, &arr)
+	if err != nil {
+		panic(err)
+	}
+	return arr
+}
+
+// this function uses panic because err should never be non-nil
+func parseIDArrayResult(result store.Result) []uint64 {
+	arr := []uint64{}
+	// json as intermediate structure
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
 		panic(err)
 	}
@@ -686,7 +706,7 @@ type mapKeyValue struct {
 
 func parseListResult(result store.Result) []keyValue {
 	arr := []keyValue{}
-	jsonBytes, err := result.MarshalJSON()
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
 		panic(err)
 	}
@@ -699,7 +719,7 @@ func parseListResult(result store.Result) []keyValue {
 
 func parseMapListResult(result store.Result) []mapKeyValue {
 	arr := []mapKeyValue{}
-	jsonBytes, err := result.MarshalJSON()
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
 		panic(err)
 	}
