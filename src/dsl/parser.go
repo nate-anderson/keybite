@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"keybite/store"
 	"keybite/util/log"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -82,11 +83,14 @@ type parser struct {
 	nextStep step
 }
 
+// the regular expression used to naively split DSL into tokens
+var tokenizeExp = regexp.MustCompile(" ")
+
 // newParser constructs a parser
 func newParser(dsl string) parser {
 	return parser{
 		raw:      dsl,
-		tokens:   strings.Fields(dsl),
+		tokens:   tokenizeExp.Split(dsl, -1),
 		nextStep: stepInitial,
 	}
 }
