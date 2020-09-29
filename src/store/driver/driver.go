@@ -62,6 +62,36 @@ func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
 
 		return NewFilesystemDriver(dataDir, pageExtension, lockDuration)
 
+	case "filesystem_json":
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return nil, err
+		}
+
+		lockMs, err := conf.GetInt64("LOCK_DURATION_FS")
+		if err != nil {
+			return nil, err
+		}
+
+		lockDuration := ToMillisDuration(lockMs)
+
+		return NewJSONDriver(dataDir, pageExtension, lockDuration)
+
+	case "filesystem_gob":
+		dataDir, err := conf.GetString("DATA_DIR")
+		if err != nil {
+			return nil, err
+		}
+
+		lockMs, err := conf.GetInt64("LOCK_DURATION_FS")
+		if err != nil {
+			return nil, err
+		}
+
+		lockDuration := ToMillisDuration(lockMs)
+
+		return NewGobDriver(dataDir, pageExtension, lockDuration)
+
 	case "s3":
 		bucketName, err := conf.GetString("BUCKET_NAME")
 		if err != nil {

@@ -2,13 +2,15 @@ package util
 
 import (
 	"fmt"
+	"math/rand"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
-// borrowed from
+// testing functions borrowed from
 // https://github.com/benbjohnson/testing
 
 // Assert fails the test if the condition is false.
@@ -65,3 +67,19 @@ func RepeatString(str string, n int) (result []string) {
 	}
 	return
 }
+
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
+
+// RandStringFrom generates a string of length n from charset
+// borrowed from https://www.calhoun.io/creating-random-strings-in-go/
+func RandStringFrom(n int, charset string) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+// CharsetAlphaNum is a character set for generating alphanumeric random strings
+const CharsetAlphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890 "
