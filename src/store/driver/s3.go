@@ -1,7 +1,7 @@
 package driver
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"keybite/util/log"
@@ -92,16 +92,14 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	vals := make(map[uint64]string, pageSize)
 	orderedKeys := make([]uint64, 0, pageSize)
 
-	scanner := bufio.NewScanner(tempFile)
-	i := 0
-	for scanner.Scan() {
-		key, value, err := StringToKeyValue(scanner.Text())
-		if err != nil {
-			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
-		}
-		vals[key] = value
-		orderedKeys = append(orderedKeys, key)
-		i++
+	jsonPage := jsonAutoPage{
+		&vals,
+		&orderedKeys,
+	}
+	decoder := json.NewDecoder(tempFile)
+	err = decoder.Decode(&jsonPage)
+	if err != nil {
+		return vals, orderedKeys, ErrBadData(fileName, indexName, err)
 	}
 
 	return vals, orderedKeys, nil
@@ -132,16 +130,14 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 		return vals, orderedKeys, ErrWriteFile(fileName, indexName, err)
 	}
 
-	scanner := bufio.NewScanner(tempFile)
-	i := 0
-	for scanner.Scan() {
-		key, value, err := StringToMapKeyValue(scanner.Text())
-		if err != nil {
-			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
-		}
-		vals[key] = value
-		orderedKeys = append(orderedKeys, key)
-		i++
+	jsonPage := jsonMapPage{
+		&vals,
+		&orderedKeys,
+	}
+	decoder := json.NewDecoder(tempFile)
+	err = decoder.Decode(&jsonPage)
+	if err != nil {
+		return vals, orderedKeys, ErrBadData(fileName, indexName, err)
 	}
 
 	return vals, orderedKeys, nil
@@ -151,12 +147,16 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewPageReader(vals, orderedKeys)
+	pageReader, err := NewPageReader(vals, orderedKeys)
+	if err != nil {
+		return err
+	}
+
 	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload temporary file to S3
-	_, err := d.s3Uploader.Upload(&s3manager.UploadInput{
+	_, err = d.s3Uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(d.bucketName),
 		Key:    aws.String(filePath),
 		Body:   pageReader,
@@ -169,12 +169,16 @@ func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fi
 func (d BucketDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewMapPageReader(vals, orderedKeys)
+	pageReader, err := NewMapPageReader(vals, orderedKeys)
+	if err != nil {
+		return err
+	}
+
 	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload to S3
-	_, err := d.s3Uploader.Upload(&s3manager.UploadInput{
+	_, err = d.s3Uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(d.bucketName),
 		Key:    aws.String(filePath),
 		Body:   pageReader,

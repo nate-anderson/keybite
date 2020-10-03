@@ -1,7 +1,7 @@
 package driver
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"keybite/util/log"
@@ -47,16 +47,14 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 	}
 	defer pageFile.Close()
 
-	scanner := bufio.NewScanner(pageFile)
-	i := 0
-	for scanner.Scan() {
-		key, value, err := StringToKeyValue(scanner.Text())
-		if err != nil {
-			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
-		}
-		vals[key] = value
-		orderedKeys = append(orderedKeys, key)
-		i++
+	jsonPage := jsonAutoPage{
+		&vals,
+		&orderedKeys,
+	}
+	decoder := json.NewDecoder(pageFile)
+	err = decoder.Decode(&jsonPage)
+	if err != nil {
+		return vals, orderedKeys, ErrBadData(fileName, indexName, err)
 	}
 
 	return vals, orderedKeys, nil
@@ -77,14 +75,14 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 	}
 	defer pageFile.Close()
 
-	scanner := bufio.NewScanner(pageFile)
-	for scanner.Scan() {
-		key, value, err := StringToMapKeyValue(scanner.Text())
-		if err != nil {
-			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
-		}
-		vals[key] = value
-		orderedKeys = append(orderedKeys, key)
+	jsonPage := jsonMapPage{
+		&vals,
+		&orderedKeys,
+	}
+	decoder := json.NewDecoder(pageFile)
+	err = decoder.Decode(&jsonPage)
+	if err != nil {
+		return vals, orderedKeys, ErrBadData(fileName, indexName, err)
 	}
 
 	return vals, orderedKeys, nil
@@ -112,12 +110,14 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64
 		return ErrWriteFile(filename, indexName, err)
 	}
 
-	for _, key := range orderedKeys {
-		line := fmt.Sprintf("%d:%s\n", key, vals[key])
-		_, err = file.Write([]byte(line))
-		if err != nil {
-			return err
-		}
+	jsonPage := jsonAutoPage{
+		&vals,
+		&orderedKeys,
+	}
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(jsonPage)
+	if err != nil {
+		return ErrWriteFile(filename, indexName, err)
 	}
 
 	return nil
@@ -149,12 +149,14 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []str
 		return ErrWriteFile(fileName, indexName, err)
 	}
 
-	for _, key := range orderedKeys {
-		line := fmt.Sprintf("%s:%s\n", key, vals[key])
-		_, err = file.Write([]byte(line))
-		if err != nil {
-			return fmt.Errorf("writing line to map index file '%s' in index '%s' failed: %w", fileName, indexName, err)
-		}
+	jsonPage := jsonMapPage{
+		&vals,
+		&orderedKeys,
+	}
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(jsonPage)
+	if err != nil {
+		return ErrWriteFile(fileName, indexName, err)
 	}
 
 	return nil

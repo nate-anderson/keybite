@@ -8,6 +8,7 @@ const errNotExistMsg = "File or directory '%s' (index '%s') does not exist: %w"
 const errReadFileMsg = "File or directory '%s' (index '%s') could not be read: %w"
 const errWriteFileMsg = "File or directory '%s' (index '%s') could not be written: %w"
 const errNoDataDirMsg = "Data directory at '%s' was inaccessible or could not be found: %w"
+const errBadDataMsg = "Contents of file '%s' (index '%s') could not be parsed: %w"
 
 // FileError should be used across drivers to indicate a file could not be found
 type FileError struct {
@@ -71,5 +72,15 @@ func ErrDataDirNotExist(dataDir string, original error) error {
 		msgFmt:   errNoDataDirMsg,
 		filename: dataDir,
 		original: original,
+	}
+}
+
+// ErrBadData retunrs an error due to bad file contents
+func ErrBadData(filename, indexname string, original error) error {
+	return FileError{
+		msgFmt:    errBadDataMsg,
+		filename:  filename,
+		indexname: indexname,
+		original:  original,
 	}
 }
