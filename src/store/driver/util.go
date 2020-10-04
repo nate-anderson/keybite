@@ -25,3 +25,15 @@ func sortFileNames(fileNames []string, fileExtension string) []string {
 	})
 	return fileNames
 }
+
+func escapeNewlines(in string) string {
+	out := strings.ReplaceAll(in, "\r", `\\r`)
+	out = strings.ReplaceAll(out, "\n", `\\n`)
+	return out
+}
+
+func unescapeNewlines(in string) string {
+	out := strings.ReplaceAll(in, `\\r`, `\r`)
+	out = strings.ReplaceAll(out, `\\n`, `\n`)
+	return out
+}

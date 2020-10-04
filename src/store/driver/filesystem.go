@@ -54,7 +54,7 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 		if err != nil {
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
-		vals[key] = value
+		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
 		i++
 	}
@@ -83,7 +83,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 		if err != nil {
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
-		vals[key] = value
+		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
 	}
 
@@ -113,7 +113,7 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64
 	}
 
 	for _, key := range orderedKeys {
-		line := fmt.Sprintf("%d:%s\n", key, vals[key])
+		line := fmt.Sprintf("%d:%s\n", key, escapeNewlines(vals[key]))
 		_, err = file.Write([]byte(line))
 		if err != nil {
 			return err
@@ -150,7 +150,7 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []str
 	}
 
 	for _, key := range orderedKeys {
-		line := fmt.Sprintf("%s:%s\n", key, vals[key])
+		line := fmt.Sprintf("%s:%s\n", key, escapeNewlines(vals[key]))
 		_, err = file.Write([]byte(line))
 		if err != nil {
 			return fmt.Errorf("writing line to map index file '%s' in index '%s' failed: %w", fileName, indexName, err)

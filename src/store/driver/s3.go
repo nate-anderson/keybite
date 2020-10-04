@@ -99,7 +99,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 		if err != nil {
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
-		vals[key] = value
+		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
 		i++
 	}
@@ -139,7 +139,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 		if err != nil {
 			return vals, orderedKeys, fmt.Errorf("pagefile parsing failed: %w", err)
 		}
-		vals[key] = value
+		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
 		i++
 	}
@@ -151,7 +151,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewPageReader(vals, orderedKeys)
+	pageReader := newPageReader(vals, orderedKeys)
 	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
@@ -169,7 +169,7 @@ func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fi
 func (d BucketDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
 	d.setUploaderIfNil()
 
-	pageReader := NewMapPageReader(vals, orderedKeys)
+	pageReader := newMapPageReader(vals, orderedKeys)
 	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
@@ -495,4 +495,26 @@ func isS3NotExistErr(in error) bool {
 	}
 
 	return false
+}
+
+// newPageReader constructs a page reader for an auto index page
+func newPageReader(vals map[uint64]string, orderedKeys []uint64) io.Reader {
+	var body string
+	for _, key := range orderedKeys {
+		line := fmt.Sprintf("%d:%s\n", key, escapeNewlines(vals[key]))
+		body += line
+	}
+
+	return strings.NewReader(body)
+}
+
+// newMapPageReader constructs a page reader for a map page
+func newMapPageReader(vals map[string]string, orderedKeys []string) io.Reader {
+	var body string
+	for _, key := range orderedKeys {
+		line := fmt.Sprintf("%s:%s\n", key, escapeNewlines(vals[key]))
+		body += line
+	}
+
+	return strings.NewReader(body)
 }
