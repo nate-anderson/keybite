@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Result contains a single result or collection of results
@@ -67,7 +68,8 @@ func (r CollectionResult) String() string {
 	for i, res := range r {
 		out[i] = string(res)
 	}
-	return fmt.Sprint(out)
+	joined := strings.Join(out, ",")
+	return fmt.Sprintf("[%s]", joined)
 }
 
 // Valid indicates whether the result was resolved successfully
