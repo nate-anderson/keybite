@@ -80,7 +80,7 @@ func TestMemoryDriverListPages(t *testing.T) {
 		util.Ok(t, err)
 	}
 
-	pages, err := d.ListPages(indexName)
+	pages, err := d.ListPages(indexName, false)
 	util.Ok(t, err)
 
 	t.Log(pages)

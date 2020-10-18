@@ -188,7 +188,7 @@ func (d BucketDriver) WriteMapPage(vals map[string]string, orderedKeys []string,
 }
 
 // ListPages lists the page files in the bucket
-func (d BucketDriver) ListPages(indexName string) ([]string, error) {
+func (d BucketDriver) ListPages(indexName string, desc bool) ([]string, error) {
 	prefix := indexName + "/"
 	resp, err := d.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(d.bucketName),
@@ -210,7 +210,7 @@ func (d BucketDriver) ListPages(indexName string) ([]string, error) {
 		pages = append(pages, itemName)
 	}
 
-	return sortFileNames(pages, d.pageExtension), nil
+	return sortFileNames(pages, d.pageExtension, desc), nil
 }
 
 // create a temporary file

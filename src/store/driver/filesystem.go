@@ -161,7 +161,7 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []str
 }
 
 // ListPages lists the page files in the data directory
-func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
+func (d FilesystemDriver) ListPages(indexName string, desc bool) ([]string, error) {
 	indexPath := path.Join(d.dataDir, indexName)
 	files, err := ioutil.ReadDir(indexPath)
 	if err != nil {
@@ -181,7 +181,7 @@ func (d FilesystemDriver) ListPages(indexName string) ([]string, error) {
 		fileNames = append(fileNames, fName)
 	}
 
-	return sortFileNames(fileNames, d.pageExtension), nil
+	return sortFileNames(fileNames, d.pageExtension, desc), nil
 }
 
 // CreateAutoIndex creates the folder for an auto index in the data dir

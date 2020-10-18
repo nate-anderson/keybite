@@ -23,7 +23,7 @@ type StorageDriver interface {
 	DropAutoIndex(indexName string) error
 	DropMapIndex(indexName string) error
 	// return an ascending-sorted list of pagefiles in the index datadir
-	ListPages(indexName string) ([]string, error)
+	ListPages(indexName string, desc bool) ([]string, error)
 	// check if an index is locked by another request process, returning the time at which it was locked if true
 	IndexIsLocked(indexName string) (bool, time.Time, error)
 	// lock an index
