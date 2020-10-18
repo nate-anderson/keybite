@@ -95,17 +95,14 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
 func (i AutoIndex) getLatestPage() (Page, uint64, error) {
-	pageFiles, err := i.driver.ListPages(i.Name)
+	pageFiles, err := i.driver.ListPages(i.Name, true)
 	if err != nil {
 		return Page{}, 0, err
 	}
 
 	// if the index already contains pages, get the latest page
 	if len(pageFiles) > 0 {
-		var fileName string
-		for _, fileName = range pageFiles {
-			continue
-		}
+		fileName := pageFiles[0]
 
 		vals, orderedKeys, err := i.driver.ReadPage(fileName, i.Name, i.pageSize)
 		if err != nil {
@@ -337,8 +334,8 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 }
 
 // List a subset of results from the index
-func (i AutoIndex) List(limit, offset int) (ListResult, error) {
-	pageNames, err := i.driver.ListPages(i.Name)
+func (i AutoIndex) List(limit, offset int, desc bool) (ListResult, error) {
+	pageNames, err := i.driver.ListPages(i.Name, desc)
 	if err != nil {
 		return ListResult{}, err
 	}
@@ -371,9 +368,14 @@ PageLoop:
 			continue PageLoop
 		}
 
+		orderedKeys := page.orderedKeys
+		if desc {
+			orderedKeys = copyAndReverseUint64Slice(orderedKeys)
+		}
+
 		// read any relevant records from the page
 	RecordLoop:
-		for _, key := range page.orderedKeys {
+		for _, key := range orderedKeys {
 			// skip offset values
 			if recordsSkipped < offset {
 				recordsSkipped++
@@ -395,7 +397,7 @@ PageLoop:
 // Count the number of records present in the index
 func (i AutoIndex) Count() (Result, error) {
 	var count uint64
-	pageNames, err := i.driver.ListPages(i.Name)
+	pageNames, err := i.driver.ListPages(i.Name, false)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -419,4 +421,15 @@ func (i AutoIndex) Count() (Result, error) {
 	countStr := strconv.FormatUint(count, 10)
 
 	return SingleResult(countStr), nil
+}
+
+// copyAndReverseUint64Slice reverses a slice (copy) for descending sort
+func copyAndReverseUint64Slice(orderedKeys []uint64) []uint64 {
+	length := len(orderedKeys)
+	copied := make([]uint64, length)
+	copy(copied, orderedKeys)
+	for i, el := range orderedKeys {
+		copied[length-i-1] = el
+	}
+	return copied
 }
