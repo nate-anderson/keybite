@@ -102,14 +102,14 @@ func Execute(input string, conf config.Config) (store.Result, error) {
 		if err != nil {
 			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
 		}
-		return autoIndex.List(query.limit, query.offset)
+		return autoIndex.List(query.limit, query.offset, query.listDesc)
 
 	case typeListKey:
 		mapIndex, err := store.NewMapIndex(query.indexName, storageDriver, mapPageSize)
 		if err != nil {
 			return store.EmptyResult(), fmt.Errorf("reading index %s failed: %w", query.indexName, err)
 		}
-		return mapIndex.List(query.limit, query.offset)
+		return mapIndex.List(query.limit, query.offset, query.listDesc)
 
 	case typeCount:
 		autoIndex, err := store.NewAutoIndex(query.indexName, storageDriver, autoPageSize)

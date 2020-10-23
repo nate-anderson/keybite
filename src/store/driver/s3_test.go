@@ -1,6 +1,7 @@
 package driver_test
 
 import (
+	"fmt"
 	"keybite/config"
 	"keybite/store/driver"
 	"keybite/util"
@@ -231,8 +232,8 @@ func TestBucketDriverListPages(t *testing.T) {
 		util.Ok(t, err)
 	}
 
-	pages, err := bd.ListPages(indexName)
-
+	// ascending retrieve
+	pages, err := bd.ListPages(indexName, false)
 	util.Ok(t, err)
 	util.Equals(t, len(testFileNames), len(pages))
 
@@ -242,9 +243,25 @@ func TestBucketDriverListPages(t *testing.T) {
 		stripped := strings.TrimSuffix(pageName, ".kb")
 		pageID, err := strconv.ParseUint(stripped, 10, 64)
 		util.Ok(t, err)
-		util.Assert(t, pageID > lastPageID, "file list should be sorted")
+		util.Assert(t, pageID > lastPageID, "file list should be sorted ascending")
 		lastPageID = pageID
 	}
+
+	// descending retrieve
+	pagesDesc, err := bd.ListPages(indexName, true)
+	util.Ok(t, err)
+	util.Equals(t, len(testFileNames), len(pagesDesc))
+
+	lastPageIDDesc := uint64(500 + 1)
+	for i, pageName := range pagesDesc {
+		util.Equals(t, pageName, pagesDesc[i])
+		stripped := strings.TrimSuffix(pageName, ".kb")
+		pageID, err := strconv.ParseUint(stripped, 10, 64)
+		util.Ok(t, err)
+		util.Assert(t, pageID < lastPageIDDesc, fmt.Sprintf("file list should be sorted descending: i.e. '%d' < '%d'", pageID, lastPageIDDesc))
+		lastPageIDDesc = pageID
+	}
+
 }
 
 func TestBucketDriverLockUnlockIndex(t *testing.T) {
@@ -329,7 +346,7 @@ func TestBucketDriverDropAutoIndex(t *testing.T) {
 	util.Ok(t, err)
 
 	// test files deleted
-	pages, err := bd.ListPages(indexName)
+	pages, err := bd.ListPages(indexName, false)
 	t.Log(pages)
 	util.Equals(t, 0, len(pages))
 }
@@ -363,7 +380,7 @@ func TestBucketDriverDropMapIndex(t *testing.T) {
 	util.Ok(t, err)
 
 	// test files deleted
-	pages, err := bd.ListPages(indexName)
+	pages, err := bd.ListPages(indexName, false)
 	t.Log(pages)
 	util.Equals(t, 0, len(pages))
 }

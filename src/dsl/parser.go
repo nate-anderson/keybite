@@ -24,13 +24,14 @@ const (
 	stepFinalMapSelector
 	stepFinalIndexName
 	stepFinalPayload
-	stepFinalOptionalOffset
+	stepFinalOptionalDirection
+	stepListOptionalOffsetOrDirection
 	stepQueryIndexName
 	stepInsertIndexName
 	stepQueryKeyIndexName
 	stepUpdateInsertKeyMapSelector
 	stepUpdateAutoSelector
-	stepListOptionalLimit
+	stepListOptionalLimitOrDirection
 	stepUpdateInsertKeyIndexName
 	stepUpdateIndexName
 	stepDeleteIndexName
@@ -70,6 +71,7 @@ type Operation struct {
 	autoSel   store.AutoSelector
 	mapSel    store.MapSelector
 	payload   string
+	listDesc  bool
 }
 
 // parser parses DSL into query objects
@@ -220,11 +222,29 @@ func (p parser) Parse() (o Operation, err error) {
 
 		case stepListIndexName:
 			o.indexName = p.current()
-			p.nextStep = stepListOptionalLimit
+			p.nextStep = stepListOptionalLimitOrDirection
 
 		case stepListKeyIndexName:
 			o.indexName = p.current()
-			p.nextStep = stepListOptionalLimit
+			p.nextStep = stepListOptionalLimitOrDirection
+
+		case stepListOptionalLimitOrDirection:
+			token := p.current()
+			// if token is a direction, set the direction and treat as final token
+			if desc, isDirection := parseDirection(token); isDirection {
+				o.listDesc = desc
+				return
+			}
+
+			// else treat as limit
+			o.limit, err = strconv.Atoi(token)
+			if err != nil {
+				// if token is not empty, limit was invalid
+				if token != "" {
+					err = fmt.Errorf("error parsing limit '%s': %s", token, err.Error())
+				}
+			}
+			p.nextStep = stepListOptionalOffsetOrDirection
 
 		case stepFinalIndexName:
 			o.indexName = p.current()
@@ -242,8 +262,14 @@ func (p parser) Parse() (o Operation, err error) {
 			o.payload = strings.Join(p.remaining(), " ")
 			return
 
-		case stepFinalOptionalOffset:
+		case stepListOptionalOffsetOrDirection:
 			token := p.current()
+			// if token is a direction, treat as final token
+			if desc, isDirection := parseDirection(token); isDirection {
+				o.listDesc = desc
+				return
+			}
+
 			o.offset, err = strconv.Atoi(token)
 			if err != nil {
 				// if token is not empty, offset was invalid
@@ -251,7 +277,7 @@ func (p parser) Parse() (o Operation, err error) {
 					err = fmt.Errorf("error parsing offset '%s': %s", token, err.Error())
 				}
 			}
-			return
+			p.nextStep = stepFinalOptionalDirection
 
 		case stepUpdateInsertKeyMapSelector:
 			o.mapSel = ParseMapSelector(p.current())
@@ -265,16 +291,11 @@ func (p parser) Parse() (o Operation, err error) {
 			}
 			p.nextStep = stepFinalPayload
 
-		case stepListOptionalLimit:
-			token := p.current()
-			o.limit, err = strconv.Atoi(token)
-			if err != nil {
-				// if token is not empty, limit was invalid
-				if token != "" {
-					err = fmt.Errorf("error parsing limit '%s': %s", token, err.Error())
-				}
+		case stepFinalOptionalDirection:
+			if desc, isDirection := parseDirection(p.current()); isDirection {
+				o.listDesc = desc
 			}
-			p.nextStep = stepFinalOptionalOffset
+			return
 
 		default:
 			err = fmt.Errorf("internal error: unexpected state encountered while parsing query '%s'", p.raw)
@@ -283,6 +304,21 @@ func (p parser) Parse() (o Operation, err error) {
 		}
 
 		p.increment()
+	}
+
+	return
+}
+
+// parse a token that may indicate a sort direction, defaulting to false
+func parseDirection(token string) (desc bool, isDirection bool) {
+	if token == "asc" {
+		desc = false
+		isDirection = true
+		return
+	} else if token == "desc" {
+		desc = true
+		isDirection = true
+		return
 	}
 
 	return

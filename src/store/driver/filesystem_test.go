@@ -170,7 +170,8 @@ func TestFSListPages(t *testing.T) {
 		util.Ok(t, err)
 	}
 
-	pages, err := fsd.ListPages(indexName)
+	// test ascending sort
+	pages, err := fsd.ListPages(indexName, false)
 	util.Ok(t, err)
 	util.Equals(t, len(testFileNames), len(pages))
 
@@ -184,6 +185,20 @@ func TestFSListPages(t *testing.T) {
 		lastPageID = pageID
 	}
 
+	// test descending sort
+	pagesDesc, err := fsd.ListPages(indexName, true)
+	util.Ok(t, err)
+	util.Equals(t, len(testFileNames), len(pages))
+
+	lastPageIDDesc := uint64(500 + 1)
+	for i, pageName := range pagesDesc {
+		util.Equals(t, pageName, pagesDesc[i])
+		stripped := strings.TrimSuffix(pageName, ".kb")
+		pageID, err := strconv.ParseUint(stripped, 10, 64)
+		util.Ok(t, err)
+		util.Assert(t, pageID < lastPageIDDesc, "file list should be sorted")
+		lastPageIDDesc = pageID
+	}
 }
 
 func TestFSLockUnlockIndex(t *testing.T) {

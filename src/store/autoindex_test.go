@@ -242,7 +242,7 @@ func TestAutoIndexList(t *testing.T) {
 		util.Ok(t, err)
 	}
 
-	results, err := index.List(0, 0)
+	results, err := index.List(0, 0, false)
 	util.Ok(t, err)
 
 	resultJSON, err := results.MarshalJSON()

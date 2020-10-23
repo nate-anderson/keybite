@@ -473,8 +473,8 @@ func (m MapIndex) Delete(s MapSelector) (Result, error) {
 }
 
 // List a subset of results from the map index
-func (m MapIndex) List(limit, offset int) (ListResult, error) {
-	pageNames, err := m.driver.ListPages(m.Name)
+func (m MapIndex) List(limit, offset int, desc bool) (ListResult, error) {
+	pageNames, err := m.driver.ListPages(m.Name, desc)
 	if err != nil {
 		return ListResult{}, err
 	}
@@ -506,6 +506,11 @@ PageLoop:
 			continue PageLoop
 		}
 
+		orderedKeys := page.orderedKeys
+		if desc {
+			orderedKeys = copyAndReverseStringSlice(orderedKeys)
+		}
+
 		// read any relevant records from the page
 	RecordLoop:
 		for _, key := range page.orderedKeys {
@@ -530,7 +535,7 @@ PageLoop:
 // Count the number of records present in the index
 func (m MapIndex) Count() (Result, error) {
 	var count uint64
-	pageNames, err := m.driver.ListPages(m.Name)
+	pageNames, err := m.driver.ListPages(m.Name, false)
 	if err != nil {
 		return EmptyResult(), err
 	}
@@ -562,4 +567,15 @@ func (m MapIndex) WriteEmptyPage(pageIDStr string) (MapPage, error) {
 	mapPage := EmptyMapPage(fileName)
 	err := m.driver.WriteMapPage(mapPage.vals, mapPage.orderedKeys, mapPage.name, m.Name)
 	return mapPage, err
+}
+
+// copyAndReverseStringSlice reverses a slice (copy) for descending sort
+func copyAndReverseStringSlice(orderedKeys []string) []string {
+	length := len(orderedKeys)
+	copied := make([]string, length)
+	copy(copied, orderedKeys)
+	for i, el := range orderedKeys {
+		copied[length-i-1] = el
+	}
+	return copied
 }

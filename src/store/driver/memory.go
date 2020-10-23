@@ -124,16 +124,16 @@ func (d *MemoryDriver) WriteMapPage(vals map[string]string, orderedKeys []string
 // ListPages returns a list of pages in a given index
 // Note that this driver holds map indexes and auto indexes separately,
 // so having an auto index and map index with the same name may cause undesired behavior
-func (d MemoryDriver) ListPages(indexName string) ([]string, error) {
+func (d MemoryDriver) ListPages(indexName string, desc bool) ([]string, error) {
 	for name, index := range d.autoIndexes {
 		if name == indexName {
-			return sortFileNames(index.orderedPageNames, ""), nil
+			return sortFileNames(index.orderedPageNames, "", desc), nil
 		}
 	}
 
 	for name, index := range d.mapIndexes {
 		if name == indexName {
-			return sortFileNames(index.orderedPageNames, ""), nil
+			return sortFileNames(index.orderedPageNames, "", desc), nil
 		}
 	}
 
