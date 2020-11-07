@@ -1,8 +1,7 @@
-package driver_test
+package driver
 
 import (
 	"keybite/config"
-	"keybite/store/driver"
 	"keybite/util"
 	"os"
 	"path"
@@ -13,7 +12,7 @@ import (
 )
 
 var testConf config.Config
-var testLockDuration = driver.ToMillisDuration(50)
+var testLockDuration = ToMillisDuration(50)
 
 // test that CreateAutoIndex creates a folder
 func TestFSCreateAutoIndex(t *testing.T) {
@@ -23,7 +22,7 @@ func TestFSCreateAutoIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	fsd, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -43,7 +42,7 @@ func TestFSCreateMapIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	fsd, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -59,7 +58,7 @@ func TestFSCreateMapIndex(t *testing.T) {
 func TestFSNewFilesystemDriver(t *testing.T) {
 	dirName := "test_data"
 
-	_, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	_, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	if err == nil {
 		t.Logf("attempting to instantiate filesystem driver on missing directory %s should fail", dirName)
 		t.FailNow()
@@ -70,7 +69,7 @@ func TestFSNewFilesystemDriver(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	_, err = driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	_, err = NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 }
 
@@ -82,7 +81,7 @@ func TestFSWritePageReadPage(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	fsd, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -119,7 +118,7 @@ func TestFSWriteMapPageReadMapPage(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	fsd, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -156,7 +155,7 @@ func TestFSListPages(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	fsd, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -208,7 +207,7 @@ func TestFSLockUnlockIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	fsd, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	fsd, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -243,7 +242,7 @@ func TestFSDropAutoIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	driver, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	driver, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index_drop"
@@ -276,7 +275,7 @@ func TestFSDropMapIndex(t *testing.T) {
 
 	defer os.RemoveAll(dirName)
 
-	driver, err := driver.NewFilesystemDriver(dirName, ".kb", testLockDuration)
+	driver, err := NewFilesystemDriver(dirName, ".kb", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index_drop"

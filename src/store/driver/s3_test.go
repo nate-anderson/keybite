@@ -1,9 +1,8 @@
-package driver_test
+package driver
 
 import (
 	"fmt"
 	"keybite/config"
-	"keybite/store/driver"
 	"keybite/util"
 	"strconv"
 	"strings"
@@ -66,7 +65,7 @@ func TestNewBucketDriver(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	_, err = driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	_, err = NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 }
 
@@ -75,7 +74,7 @@ func TestBucketCreateAutoIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -107,7 +106,7 @@ func TestBucketCreateMapIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -136,7 +135,7 @@ func TestBucketWritePageReadPage(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index"
@@ -173,7 +172,7 @@ func TestBucketWriteReadMapPage(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_map_index"
@@ -210,7 +209,7 @@ func TestBucketDriverListPages(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index_2"
@@ -268,9 +267,9 @@ func TestBucketDriverLockUnlockIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	longerLockDuration := driver.ToMillisDuration(500)
+	longerLockDuration := ToMillisDuration(500)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index_3"
@@ -302,16 +301,16 @@ func TestBucketDriverErrNotExist(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	longerLockDuration := driver.ToMillisDuration(500)
+	longerLockDuration := ToMillisDuration(500)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_index_notexist"
 
 	vals, keys, err := bd.ReadPage("1", indexName, pageSize)
 
-	util.Assert(t, driver.IsIndexNotExist(err), "should be index-not-exist error")
+	util.Assert(t, IsIndexNotExist(err), "should be index-not-exist error")
 	util.Equals(t, 0, len(vals))
 	util.Equals(t, 0, len(keys))
 
@@ -321,7 +320,7 @@ func TestBucketDriverDropAutoIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_map_index"
@@ -355,7 +354,7 @@ func TestBucketDriverDropMapIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	bd, err := driver.NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
+	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", testLockDuration)
 	util.Ok(t, err)
 
 	indexName := "test_map_index"

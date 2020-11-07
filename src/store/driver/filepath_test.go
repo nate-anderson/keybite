@@ -1,7 +1,6 @@
-package driver_test
+package driver
 
 import (
-	"keybite/store/driver"
 	"keybite/util"
 	"strings"
 	"testing"
@@ -12,7 +11,7 @@ func TestAddSuffixIfNotExist(t *testing.T) {
 	ins := []string{"isuf", "i", "", "suf"}
 
 	for _, in := range ins {
-		out := driver.AddSuffixIfNotExist(in, suffix)
+		out := AddSuffixIfNotExist(in, suffix)
 		util.Assert(
 			t,
 			strings.HasSuffix(out, suffix),
