@@ -489,8 +489,8 @@ func (d BucketDriver) DropMapIndex(indexName string) error {
 	return nil
 }
 
-// DeletePage (for testing purposes)
-func (d BucketDriver) DeletePage(indexName string, fileName string) error {
+// deletePage (for testing purposes)
+func (d BucketDriver) deletePage(indexName string, fileName string) error {
 	filePath := path.Join(indexName, fileName)
 	_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(d.bucketName),

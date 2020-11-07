@@ -156,7 +156,7 @@ func TestBucketWritePageReadPage(t *testing.T) {
 	err = bd.WritePage(testVals, testKeys, fileName, indexName)
 	util.Ok(t, err)
 
-	defer bd.DeletePage(indexName, fileName)
+	defer bd.deletePage(indexName, fileName)
 
 	vals, _, err := bd.ReadPage(fileName, indexName, 10)
 	util.Ok(t, err)
@@ -193,7 +193,7 @@ func TestBucketWriteReadMapPage(t *testing.T) {
 	err = bd.WriteMapPage(testVals, testKeys, fileName, indexName)
 	util.Ok(t, err)
 
-	defer bd.DeletePage(indexName, fileName)
+	defer bd.deletePage(indexName, fileName)
 
 	vals, _, err := bd.ReadMapPage(fileName, indexName, 10)
 	util.Ok(t, err)

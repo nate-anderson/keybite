@@ -269,6 +269,7 @@ func (d FilesystemDriver) DropMapIndex(indexName string) error {
 	return nil
 }
 
+// check if index directory exists in data dir
 func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
 	_, err := os.Stat(path.Join(d.dataDir, indexName))
 	if err == nil {
@@ -280,6 +281,7 @@ func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
 	return false, errInternalDriverFailure("reading index", err)
 }
 
+// helper for opening page file pointers
 func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, error) {
 	filePath := path.Join(d.dataDir, indexName, addSuffixIfNotExist(fileName, d.pageExtension))
 	pageFile, err := os.Open(filePath)
