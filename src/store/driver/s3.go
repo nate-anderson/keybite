@@ -19,6 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+const s3ErrNotFound = "NotFound"
+
 // BucketDriver enables writing and reading indices from a remote S3 bucket
 type BucketDriver struct {
 	bucketName      string
@@ -487,6 +489,7 @@ func (d BucketDriver) DropMapIndex(indexName string) error {
 	return nil
 }
 
+// DeletePage (for testing purposes)
 func (d BucketDriver) DeletePage(indexName string, fileName string) error {
 	filePath := path.Join(indexName, fileName)
 	_, err := d.s3Client.DeleteObject(&s3.DeleteObjectInput{
@@ -513,6 +516,7 @@ func (d BucketDriver) indexExists(indexName string) bool {
 		Bucket: aws.String("bucket_name"),
 		Key:    aws.String("object_key"),
 	})
+	fmt.Println("err", err)
 	if err != nil {
 		return !isS3NotExistErr(err)
 	}
@@ -522,7 +526,7 @@ func (d BucketDriver) indexExists(indexName string) bool {
 // is the error a missing file or bucket error from S3?
 func isS3NotExistErr(in error) bool {
 	err, ok := in.(awserr.Error)
-	if ok && err.Code() == s3.ErrCodeNoSuchKey {
+	if ok && (err.Code() == s3.ErrCodeNoSuchKey || err.Code() == s3ErrNotFound) {
 		return true
 	}
 
