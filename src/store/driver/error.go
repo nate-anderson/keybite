@@ -39,6 +39,16 @@ func ErrIndexNotExist(indexName string, err error) Error {
 	}
 }
 
+// IsIndexNotExist indicates if an error is a missing index error
+func IsIndexNotExist(err error) bool {
+	e, ok := err.(Error)
+	if ok && e.Code == errCodeIndexNotExist {
+		return true
+	}
+
+	return false
+}
+
 // ErrAutoIndexKeyNotExist indicates an auto index key could not be found in the provided index
 func ErrAutoIndexKeyNotExist(indexName string, key uint64, err error) Error {
 	return Error{
@@ -111,8 +121,8 @@ func ErrPageNotExist(indexName, pageName string, err error) Error {
 	}
 }
 
-// indicates if an error is a missing page error
-func isPageNotExist(err error) bool {
+// IsPageNotExist indicates if an error is a missing page error
+func IsPageNotExist(err error) bool {
 	e, ok := err.(Error)
 	if ok && e.Code == errCodePageNotExist {
 		return true
