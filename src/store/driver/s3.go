@@ -50,7 +50,7 @@ func NewBucketDriver(
 	},
 	)
 	if err != nil {
-		return BucketDriver{}, ErrInternalDriverFailure("authenticating s3", err)
+		return BucketDriver{}, errInternalDriverFailure("authenticating s3", err)
 	}
 
 	client := s3.New(session)
@@ -59,9 +59,9 @@ func NewBucketDriver(
 	_, err = client.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(bucketName)})
 	if err != nil {
 		if isS3BucketNotExistErr(err) {
-			return BucketDriver{}, ErrDataDirNotExist(bucketName, err)
+			return BucketDriver{}, errDataDirNotExist(bucketName, err)
 		}
-		return BucketDriver{}, ErrInternalDriverFailure("reading s3 bucket contents", err)
+		return BucketDriver{}, errInternalDriverFailure("reading s3 bucket contents", err)
 	}
 
 	return BucketDriver{
@@ -101,7 +101,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	for scanner.Scan() {
 		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, orderedKeys, ErrBadIndexData(indexName, fileName, err)
+			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
 		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
@@ -139,7 +139,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	for scanner.Scan() {
 		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, orderedKeys, ErrBadIndexData(indexName, fileName, err)
+			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
 		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
@@ -165,7 +165,7 @@ func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fi
 	})
 
 	if err != nil {
-		return ErrInternalDriverFailure("writing to s3 bucket", err)
+		return errInternalDriverFailure("writing to s3 bucket", err)
 	}
 
 	return nil
@@ -187,7 +187,7 @@ func (d BucketDriver) WriteMapPage(vals map[string]string, orderedKeys []string,
 	})
 
 	if err != nil {
-		return ErrInternalDriverFailure("writing to s3 bucket", err)
+		return errInternalDriverFailure("writing to s3 bucket", err)
 	}
 
 	return nil
@@ -203,9 +203,9 @@ func (d BucketDriver) ListPages(indexName string, desc bool) ([]string, error) {
 
 	if err != nil {
 		if isS3NotExistErr(err) {
-			return []string{}, ErrIndexNotExist(indexName, err)
+			return []string{}, errIndexNotExist(indexName, err)
 		}
-		return []string{}, ErrInternalDriverFailure("reading contents of bucket folder", err)
+		return []string{}, errInternalDriverFailure("reading contents of bucket folder", err)
 	}
 
 	pages := []string{}
@@ -229,7 +229,7 @@ func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*o
 	tempPath := path.Join("/tmp", tempName)
 	file, err := os.Create(tempPath)
 	if err != nil {
-		return file, ErrInternalDriverFailure("creating temporary data file", err)
+		return file, errInternalDriverFailure("creating temporary data file", err)
 	}
 	return file, nil
 
@@ -247,17 +247,17 @@ func (d BucketDriver) downloadToFile(fileName string, indexName string, dest *os
 	if err != nil {
 		if isS3NotExistErr(err) {
 			if d.indexExists(indexName) {
-				return ErrPageNotExist(indexName, fileName, err)
+				return errPageNotExist(indexName, fileName, err)
 			}
-			return ErrIndexNotExist(indexName, err)
+			return errIndexNotExist(indexName, err)
 		}
 		log.Errorf("error fetching remote file %s", remotePath)
-		return ErrInternalDriverFailure("downloading s3 file", err)
+		return errInternalDriverFailure("downloading s3 file", err)
 	}
 
 	_, err = dest.Seek(0, io.SeekStart)
 	if err != nil {
-		return ErrInternalDriverFailure("resetting file cursor in tempfile", err)
+		return errInternalDriverFailure("resetting file cursor in tempfile", err)
 	}
 
 	return nil
@@ -293,7 +293,7 @@ func (d BucketDriver) CreateAutoIndex(indexName string) error {
 	})
 
 	if err != nil {
-		return ErrInternalDriverFailure("creating auto index", err)
+		return errInternalDriverFailure("creating auto index", err)
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func (d BucketDriver) CreateMapIndex(indexName string) error {
 	})
 
 	if err != nil {
-		return ErrInternalDriverFailure("creating map index", err)
+		return errInternalDriverFailure("creating map index", err)
 	}
 
 	return nil
@@ -326,7 +326,7 @@ func (d BucketDriver) IndexIsLocked(indexName string) (bool, time.Time, error) {
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		return true, time.Now(), ErrInternalDriverFailure("listing index directory contents", err)
+		return true, time.Now(), errInternalDriverFailure("listing index directory contents", err)
 	}
 
 	var maxLockTs time.Time
@@ -371,7 +371,7 @@ func (d BucketDriver) LockIndex(indexName string) error {
 	})
 
 	if err != nil {
-		return ErrInternalDriverFailure("locking index", err)
+		return errInternalDriverFailure("locking index", err)
 	}
 	return nil
 }
@@ -386,7 +386,7 @@ func (d BucketDriver) UnlockIndex(indexName string) error {
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		return ErrInternalDriverFailure("reading index contents", err)
+		return errInternalDriverFailure("reading index contents", err)
 	}
 
 	var loopErr error
@@ -406,7 +406,7 @@ func (d BucketDriver) UnlockIndex(indexName string) error {
 	}
 
 	if loopErr != nil {
-		return ErrInternalDriverFailure("deleting lockfile in index", loopErr)
+		return errInternalDriverFailure("deleting lockfile in index", loopErr)
 	}
 	return nil
 }
@@ -421,7 +421,7 @@ func (d BucketDriver) DropAutoIndex(indexName string) error {
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		return ErrInternalDriverFailure("reading s3 directory contents", err)
+		return errInternalDriverFailure("reading s3 directory contents", err)
 	}
 
 	numItems := len(resp.Contents)
@@ -443,9 +443,9 @@ func (d BucketDriver) DropAutoIndex(indexName string) error {
 	_, err = d.s3Client.DeleteObjects(deleteInput)
 	if err != nil {
 		if isS3NotExistErr(err) {
-			return ErrIndexNotExist(indexName, err)
+			return errIndexNotExist(indexName, err)
 		}
-		return ErrInternalDriverFailure("dropping index", err)
+		return errInternalDriverFailure("dropping index", err)
 	}
 	return nil
 }
@@ -460,7 +460,7 @@ func (d BucketDriver) DropMapIndex(indexName string) error {
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		return ErrInternalDriverFailure("reading s3 directory contents", err)
+		return errInternalDriverFailure("reading s3 directory contents", err)
 	}
 
 	numItems := len(resp.Contents)
@@ -482,9 +482,9 @@ func (d BucketDriver) DropMapIndex(indexName string) error {
 	_, err = d.s3Client.DeleteObjects(deleteInput)
 	if err != nil {
 		if isS3NotExistErr(err) {
-			return ErrIndexNotExist(indexName, err)
+			return errIndexNotExist(indexName, err)
 		}
-		return ErrInternalDriverFailure("dropping index", err)
+		return errInternalDriverFailure("dropping index", err)
 	}
 	return nil
 }
@@ -506,7 +506,7 @@ func (d BucketDriver) DeletePage(indexName string, fileName string) error {
 	})
 
 	if err != nil {
-		return ErrInternalDriverFailure("dropping index", err)
+		return errInternalDriverFailure("dropping index", err)
 	}
 	return nil
 }

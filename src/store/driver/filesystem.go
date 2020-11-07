@@ -24,9 +24,9 @@ func NewFilesystemDriver(dataDir string, pageExtension string, lockDuration time
 	_, err := os.Stat(dataDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return FilesystemDriver{}, ErrDataDirNotExist(dataDir, err)
+			return FilesystemDriver{}, errDataDirNotExist(dataDir, err)
 		}
-		return FilesystemDriver{}, ErrInternalDriverFailure("reading data directory", err)
+		return FilesystemDriver{}, errInternalDriverFailure("reading data directory", err)
 	}
 
 	return FilesystemDriver{
@@ -52,7 +52,7 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 	for scanner.Scan() {
 		key, value, err := StringToKeyValue(scanner.Text())
 		if err != nil {
-			return vals, orderedKeys, ErrBadIndexData(indexName, fileName, err)
+			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
 		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
@@ -77,7 +77,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 	for scanner.Scan() {
 		key, value, err := StringToMapKeyValue(scanner.Text())
 		if err != nil {
-			return vals, orderedKeys, ErrBadIndexData(indexName, fileName, err)
+			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
 		vals[key] = unescapeNewlines(value)
 		orderedKeys = append(orderedKeys, key)
@@ -94,14 +94,14 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64
 	// truncate file before writing
 	err = file.Truncate(0)
 	if err != nil {
-		return ErrInternalDriverFailure("truncating page file for update", err)
+		return errInternalDriverFailure("truncating page file for update", err)
 	}
 
 	for _, key := range orderedKeys {
 		line := fmt.Sprintf("%d:%s\n", key, escapeNewlines(vals[key]))
 		_, err = file.Write([]byte(line))
 		if err != nil {
-			return ErrInternalDriverFailure("writing data to file", err)
+			return errInternalDriverFailure("writing data to file", err)
 		}
 	}
 
@@ -116,14 +116,14 @@ func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []str
 	// truncate file before writing
 	err = file.Truncate(0)
 	if err != nil {
-		return ErrInternalDriverFailure("truncating page file for update", err)
+		return errInternalDriverFailure("truncating page file for update", err)
 	}
 
 	for _, key := range orderedKeys {
 		line := fmt.Sprintf("%s:%s\n", key, escapeNewlines(vals[key]))
 		_, err = file.Write([]byte(line))
 		if err != nil {
-			return ErrInternalDriverFailure("writing data to file", err)
+			return errInternalDriverFailure("writing data to file", err)
 		}
 	}
 
@@ -136,7 +136,7 @@ func (d FilesystemDriver) ListPages(indexName string, desc bool) ([]string, erro
 	files, err := ioutil.ReadDir(indexPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []string{}, ErrIndexNotExist(indexName, err)
+			return []string{}, errIndexNotExist(indexName, err)
 		}
 		return []string{}, err
 	}
@@ -159,7 +159,7 @@ func (d FilesystemDriver) CreateAutoIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	err := os.Mkdir(indexPath, 0755)
 	if err != nil {
-		return ErrInternalDriverFailure("create auto index", err)
+		return errInternalDriverFailure("create auto index", err)
 	}
 	return nil
 }
@@ -169,7 +169,7 @@ func (d FilesystemDriver) CreateMapIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	err := os.Mkdir(indexPath, 0755)
 	if err != nil {
-		return ErrInternalDriverFailure("create map index", err)
+		return errInternalDriverFailure("create map index", err)
 	}
 	return nil
 }
@@ -185,7 +185,7 @@ func (d FilesystemDriver) LockIndex(indexName string) error {
 	filePath := path.Join(d.dataDir, indexName, lockfileName)
 	file, err := os.Create(filePath)
 	if err != nil {
-		return ErrInternalDriverFailure("locking index", err)
+		return errInternalDriverFailure("locking index", err)
 	}
 
 	defer file.Close()
@@ -198,13 +198,13 @@ func (d FilesystemDriver) UnlockIndex(indexName string) error {
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
-		return ErrInternalDriverFailure("reading index files for unlock", err)
+		return errInternalDriverFailure("reading index files for unlock", err)
 	}
 
 	for _, path := range fNames {
 		log.Debugf("deleting lockfile %s", path)
 		if err := os.Remove(path); err != nil {
-			return ErrInternalDriverFailure("deleting lockfile", err)
+			return errInternalDriverFailure("deleting lockfile", err)
 		}
 	}
 
@@ -217,7 +217,7 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
-		return true, time.Time{}, ErrInternalDriverFailure("listing index directory contents", err)
+		return true, time.Time{}, errInternalDriverFailure("listing index directory contents", err)
 	}
 
 	// if lockfile(s) present, return max lock timestamp
@@ -227,7 +227,7 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 		for _, name := range fNames {
 			ts, err := filenameToLockTimestamp(name)
 			if err != nil {
-				return true, maxLockTs.Add(d.lockDuration), ErrInternalDriverFailure("creating lock file for index", err)
+				return true, maxLockTs.Add(d.lockDuration), errInternalDriverFailure("creating lock file for index", err)
 			}
 			if ts.After(maxLockTs) {
 				maxLockTs = ts
@@ -247,11 +247,11 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 func (d FilesystemDriver) DropAutoIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		return ErrIndexNotExist(indexName, err)
+		return errIndexNotExist(indexName, err)
 	}
 	err := os.RemoveAll(indexPath)
 	if err != nil {
-		return ErrInternalDriverFailure("dropping auto index", err)
+		return errInternalDriverFailure("dropping auto index", err)
 	}
 	return nil
 }
@@ -260,11 +260,11 @@ func (d FilesystemDriver) DropAutoIndex(indexName string) error {
 func (d FilesystemDriver) DropMapIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		return ErrIndexNotExist(indexName, err)
+		return errIndexNotExist(indexName, err)
 	}
 	err := os.RemoveAll(indexPath)
 	if err != nil {
-		return ErrInternalDriverFailure("dropping map index", err)
+		return errInternalDriverFailure("dropping map index", err)
 	}
 	return nil
 }
@@ -277,7 +277,7 @@ func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
-	return false, ErrInternalDriverFailure("reading index", err)
+	return false, errInternalDriverFailure("reading index", err)
 }
 
 func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, error) {
@@ -291,11 +291,11 @@ func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, er
 				return pageFile, err
 			}
 			if !indexExists {
-				return pageFile, ErrIndexNotExist(indexName, err)
+				return pageFile, errIndexNotExist(indexName, err)
 			}
-			return pageFile, ErrPageNotExist(indexName, fileName, err)
+			return pageFile, errPageNotExist(indexName, fileName, err)
 		}
-		return pageFile, ErrInternalDriverFailure("reading index page", err)
+		return pageFile, errInternalDriverFailure("reading index page", err)
 	}
 	return pageFile, nil
 }
@@ -307,10 +307,10 @@ func (d FilesystemDriver) openOrCreatPageFileForWrite(indexName, fileName string
 		if os.IsNotExist(err) {
 			file, err = os.Create(filePath)
 			if err != nil {
-				return file, ErrInternalDriverFailure("creating index page", err)
+				return file, errInternalDriverFailure("creating index page", err)
 			}
 		} else {
-			return file, ErrInternalDriverFailure("reading index page", err)
+			return file, errInternalDriverFailure("reading index page", err)
 		}
 	}
 	return file, nil

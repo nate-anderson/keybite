@@ -30,8 +30,8 @@ const (
 	errCodePageNotExist           = "ERR_PAGE_NOT_EXIST"
 )
 
-// ErrIndexNotExist indicates the requested index could not be found
-func ErrIndexNotExist(indexName string, err error) Error {
+// errIndexNotExist indicates the requested index could not be found
+func errIndexNotExist(indexName string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Index '%s' not found", indexName),
@@ -49,8 +49,8 @@ func IsIndexNotExist(err error) bool {
 	return false
 }
 
-// ErrAutoIndexKeyNotExist indicates an auto index key could not be found in the provided index
-func ErrAutoIndexKeyNotExist(indexName string, key uint64, err error) Error {
+// errAutoIndexKeyNotExist indicates an auto index key could not be found in the provided index
+func errAutoIndexKeyNotExist(indexName string, key uint64, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Key '%d' not found in index '%s'", key, indexName),
@@ -58,8 +58,8 @@ func ErrAutoIndexKeyNotExist(indexName string, key uint64, err error) Error {
 	}
 }
 
-// ErrMapIndexKeyNotExist indicates a map index key could not be found in the provided index
-func ErrMapIndexKeyNotExist(indexName, key string, err error) Error {
+// errMapIndexKeyNotExist indicates a map index key could not be found in the provided index
+func errMapIndexKeyNotExist(indexName, key string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Key '%s' not found in index '%s'", key, indexName),
@@ -67,8 +67,8 @@ func ErrMapIndexKeyNotExist(indexName, key string, err error) Error {
 	}
 }
 
-// ErrIndexAlreadyExist indicates an index cannot be created because one already exists with this name
-func ErrIndexAlreadyExist(indexName string, err error) Error {
+// errIndexAlreadyExist indicates an index cannot be created because one already exists with this name
+func errIndexAlreadyExist(indexName string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Index '%s' cannot be created: already exists", indexName),
@@ -76,8 +76,8 @@ func ErrIndexAlreadyExist(indexName string, err error) Error {
 	}
 }
 
-// ErrMapIndexKeyAlreadyExist indicates a key cannot be inserted in a map index because it already exsits
-func ErrMapIndexKeyAlreadyExist(indexName, key string, err error) Error {
+// errMapIndexKeyAlreadyExist indicates a key cannot be inserted in a map index because it already exsits
+func errMapIndexKeyAlreadyExist(indexName, key string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Key '%s' already exists in index '%s': cannot insert", key, indexName),
@@ -85,8 +85,8 @@ func ErrMapIndexKeyAlreadyExist(indexName, key string, err error) Error {
 	}
 }
 
-// ErrInternalDriverFailure describes an internal failure unrelated to user action
-func ErrInternalDriverFailure(operationDescription string, err error) Error {
+// errInternalDriverFailure describes an internal failure unrelated to user action
+func errInternalDriverFailure(operationDescription string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Operation %s failed: internal driver failure", operationDescription),
@@ -94,8 +94,8 @@ func ErrInternalDriverFailure(operationDescription string, err error) Error {
 	}
 }
 
-// ErrDataDirNotExist indicates the configured data directory does not exist
-func ErrDataDirNotExist(dataDir string, err error) Error {
+// errDataDirNotExist indicates the configured data directory does not exist
+func errDataDirNotExist(dataDir string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("Configured data directory '%s' could not be found", dataDir),
@@ -103,8 +103,8 @@ func ErrDataDirNotExist(dataDir string, err error) Error {
 	}
 }
 
-// ErrBadIndexData indicates an index page is corrupted
-func ErrBadIndexData(indexName string, fileName string, err error) Error {
+// errBadIndexData indicates an index page is corrupted
+func errBadIndexData(indexName string, fileName string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("File '%s' in index '%s' is corrupted and cannot be read", fileName, indexName),
@@ -112,8 +112,8 @@ func ErrBadIndexData(indexName string, fileName string, err error) Error {
 	}
 }
 
-// ErrPageNotExist indicates the index exists, but the page does not
-func ErrPageNotExist(indexName, pageName string, err error) Error {
+// errPageNotExist indicates the index exists, but the page does not
+func errPageNotExist(indexName, pageName string, err error) Error {
 	return Error{
 		InternalErr: err,
 		Message:     fmt.Sprintf("File '%s' not found in index '%s'", pageName, indexName),
