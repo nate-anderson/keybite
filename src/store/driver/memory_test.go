@@ -1,8 +1,7 @@
-package driver_test
+package driver
 
 import (
 	"fmt"
-	"keybite/store/driver"
 	"keybite/util"
 	"strconv"
 	"testing"
@@ -11,7 +10,7 @@ import (
 const pageSize = 100
 
 func TestMemoryDriverWriteAutoIndexPage(t *testing.T) {
-	d := driver.NewMemoryDriver()
+	d := NewMemoryDriver()
 
 	indexName := "test_index"
 
@@ -38,7 +37,7 @@ func TestMemoryDriverWriteAutoIndexPage(t *testing.T) {
 }
 
 func TestMemoryDriverWriteMapIndexPage(t *testing.T) {
-	d := driver.NewMemoryDriver()
+	d := NewMemoryDriver()
 
 	indexName := "test_map_index"
 	err := d.CreateMapIndex(indexName)
@@ -64,7 +63,7 @@ func TestMemoryDriverWriteMapIndexPage(t *testing.T) {
 }
 
 func TestMemoryDriverListPages(t *testing.T) {
-	d := driver.NewMemoryDriver()
+	d := NewMemoryDriver()
 
 	indexName := "test_index"
 	err := d.CreateAutoIndex(indexName)
@@ -105,7 +104,7 @@ func makeFakeAutoPage(size, min int) (map[uint64]string, []uint64) {
 }
 
 func TestMemoryDriverWriteManyAutoIndexPages(t *testing.T) {
-	d := driver.NewMemoryDriver()
+	d := NewMemoryDriver()
 	indexName := "test_index"
 
 	err := d.CreateAutoIndex(indexName)
@@ -134,7 +133,7 @@ func TestMemoryDriverWriteManyAutoIndexPages(t *testing.T) {
 }
 
 func TestMemoryDriverDropAutoIndex(t *testing.T) {
-	d := driver.NewMemoryDriver()
+	d := NewMemoryDriver()
 
 	indexName := "test_auto_index_drop"
 	err := d.CreateAutoIndex(indexName)
@@ -158,7 +157,7 @@ func TestMemoryDriverDropAutoIndex(t *testing.T) {
 }
 
 func TestMemoryDriverDropMapIndex(t *testing.T) {
-	d := driver.NewMemoryDriver()
+	d := NewMemoryDriver()
 
 	indexName := "test_map_index_drop"
 	err := d.CreateMapIndex(indexName)
