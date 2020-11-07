@@ -53,7 +53,7 @@ func (m MapIndex) readOrCreatePage(pageID uint64) (MapPage, error) {
 	}
 
 	// if there is no page file with this name, create one
-	if driver.IsNotExistError(err) {
+	if driver.IsPageNotExist(err) {
 		fileName := strconv.FormatUint(pageID, 10)
 		return m.WriteEmptyPage(fileName)
 	}
