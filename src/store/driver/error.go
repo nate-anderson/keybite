@@ -27,6 +27,7 @@ const (
 	errCodeBadData                = "ERR_BAD_INDEX_DATA"
 	errCodeInternalStorageFailure = "ERR_INTERNAL_DRIVER_FAILURE"
 	errCodeDataDirNotExist        = "ERR_DATA_DIR_NOT_EXIST"
+	errCodePageNotExist           = "ERR_PAGE_NOT_EXIST"
 )
 
 // ErrIndexNotExist indicates the requested index could not be found
@@ -98,5 +99,25 @@ func ErrBadIndexData(indexName string, fileName string, err error) Error {
 		InternalErr: err,
 		Message:     fmt.Sprintf("File '%s' in index '%s' is corrupted and cannot be read", fileName, indexName),
 		Code:        errCodeBadData,
+	}
+}
+
+// ErrPageNotExist indicates the index exists, but the page does not
+func ErrPageNotExist(indexName, pageName string, err error) Error {
+	return Error{
+		InternalErr: err,
+		Message:     fmt.Sprintf("File '%s' not found in index '%s'", pageName, indexName),
+		Code:        errCodePageNotExist,
+	}
+}
+
+// indicates if an error is a missing page error
+func isPageNotExist(err error) bool {
+	e, ok := err.(Error)
+	if !ok {
+		return false
+	}
+	if e.Code == errCodePageNotExist {
+		return true
 	}
 }

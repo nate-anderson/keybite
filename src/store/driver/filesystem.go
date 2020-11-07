@@ -41,7 +41,7 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 	vals := make(map[uint64]string, pageSize)
 	orderedKeys := make([]uint64, 0, pageSize)
 
-	pageFile, err := d.openFile(indexName, fileName)
+	pageFile, err := d.openPageFile(indexName, fileName)
 	if err != nil {
 		return vals, orderedKeys, err
 	}
@@ -67,7 +67,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 	vals := map[string]string{}
 	orderedKeys := make([]string, 0, pageSize)
 
-	pageFile, err := d.openFile(indexName, fileName)
+	pageFile, err := d.openPageFile(indexName, fileName)
 	if err != nil {
 		return vals, orderedKeys, err
 	}
@@ -88,7 +88,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 
 // WritePage persists a new or updated page as a file in the datadir
 func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fileName string, indexName string) error {
-	file, err := d.openOrCreateFileForWrite(indexName, fileName)
+	file, err := d.openOrCreatPageFileForWrite(indexName, fileName)
 	defer file.Close()
 
 	// truncate file before writing
@@ -110,7 +110,7 @@ func (d FilesystemDriver) WritePage(vals map[uint64]string, orderedKeys []uint64
 
 // WriteMapPage persists a new or updated map page as a file in the dataDir
 func (d FilesystemDriver) WriteMapPage(vals map[string]string, orderedKeys []string, fileName string, indexName string) error {
-	file, err := d.openOrCreateFileForWrite(indexName, fileName)
+	file, err := d.openOrCreatPageFileForWrite(indexName, fileName)
 	defer file.Close()
 
 	// truncate file before writing
@@ -272,7 +272,7 @@ func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
 	return false, err
 }
 
-func (d FilesystemDriver) openFile(indexName, fileName string) (*os.File, error) {
+func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, error) {
 	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	pageFile, err := os.Open(filePath)
 	if err != nil {
@@ -285,13 +285,14 @@ func (d FilesystemDriver) openFile(indexName, fileName string) (*os.File, error)
 			if !indexExists {
 				return pageFile, ErrIndexNotExist(indexName, err)
 			}
+			return pageFile, ErrPageNotExist(indexName, fileName, err)
 		}
 		return pageFile, ErrInternalDriverFailure("reading index page", err)
 	}
 	return pageFile, nil
 }
 
-func (d FilesystemDriver) openOrCreateFileForWrite(indexName, fileName string) (*os.File, error) {
+func (d FilesystemDriver) openOrCreatPageFileForWrite(indexName, fileName string) (*os.File, error) {
 	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
