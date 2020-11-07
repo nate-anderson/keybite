@@ -50,7 +50,7 @@ func (d FilesystemDriver) ReadPage(fileName string, indexName string, pageSize i
 	scanner := bufio.NewScanner(pageFile)
 	i := 0
 	for scanner.Scan() {
-		key, value, err := StringToKeyValue(scanner.Text())
+		key, value, err := stringToKeyValue(scanner.Text())
 		if err != nil {
 			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
@@ -75,7 +75,7 @@ func (d FilesystemDriver) ReadMapPage(fileName string, indexName string, pageSiz
 
 	scanner := bufio.NewScanner(pageFile)
 	for scanner.Scan() {
-		key, value, err := StringToMapKeyValue(scanner.Text())
+		key, value, err := stringToMapKeyValue(scanner.Text())
 		if err != nil {
 			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
@@ -281,7 +281,7 @@ func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
 }
 
 func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, error) {
-	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, addSuffixIfNotExist(fileName, d.pageExtension))
 	pageFile, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -301,7 +301,7 @@ func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, er
 }
 
 func (d FilesystemDriver) openOrCreatPageFileForWrite(indexName, fileName string) (*os.File, error) {
-	filePath := path.Join(d.dataDir, indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
+	filePath := path.Join(d.dataDir, indexName, addSuffixIfNotExist(fileName, d.pageExtension))
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0755)
 	if err != nil {
 		if os.IsNotExist(err) {

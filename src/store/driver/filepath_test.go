@@ -11,7 +11,7 @@ func TestAddSuffixIfNotExist(t *testing.T) {
 	ins := []string{"isuf", "i", "", "suf"}
 
 	for _, in := range ins {
-		out := AddSuffixIfNotExist(in, suffix)
+		out := addSuffixIfNotExist(in, suffix)
 		util.Assert(
 			t,
 			strings.HasSuffix(out, suffix),

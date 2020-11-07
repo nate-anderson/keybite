@@ -267,7 +267,7 @@ func TestBucketDriverLockUnlockIndex(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	longerLockDuration := ToMillisDuration(500)
+	longerLockDuration := toMillisDuration(500)
 
 	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
 	util.Ok(t, err)
@@ -301,7 +301,7 @@ func TestBucketDriverErrNotExist(t *testing.T) {
 	accessKeyID, accessKeySecret, bucketName, err := getEnvCreds()
 	util.Ok(t, err)
 
-	longerLockDuration := ToMillisDuration(500)
+	longerLockDuration := toMillisDuration(500)
 
 	bd, err := NewBucketDriver(pageExtension, bucketName, accessKeyID, accessKeySecret, "", longerLockDuration)
 	util.Ok(t, err)

@@ -99,7 +99,7 @@ func (d BucketDriver) ReadPage(fileName string, indexName string, pageSize int) 
 	scanner := bufio.NewScanner(tempFile)
 	i := 0
 	for scanner.Scan() {
-		key, value, err := StringToKeyValue(scanner.Text())
+		key, value, err := stringToKeyValue(scanner.Text())
 		if err != nil {
 			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
@@ -137,7 +137,7 @@ func (d BucketDriver) ReadMapPage(fileName string, indexName string, pageSize in
 	scanner := bufio.NewScanner(tempFile)
 	i := 0
 	for scanner.Scan() {
-		key, value, err := StringToMapKeyValue(scanner.Text())
+		key, value, err := stringToMapKeyValue(scanner.Text())
 		if err != nil {
 			return vals, orderedKeys, errBadIndexData(indexName, fileName, err)
 		}
@@ -154,7 +154,7 @@ func (d BucketDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fi
 	d.setUploaderIfNil()
 
 	pageReader := newPageReader(vals, orderedKeys)
-	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
+	cleanFileName := addSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload temporary file to S3
@@ -176,7 +176,7 @@ func (d BucketDriver) WriteMapPage(vals map[string]string, orderedKeys []string,
 	d.setUploaderIfNil()
 
 	pageReader := newMapPageReader(vals, orderedKeys)
-	cleanFileName := AddSuffixIfNotExist(fileName, d.pageExtension)
+	cleanFileName := addSuffixIfNotExist(fileName, d.pageExtension)
 	filePath := path.Join(indexName, cleanFileName)
 
 	// upload to S3
@@ -236,7 +236,7 @@ func (d BucketDriver) createTemporaryFile(fileName string, indexName string) (*o
 }
 
 func (d BucketDriver) downloadToFile(fileName string, indexName string, dest *os.File) error {
-	remotePath := path.Join(indexName, AddSuffixIfNotExist(fileName, d.pageExtension))
+	remotePath := path.Join(indexName, addSuffixIfNotExist(fileName, d.pageExtension))
 	_, err := d.s3Downloader.Download(dest,
 		&s3.GetObjectInput{
 			Bucket: aws.String(d.bucketName),

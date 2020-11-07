@@ -12,7 +12,7 @@ import (
 )
 
 var testConf config.Config
-var testLockDuration = ToMillisDuration(50)
+var testLockDuration = toMillisDuration(50)
 
 // test that CreateAutoIndex creates a folder
 func TestFSCreateAutoIndex(t *testing.T) {
