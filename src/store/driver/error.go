@@ -19,6 +19,10 @@ func (e Error) Error() string {
 	return e.Message
 }
 
+func (e Error) Unwrap() error {
+	return e.InternalErr
+}
+
 const (
 	errCodeIndexNotExist          = "ERR_INDEX_NOT_EXIST"
 	errCodeKeyNotExist            = "ERR_KEY_NOT_EXIST"
