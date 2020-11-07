@@ -311,7 +311,7 @@ func TestBucketDriverErrNotExist(t *testing.T) {
 
 	vals, keys, err := bd.ReadPage("1", indexName, pageSize)
 
-	util.Assert(t, driver.IsNotExistError(err), "error should be of type FileError (not exist)")
+	util.Assert(t, driver.IsIndexNotExist(err), "should be index-not-exist error")
 	util.Equals(t, 0, len(vals))
 	util.Equals(t, 0, len(keys))
 
