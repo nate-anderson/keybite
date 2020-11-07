@@ -62,6 +62,7 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 			if pageID != lastPageID || !loaded {
 				page, err = i.readPage(pageID)
 				if err != nil {
+					err = maybeMissingKeyError(i.Name, s.Select(), err)
 					log.Infof("error loading page %d :: %s", pageID, err.Error())
 					results = append(results, EmptyResult())
 					continue
@@ -72,6 +73,7 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 
 			resultStr, err := page.Query(id)
 			if err != nil {
+				err = errKeyNotExist(i.Name, s.Select(), err)
 				log.Infof("error querying page %d for id %d :: %s", pageID, id, err.Error())
 				results = append(results, EmptyResult())
 				continue
@@ -86,11 +88,16 @@ func (i AutoIndex) Query(s AutoSelector) (Result, error) {
 	pageID := autoPageID(id, i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
+		err = maybeMissingKeyError(i.Name, s.Select(), err)
 		return EmptyResult(), err
 	}
 	resultStr, err := page.Query(id)
+	if err != nil {
+		err = errKeyNotExist(i.Name, s.Select(), err)
+		return EmptyResult(), err
+	}
 	result := SingleResult(resultStr)
-	return result, err
+	return result, nil
 }
 
 // getLatestPage returns the highest ID page in the index (useful for inserts)
@@ -157,12 +164,13 @@ func (i AutoIndex) Insert(val string) (result Result, err error) {
 	if insertPageID > latestPageID {
 		// increment page ID, create next page
 		latestPage, err = i.createEmptyPage(insertPageID)
+		if err != nil {
+			return EmptyResult(), err
+		}
 
 		// set minimum key of new page to maximum key of previous page + 1
 		latestPage.SetMinimumKey(nextID)
-		if err != nil {
-			return EmptyResult(), fmt.Errorf("error creating new page for insert: %w", err)
-		}
+
 	}
 
 	id := latestPage.Append(val)
@@ -190,7 +198,8 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 			if !loaded {
 				page, err = i.readPage(pageID)
 				if err != nil {
-					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					err = maybeMissingKeyError(i.Name, s.Select(), err)
+					log.Info(err.Error())
 					insertedIDs = append(insertedIDs, EmptyResult())
 					continue
 				}
@@ -200,14 +209,15 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 			} else if pageID != lastPageID {
 				err := i.writePage(page)
 				if err != nil {
-					log.Infof("error in locked page write: %s", err.Error())
+					log.Info(err.Error())
 					insertedIDs = append(insertedIDs, EmptyResult())
 					continue
 				}
 				// then load the next page
 				page, err = i.readPage(pageID)
 				if err != nil {
-					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					err = maybeMissingKeyError(i.Name, s.Select(), err)
+					log.Info(err.Error())
 					insertedIDs = append(insertedIDs, EmptyResult())
 					continue
 				}
@@ -217,7 +227,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 			// update the value in the loaded page
 			err = page.Overwrite(id, newVal)
 			if err != nil {
-				log.Infof("error overwriting ID %d in page %d :: %s", id, pageID, err.Error())
+				log.Infof(err.Error())
 				insertedIDs = append(insertedIDs, EmptyResult())
 				continue
 			}
@@ -227,7 +237,7 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 		// write the updated map to file, conscious of other requests
 		err = i.writePage(page)
 		if err != nil {
-			log.Infof("error in locked page write: %s", err.Error())
+			log.Info(err.Error())
 		}
 		return insertedIDs, err
 	}
@@ -236,12 +246,14 @@ func (i AutoIndex) Update(s AutoSelector, newVal string) (Result, error) {
 	pageID := autoPageID(id, i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
+		err = maybeMissingKeyError(i.Name, s.Select(), err)
 		return EmptyResult(), err
 	}
 
 	// update the value in the map
 	err = page.Overwrite(id, newVal)
 	if err != nil {
+		log.Infof(err.Error())
 		return EmptyResult(), err
 	}
 
@@ -269,7 +281,8 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			if !loaded {
 				page, err = i.readPage(pageID)
 				if err != nil {
-					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					err = maybeMissingKeyError(i.Name, s.Select(), err)
+					log.Info(err.Error())
 					deletedIDs = append(deletedIDs, EmptyResult())
 					continue
 				}
@@ -279,14 +292,15 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			} else if pageID != lastPageID {
 				err := i.writePage(page)
 				if err != nil {
-					log.Infof("error in locked page write: %s", err.Error())
+					log.Info(err.Error())
 					deletedIDs = append(deletedIDs, EmptyResult())
 					continue
 				}
 				// then load the correct page
 				page, err = i.readPage(pageID)
 				if err != nil {
-					log.Infof("error loading page %d :: %s", pageID, err.Error())
+					err = maybeMissingKeyError(i.Name, s.Select(), err)
+					log.Info(err.Error())
 					deletedIDs = append(deletedIDs, EmptyResult())
 					continue
 				}
@@ -296,7 +310,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 			// delete the value in the loaded page
 			err := page.Delete(id)
 			if err != nil {
-				log.Infof("error deleting ID %d in page %d :: %s", id, pageID, err.Error())
+				log.Info(err.Error())
 				deletedIDs = append(deletedIDs, EmptyResult())
 				continue
 			}
@@ -307,7 +321,7 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 		// write the updated map to file
 		err = i.writePage(page)
 		if err != nil {
-			log.Infof("error in locked page write: %s", err.Error())
+			log.Infof(err.Error())
 			return EmptyResult(), err
 		}
 		return deletedIDs, err
@@ -317,11 +331,13 @@ func (i AutoIndex) Delete(s AutoSelector) (Result, error) {
 	pageID := autoPageID(id, i.pageSize)
 	page, err := i.readPage(pageID)
 	if err != nil {
+		err = maybeMissingKeyError(i.Name, s.Select(), err)
 		return EmptyResult(), err
 	}
 
 	err = page.Delete(id)
 	if err != nil {
+		err = errKeyNotExist(i.Name, s.Select(), err)
 		return EmptyResult(), err
 	}
 
@@ -353,8 +369,10 @@ PageLoop:
 		pageIDStr := StripExtension(fileName)
 		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
 		if err != nil {
-			log.Errorf("corrupted data! found page file with unparseable filename '%s'", fileName)
-			return ListResult{}, fmt.Errorf("corrupt data error: could not parse filename :: %w", err)
+			// filename could not be parsed
+			err = errBadData(i.Name, fileName, err)
+			log.Error(err.Error())
+			return ListResult{}, err
 		}
 
 		page, err := i.readPage(pageID)
@@ -406,8 +424,10 @@ func (i AutoIndex) Count() (Result, error) {
 		pageIDStr := StripExtension(fileName)
 		pageID, err := strconv.ParseUint(pageIDStr, 10, 64)
 		if err != nil {
-			log.Errorf("corrupted data! found page file with unparseable filename '%s'", fileName)
-			return EmptyResult(), fmt.Errorf("corrupt data error: could not parse filename :: %w", err)
+			// filename could not be parsed
+			err = errBadData(i.Name, fileName, err)
+			log.Error(err)
+			return EmptyResult(), err
 		}
 
 		page, err := i.readPage(pageID)
