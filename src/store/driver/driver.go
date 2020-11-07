@@ -105,7 +105,7 @@ func filenameToLockTimestamp(fileName string) (time.Time, error) {
 	// split on dots to get filename before extensions
 	nameTokens := strings.Split(cleanName, ".")
 	timeString := nameTokens[0]
-	return ParseMillisString(timeString)
+	return parseMillisString(timeString)
 }
 
 // ToMillisDuration turn an int64 millisecond duration into time.Duration
@@ -113,8 +113,8 @@ func ToMillisDuration(millis int64) time.Duration {
 	return (time.Duration(millis) * time.Millisecond)
 }
 
-// ParseMillisString parses a string containing an integer milliseconds since epoch into time.Time
-func ParseMillisString(millis string) (time.Time, error) {
+// parseMillisString parses a string containing an integer milliseconds since epoch into time.Time
+func parseMillisString(millis string) (time.Time, error) {
 	msInt, err := strconv.ParseInt(millis, 10, 64)
 	if err != nil {
 		return time.Time{}, err

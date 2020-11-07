@@ -95,7 +95,7 @@ func (d MemoryDriver) ReadMapPage(fileName string, indexName string, pageSize in
 func (d *MemoryDriver) WritePage(vals map[uint64]string, orderedKeys []uint64, fileName string, indexName string) error {
 	_, ok := d.autoIndexes[indexName]
 	if !ok {
-		return errIndexNotExist(indexName, errIndexNotExist(indexName, fmt.Errorf("memory driver does not contain index %s", indexName))
+		return errIndexNotExist(indexName, fmt.Errorf("memory driver does not contain index %s", indexName))
 	}
 
 	d.autoIndexes[indexName].addPage(&memoryAutoPage{
