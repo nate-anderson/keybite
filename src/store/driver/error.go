@@ -114,10 +114,9 @@ func ErrPageNotExist(indexName, pageName string, err error) Error {
 // indicates if an error is a missing page error
 func isPageNotExist(err error) bool {
 	e, ok := err.(Error)
-	if !ok {
-		return false
-	}
-	if e.Code == errCodePageNotExist {
+	if ok && e.Code == errCodePageNotExist {
 		return true
 	}
+
+	return false
 }
