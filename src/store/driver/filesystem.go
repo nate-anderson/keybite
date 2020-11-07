@@ -217,7 +217,7 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 	globPattern := path.Join(d.dataDir, indexName, ("*" + lockfileExtension))
 	fNames, err := filepath.Glob(globPattern)
 	if err != nil {
-		return true, time.Time{}, fmt.Errorf("checking for lock files in index %s failed: %w", indexName, err)
+		return true, time.Time{}, ErrInternalDriverFailure("listing index directory contents", err)
 	}
 
 	// if lockfile(s) present, return max lock timestamp
@@ -227,7 +227,7 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 		for _, name := range fNames {
 			ts, err := filenameToLockTimestamp(name)
 			if err != nil {
-				return true, maxLockTs.Add(d.lockDuration), fmt.Errorf("creating lock file for index %s failed: %w", indexName, err)
+				return true, maxLockTs.Add(d.lockDuration), ErrInternalDriverFailure("creating lock file for index", err)
 			}
 			if ts.After(maxLockTs) {
 				maxLockTs = ts
@@ -247,18 +247,26 @@ func (d FilesystemDriver) IndexIsLocked(indexName string) (bool, time.Time, erro
 func (d FilesystemDriver) DropAutoIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		return fmt.Errorf("failed dropping index '%s': directory does not exist", indexName)
+		return ErrIndexNotExist(indexName, err)
 	}
-	return os.RemoveAll(indexPath)
+	err := os.RemoveAll(indexPath)
+	if err != nil {
+		return ErrInternalDriverFailure("dropping auto index", err)
+	}
+	return nil
 }
 
 // DropMapIndex permanently deletes all the data and directory for a map index
 func (d FilesystemDriver) DropMapIndex(indexName string) error {
 	indexPath := path.Join(d.dataDir, indexName)
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		return fmt.Errorf("failed dropping index '%s': directory does not exist", indexName)
+		return ErrIndexNotExist(indexName, err)
 	}
-	return os.RemoveAll(indexPath)
+	err := os.RemoveAll(indexPath)
+	if err != nil {
+		return ErrInternalDriverFailure("dropping map index", err)
+	}
+	return nil
 }
 
 func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
@@ -269,7 +277,7 @@ func (d FilesystemDriver) indexExists(indexName string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
-	return false, err
+	return false, ErrInternalDriverFailure("reading index", err)
 }
 
 func (d FilesystemDriver) openPageFile(indexName, fileName string) (*os.File, error) {
