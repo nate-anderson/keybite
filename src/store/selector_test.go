@@ -1,13 +1,12 @@
-package store_test
+package store
 
 import (
-	"keybite/store"
 	"testing"
 )
 
 func TestArraySelector(t *testing.T) {
 	testIDs := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 200}
-	selector := store.NewArraySelector(testIDs)
+	selector := NewArraySelector(testIDs)
 	for _, testID := range testIDs {
 		selector.Next()
 		if selector.Select() != testID {
@@ -20,7 +19,7 @@ func TestArraySelector(t *testing.T) {
 func TestRangeSelector(t *testing.T) {
 	var testMin uint64 = 3
 	var testMax uint64 = 65
-	selector := store.NewRangeSelector(testMin, testMax)
+	selector := NewRangeSelector(testMin, testMax)
 	for i := testMin; i <= testMax; i++ {
 		selector.Next()
 		if i != selector.Select() {
@@ -32,7 +31,7 @@ func TestRangeSelector(t *testing.T) {
 
 func TestSingleSelector(t *testing.T) {
 	testSelection := uint64(120)
-	selector := store.NewSingleSelector(testSelection)
+	selector := NewSingleSelector(testSelection)
 	selector.Next()
 	if selector.Select() != testSelection {
 		t.Logf("selector value %d != test value %d", selector.Select(), testSelection)

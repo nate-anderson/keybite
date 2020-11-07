@@ -1,20 +1,19 @@
-package store_test
+package store
 
 import (
 	"encoding/json"
 	"fmt"
-	"keybite/store"
 	"keybite/store/driver"
 	"keybite/util"
 	"strconv"
 	"testing"
 )
 
-func newTestingMapIndex(t *testing.T) store.MapIndex {
+func newTestingMapIndex(t *testing.T) MapIndex {
 	indexName := "test_map_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateMapIndex(indexName)
-	index, err := store.NewMapIndex(indexName, &driver, testPageSize)
+	index, err := NewMapIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 	return index
 }
@@ -29,7 +28,7 @@ func TestMapIndexInsertQueryOne(t *testing.T) {
 	// test insert & retrieve value
 	testVal := "testVal"
 	testKey := "testKey"
-	selector := store.NewMapSingleSelector(testKey)
+	selector := NewMapSingleSelector(testKey)
 	insertRes, err := index.Insert(&selector, testVal)
 	util.Ok(t, err)
 	util.Equals(t, testKey, insertRes.String())
@@ -43,7 +42,7 @@ func TestMapIndexInsertQueryMany(t *testing.T) {
 	indexName := "test_map_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateMapIndex(indexName)
-	index, err := store.NewMapIndex(indexName, &driver, testPageSize)
+	index, err := NewMapIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
@@ -52,14 +51,14 @@ func TestMapIndexInsertQueryMany(t *testing.T) {
 	for i := 0; i < numInserts; i++ {
 		testValue := fmt.Sprintf("test_value_%d", i)
 		testKey := fmt.Sprintf("test_key_%d", i)
-		selector := store.NewMapSingleSelector(testKey)
+		selector := NewMapSingleSelector(testKey)
 		id, err := index.Insert(&selector, testValue)
 		util.Ok(t, err)
 		insertKeys = append(insertKeys, id.String())
 		util.Ok(t, err)
 	}
 
-	selector := store.NewMapArraySelector(insertKeys)
+	selector := NewMapArraySelector(insertKeys)
 	queryRes, err := index.Query(&selector)
 	util.Ok(t, err)
 
@@ -76,7 +75,7 @@ func TestMapIndexInsertManyQueryMany(t *testing.T) {
 	indexName := "test_map_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateMapIndex(indexName)
-	index, err := store.NewMapIndex(indexName, &driver, testPageSize)
+	index, err := NewMapIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
@@ -89,7 +88,7 @@ func TestMapIndexInsertManyQueryMany(t *testing.T) {
 		insertKeys = append(insertKeys, testKey)
 	}
 
-	insertSelector := store.NewMapArraySelector(insertKeys)
+	insertSelector := NewMapArraySelector(insertKeys)
 
 	insertRes, err := index.Insert(&insertSelector, testValue)
 	util.Ok(t, err)
@@ -106,7 +105,7 @@ func TestMapIndexInsertManyQueryMany(t *testing.T) {
 		util.Assert(t, util.StrSliceContains(key, insertKeys), "inserted keys include test insert keys")
 	}
 
-	selector := store.NewMapArraySelector(insertKeys)
+	selector := NewMapArraySelector(insertKeys)
 	queryRes, err := index.Query(&selector)
 	util.Ok(t, err)
 
@@ -129,7 +128,7 @@ func TestMapIndexUpdateOne(t *testing.T) {
 	// test insert & retrieve value
 	testVal := "testVal"
 	testKey := "testKey"
-	selector := store.NewMapSingleSelector(testKey)
+	selector := NewMapSingleSelector(testKey)
 	insertRes, err := index.Insert(&selector, testVal)
 	util.Ok(t, err)
 	util.Equals(t, testKey, insertRes.String())
@@ -139,7 +138,7 @@ func TestMapIndexUpdateOne(t *testing.T) {
 	util.Equals(t, testVal, queryRes.String())
 
 	// update the value
-	selector = store.NewMapSingleSelector(testKey)
+	selector = NewMapSingleSelector(testKey)
 	testVal2 := "testVal2"
 	_, err = index.Update(&selector, testVal2)
 	util.Ok(t, err)
@@ -162,12 +161,12 @@ func TestMapIndexUpdateMany(t *testing.T) {
 		insertKeys = append(insertKeys, testKey)
 	}
 
-	insertSelector := store.NewMapArraySelector(insertKeys)
+	insertSelector := NewMapArraySelector(insertKeys)
 	_, err := index.Insert(&insertSelector, testValue)
 	util.Ok(t, err)
 
 	testValue2 := "test_value_2"
-	updateSelector := store.NewMapArraySelector(insertKeys)
+	updateSelector := NewMapArraySelector(insertKeys)
 	updateRes, err := index.Update(&updateSelector, testValue2)
 	util.Ok(t, err)
 
@@ -181,7 +180,7 @@ func TestMapIndexUpdateMany(t *testing.T) {
 	util.Equals(t, numInserts, len(updatedKeys))
 
 	// query & verify updated values
-	querySelector := store.NewMapArraySelector(insertKeys)
+	querySelector := NewMapArraySelector(insertKeys)
 	queryRes, err := index.Query(&querySelector)
 	util.Ok(t, err)
 
@@ -208,7 +207,7 @@ func TestMapIndexUpsertOne(t *testing.T) {
 	// test insert & retrieve value
 	testVal := "testVal"
 	testKey := "testKey"
-	selector := store.NewMapSingleSelector(testKey)
+	selector := NewMapSingleSelector(testKey)
 	insertRes, err := index.Upsert(&selector, testVal)
 	util.Ok(t, err)
 	util.Equals(t, testKey, insertRes.String())
@@ -218,7 +217,7 @@ func TestMapIndexUpsertOne(t *testing.T) {
 	util.Equals(t, testVal, queryRes.String())
 
 	// update the value
-	selector = store.NewMapSingleSelector(testKey)
+	selector = NewMapSingleSelector(testKey)
 	testVal2 := "testVal2"
 	_, err = index.Upsert(&selector, testVal2)
 	util.Ok(t, err)
@@ -241,12 +240,12 @@ func TestMapIndexUpsertMany(t *testing.T) {
 		insertKeys = append(insertKeys, testKey)
 	}
 
-	insertSelector := store.NewMapArraySelector(insertKeys)
+	insertSelector := NewMapArraySelector(insertKeys)
 	_, err := index.Upsert(&insertSelector, testValue)
 	util.Ok(t, err)
 
 	testValue2 := "test_value_2"
-	updateSelector := store.NewMapArraySelector(insertKeys)
+	updateSelector := NewMapArraySelector(insertKeys)
 	updateRes, err := index.Upsert(&updateSelector, testValue2)
 	util.Ok(t, err)
 
@@ -260,7 +259,7 @@ func TestMapIndexUpsertMany(t *testing.T) {
 	util.Equals(t, numInserts, len(updatedKeys))
 
 	// query & verify updated values
-	querySelector := store.NewMapArraySelector(insertKeys)
+	querySelector := NewMapArraySelector(insertKeys)
 	queryRes, err := index.Query(&querySelector)
 	util.Ok(t, err)
 
@@ -287,7 +286,7 @@ func TestMapIndexDeleteOne(t *testing.T) {
 	// test insert & retrieve value
 	testVal := "testVal"
 	testKey := "testKey"
-	selector := store.NewMapSingleSelector(testKey)
+	selector := NewMapSingleSelector(testKey)
 	insertRes, err := index.Insert(&selector, testVal)
 	util.Ok(t, err)
 	util.Equals(t, testKey, insertRes.String())
@@ -297,7 +296,7 @@ func TestMapIndexDeleteOne(t *testing.T) {
 	util.Equals(t, testVal, queryRes.String())
 
 	// update the value
-	selector = store.NewMapSingleSelector(testKey)
+	selector = NewMapSingleSelector(testKey)
 	_, err = index.Delete(&selector)
 	util.Ok(t, err)
 }
@@ -306,7 +305,7 @@ func TestMapIndexDeleteMany(t *testing.T) {
 	indexName := "test_map_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateMapIndex(indexName)
-	index, err := store.NewMapIndex(indexName, &driver, testPageSize)
+	index, err := NewMapIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
@@ -319,11 +318,11 @@ func TestMapIndexDeleteMany(t *testing.T) {
 		insertKeys = append(insertKeys, testKey)
 	}
 
-	insertSelector := store.NewMapArraySelector(insertKeys)
+	insertSelector := NewMapArraySelector(insertKeys)
 	_, err = index.Insert(&insertSelector, testValue)
 	util.Ok(t, err)
 
-	deleteSelector := store.NewMapArraySelector(insertKeys)
+	deleteSelector := NewMapArraySelector(insertKeys)
 	deleteRes, err := index.Delete(&deleteSelector)
 	util.Ok(t, err)
 
@@ -337,7 +336,7 @@ func TestMapIndexDeleteMany(t *testing.T) {
 	util.Equals(t, numInserts, len(deletedKeys))
 
 	// query & verify updated values
-	querySelector := store.NewMapArraySelector(insertKeys)
+	querySelector := NewMapArraySelector(insertKeys)
 	queryRes, err := index.Query(&querySelector)
 	util.Ok(t, err)
 
@@ -355,7 +354,7 @@ func TestMapIndexList(t *testing.T) {
 	indexName := "test_map_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateMapIndex(indexName)
-	index, err := store.NewMapIndex(indexName, &driver, testPageSize)
+	index, err := NewMapIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
@@ -364,7 +363,7 @@ func TestMapIndexList(t *testing.T) {
 	for i := 0; i < numInserts; i++ {
 		testValue := fmt.Sprintf("test_value_%d", i)
 		testKey := fmt.Sprintf("test_key_%d", i)
-		selector := store.NewMapSingleSelector(testKey)
+		selector := NewMapSingleSelector(testKey)
 		id, err := index.Insert(&selector, testValue)
 		util.Ok(t, err)
 		insertKeys = append(insertKeys, id.String())
@@ -393,7 +392,7 @@ func TestMapIndexCount(t *testing.T) {
 	indexName := "test_map_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateMapIndex(indexName)
-	index, err := store.NewMapIndex(indexName, &driver, testPageSize)
+	index, err := NewMapIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
@@ -402,7 +401,7 @@ func TestMapIndexCount(t *testing.T) {
 	for i := 0; i < numInserts; i++ {
 		testValue := fmt.Sprintf("test_value_%d", i)
 		testKey := fmt.Sprintf("test_key_%d", i)
-		selector := store.NewMapSingleSelector(testKey)
+		selector := NewMapSingleSelector(testKey)
 		id, err := index.Insert(&selector, testValue)
 		util.Ok(t, err)
 		insertKeys = append(insertKeys, id.String())

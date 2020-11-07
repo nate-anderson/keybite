@@ -1,13 +1,12 @@
-package store_test
+package store
 
 import (
-	"keybite/store"
 	"keybite/util"
 	"testing"
 )
 
 func TestMapPageInsertQuery(t *testing.T) {
-	p := store.EmptyMapPage("test_map_page")
+	p := EmptyMapPage("test_map_page")
 
 	testKey := "testKey"
 	testVal := "testVal"
@@ -30,7 +29,7 @@ func TestMapPageInsertQuery(t *testing.T) {
 }
 
 func TestMapPageInsertUpdate(t *testing.T) {
-	p := store.EmptyMapPage("test_map_page")
+	p := EmptyMapPage("test_map_page")
 
 	testKey := "testKey"
 	initial := "initial"
@@ -50,7 +49,7 @@ func TestMapPageInsertUpdate(t *testing.T) {
 }
 
 func TestMapPageDelete(t *testing.T) {
-	p := store.EmptyMapPage("test_map_page")
+	p := EmptyMapPage("test_map_page")
 
 	testKey := "testKey"
 	testVal := "testVal"
@@ -72,7 +71,7 @@ func TestMapPageDelete(t *testing.T) {
 }
 
 func TestMapPageUpsert(t *testing.T) {
-	p := store.EmptyMapPage("test_map_page")
+	p := EmptyMapPage("test_map_page")
 
 	testKey := "testKey"
 	initial := "testVal"
@@ -98,7 +97,7 @@ func TestMapPageUpsert(t *testing.T) {
 }
 
 func TestMapPageOverwrite(t *testing.T) {
-	p := store.EmptyMapPage("test_map_page")
+	p := EmptyMapPage("test_map_page")
 
 	err := p.Overwrite("unknownKey", "value")
 	util.Assert(t, err != nil, "updating missing key should return error")
