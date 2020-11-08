@@ -1,7 +1,6 @@
-package store_test
+package store
 
 import (
-	"keybite/store"
 	"keybite/util"
 	"strings"
 	"testing"
@@ -15,7 +14,7 @@ func TestMaxMapKey(t *testing.T) {
 		150: "highest",
 	}
 
-	maxKey := store.MaxMapKey(testMap)
+	maxKey := MaxMapKey(testMap)
 	util.Equals(t, maxKey, uint64(150))
 }
 
@@ -34,7 +33,7 @@ func TestHashString(t *testing.T) {
 
 	for i, testCase := range testCases {
 		var err error
-		outcomes[i], err = store.HashStringToKey(testCase)
+		outcomes[i], err = HashStringToKey(testCase)
 		if err != nil {
 			t.FailNow()
 		}
@@ -54,7 +53,7 @@ func TestHashString(t *testing.T) {
 
 func TestHashStringNotAcceptOverMaxLength(t *testing.T) {
 	testString := strings.Repeat("s", 200)
-	_, err := store.HashStringToKey(testString)
+	_, err := HashStringToKey(testString)
 	if err == nil {
 		t.Fail()
 	}
@@ -67,7 +66,7 @@ func TestPathToIndexPage(t *testing.T) {
 	}
 
 	for in, exp := range exps {
-		pf, ind, err := store.PathToIndexPage(in)
+		pf, ind, err := PathToIndexPage(in)
 		util.Ok(t, err)
 		t.Logf("ind should be %s, pf should be %s", exp[0], exp[1])
 		t.Logf("got ind %s, pf %s", ind, pf)
@@ -77,7 +76,7 @@ func TestPathToIndexPage(t *testing.T) {
 
 	// test that unusable path throws err
 	badPath := "/too/many/levels.kb"
-	_, _, err := store.PathToIndexPage(badPath)
+	_, _, err := PathToIndexPage(badPath)
 	if err == nil {
 		t.Log("no err thrown on bad path", badPath)
 		t.Fail()
@@ -85,7 +84,7 @@ func TestPathToIndexPage(t *testing.T) {
 }
 
 func TestPageAppendQuery(t *testing.T) {
-	p := store.EmptyPage("test_page")
+	p := EmptyPage("test_page")
 	testVal := "the test value"
 
 	id := p.Append(testVal)
@@ -97,7 +96,7 @@ func TestPageAppendQuery(t *testing.T) {
 }
 
 func TestPageAppendDelete(t *testing.T) {
-	p := store.EmptyPage("test_page")
+	p := EmptyPage("test_page")
 	testVal := "the test value to delete"
 
 	id := p.Append(testVal)
@@ -120,7 +119,7 @@ func TestPageAppendDelete(t *testing.T) {
 }
 
 func TestPageOverwrite(t *testing.T) {
-	p := store.EmptyPage("test_page")
+	p := EmptyPage("test_page")
 	initial := "initial"
 
 	id := p.Append(initial)
@@ -144,7 +143,7 @@ func TestPageOverwrite(t *testing.T) {
 }
 
 func TestSetMinimumKey(t *testing.T) {
-	p := store.EmptyPage("test_page")
+	p := EmptyPage("test_page")
 	testVal := "initial"
 	var minKey uint64 = 100
 

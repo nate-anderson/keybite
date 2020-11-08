@@ -1,9 +1,8 @@
-package store_test
+package store
 
 import (
 	"encoding/json"
 	"fmt"
-	"keybite/store"
 	"keybite/store/driver"
 	"keybite/util"
 	"strconv"
@@ -15,11 +14,11 @@ const testPageSize = 10
 
 var testLockDuration = time.Millisecond * 50
 
-func newTestingIndex(t *testing.T) store.AutoIndex {
+func newTestingIndex(t *testing.T) AutoIndex {
 	indexName := "test_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateAutoIndex(indexName)
-	index, err := store.NewAutoIndex(indexName, &driver, testPageSize)
+	index, err := NewAutoIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 	return index
 }
@@ -40,13 +39,13 @@ func TestAutoIndexInsertQueryOne(t *testing.T) {
 	util.Ok(t, err)
 	util.Equals(t, "1", count2.String())
 
-	sel := store.NewSingleSelector(1)
+	sel := NewSingleSelector(1)
 	queryRes, err := index.Query(&sel)
 	util.Ok(t, err)
 	util.Equals(t, testVal, queryRes.String())
 
 	// retrieve missing value should return err
-	missingSel := store.NewSingleSelector(10)
+	missingSel := NewSingleSelector(10)
 	missingRes, err := index.Query(&missingSel)
 	util.Assert(t, err != nil, "querying for missing value should return an error")
 	util.Equals(t, "", missingRes.String())
@@ -56,10 +55,10 @@ func TestAutoInsertQueryMany(t *testing.T) {
 	dri := driver.NewMemoryDriver()
 	indexName := "test_index"
 	err := dri.CreateAutoIndex(indexName)
-	index, err := store.NewAutoIndex(indexName, &dri, testPageSize)
+	index, err := NewAutoIndex(indexName, &dri, testPageSize)
 	util.Ok(t, err)
 	numRecords := (testPageSize * 2) + 1
-	var currentResult store.Result
+	var currentResult Result
 	insertIDs := make([]uint64, 0, numRecords)
 
 	for i := 1; i <= numRecords; i++ {
@@ -78,7 +77,7 @@ func TestAutoInsertQueryMany(t *testing.T) {
 	idStr := strconv.Itoa(numRecords)
 	util.Equals(t, idStr, currentResult.String())
 
-	querySelector := store.NewArraySelector(insertIDs)
+	querySelector := NewArraySelector(insertIDs)
 	queryRes, err := index.Query(&querySelector)
 	util.Ok(t, err)
 
@@ -98,7 +97,7 @@ func TestAutoIndexDeleteOne(t *testing.T) {
 	dri := driver.NewMemoryDriver()
 	indexName := "test_index"
 	err := dri.CreateAutoIndex(indexName)
-	index, err := store.NewAutoIndex(indexName, &dri, testPageSize)
+	index, err := NewAutoIndex(indexName, &dri, testPageSize)
 	util.Ok(t, err)
 
 	testVal := "test_value_0001"
@@ -115,7 +114,7 @@ func TestAutoIndexDeleteOne(t *testing.T) {
 	id, err := strconv.ParseUint(insertResult.String(), 10, 64)
 	util.Ok(t, err)
 
-	selector := store.NewSingleSelector(id)
+	selector := NewSingleSelector(id)
 	_, err = index.Delete(&selector)
 	util.Ok(t, err)
 
@@ -147,7 +146,7 @@ func TestAutoIndexDeleteMany(t *testing.T) {
 	util.Ok(t, err)
 	util.Equals(t, strconv.Itoa(numInserts), countResult.String())
 
-	selector := store.NewArraySelector(insertIds)
+	selector := NewArraySelector(insertIds)
 	_, err = index.Delete(&selector)
 	util.Ok(t, err)
 
@@ -169,13 +168,13 @@ func TestAutoIndexUpdateOne(t *testing.T) {
 	util.Ok(t, err)
 
 	newVal := "test_value_001"
-	updateSelector := store.NewSingleSelector(id)
+	updateSelector := NewSingleSelector(id)
 	updateResult, err := index.Update(&updateSelector, newVal)
 	util.Ok(t, err)
 
 	util.Equals(t, updateResult.String(), insertResult.String())
 
-	querySelector := store.NewSingleSelector(id)
+	querySelector := NewSingleSelector(id)
 	queryResult, err := index.Query(&querySelector)
 	util.Ok(t, err)
 
@@ -198,27 +197,27 @@ func TestAutoIndexUpdateMany(t *testing.T) {
 		insertIds = append(insertIds, id)
 	}
 
-	selector := store.NewArraySelector(insertIds)
+	selector := NewArraySelector(insertIds)
 	firstResult, err := index.Query(&selector)
 	util.Ok(t, err)
 
 	expected := util.RepeatString(testVal, numInserts)
-	expectedResult := store.NewCollectionResult(expected)
+	expectedResult := NewCollectionResult(expected)
 
 	util.Equals(t, firstResult.String(), expectedResult.String())
 
 	newVal := "test_value_001"
-	selector = store.NewArraySelector(insertIds)
+	selector = NewArraySelector(insertIds)
 	updateResult, err := index.Update(&selector, newVal)
 	util.Ok(t, err)
 	util.Assert(t, updateResult.Valid(), "update result is valid")
 
-	selector = store.NewArraySelector(insertIds)
+	selector = NewArraySelector(insertIds)
 	updatedQueried, err := index.Query(&selector)
 	util.Ok(t, err)
 
 	expected = util.RepeatString(newVal, numInserts)
-	expectedResult = store.NewCollectionResult(expected)
+	expectedResult = NewCollectionResult(expected)
 
 	util.Equals(t, updatedQueried.String(), expectedResult.String())
 
@@ -228,7 +227,7 @@ func TestAutoIndexList(t *testing.T) {
 	indexName := "test_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateAutoIndex(indexName)
-	index, err := store.NewAutoIndex(indexName, &driver, testPageSize)
+	index, err := NewAutoIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
@@ -264,7 +263,7 @@ func TestAutoIndexCount(t *testing.T) {
 	indexName := "test_index"
 	driver := driver.NewMemoryDriver()
 	driver.CreateAutoIndex(indexName)
-	index, err := store.NewAutoIndex(indexName, &driver, testPageSize)
+	index, err := NewAutoIndex(indexName, &driver, testPageSize)
 	util.Ok(t, err)
 
 	numInserts := testPageSize * 10
