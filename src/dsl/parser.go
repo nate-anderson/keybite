@@ -319,7 +319,11 @@ func (p parser) Parse() (o Operation, dslErr error) {
 				dslErr = unexpectedEndOfInputError(p.raw, "map index selector")
 				return
 			}
-			o.mapSel = ParseMapSelector(token)
+			o.mapSel, err = ParseMapSelector(token)
+			if err != nil {
+				dslErr = parsingError(token, p.remaining(), "invalid selector", err)
+				return
+			}
 			return
 
 		case stepFinalPayload:
@@ -354,7 +358,11 @@ func (p parser) Parse() (o Operation, dslErr error) {
 				dslErr = unexpectedEndOfInputError(p.raw, "map index selector")
 				return
 			}
-			o.mapSel = ParseMapSelector(token)
+			o.mapSel, err = ParseMapSelector(token)
+			if err != nil {
+				dslErr = parsingError(token, p.remaining(), "invalid selector", err)
+				return
+			}
 			p.nextStep = stepFinalPayload
 
 		case stepUpdateAutoSelector:
