@@ -97,11 +97,11 @@ func newParser(dsl string) parser {
 	}
 }
 
-func (p parser) current() string {
+func (p parser) current() (string, error) {
 	if len(p.tokens) > p.i {
-		return p.tokens[p.i]
+		return p.tokens[p.i], nil
 	}
-	return ""
+	return "", fmt.Errorf("end of input")
 }
 
 func (p *parser) increment() {
@@ -113,11 +113,17 @@ func (p parser) remaining() []string {
 }
 
 // Parse the provided query
-func (p parser) Parse() (o Operation, err error) {
-	for p.i < len(p.tokens) {
+func (p parser) Parse() (o Operation, dslErr error) {
+	var err error
+	if len(p.tokens) == 0 {
+		dslErr = unexpectedEndOfInputError(p.raw, "operation keyword")
+		return
+	}
+	for {
 		switch p.nextStep {
 		case stepInitial:
-			keyword := p.current()
+			// this loop only runs on inputs with at least one token, so this error can be ignored
+			keyword, _ := p.current()
 			// determine the query type and expected next token
 			switch keyword {
 			case "query":
@@ -189,47 +195,87 @@ func (p parser) Parse() (o Operation, err error) {
 				p.nextStep = stepFinalIndexName
 
 			default:
-				err = fmt.Errorf("unknown keyword '%s'", keyword)
+				dslErr = syntaxError(keyword, p.remaining(), "unknown keyword")
 				return
 			}
 		case stepQueryIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepFinalAutoSelector
 
 		case stepQueryKeyIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepFinalMapSelector
 
 		case stepInsertIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepFinalPayload
 
 		case stepUpdateInsertKeyIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepUpdateInsertKeyMapSelector
 
 		case stepUpdateIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepUpdateAutoSelector
 
 		case stepDeleteIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepFinalAutoSelector
 
 		case stepDeleteKeyIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepFinalMapSelector
 
 		case stepListIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepListOptionalLimitOrDirection
 
 		case stepListKeyIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			p.nextStep = stepListOptionalLimitOrDirection
 
 		case stepListOptionalLimitOrDirection:
-			token := p.current()
+			token, err := p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "limit or sort direction")
+				return
+			}
 			// if token is a direction, set the direction and treat as final token
 			if desc, isDirection := parseDirection(token); isDirection {
 				o.listDesc = desc
@@ -241,21 +287,39 @@ func (p parser) Parse() (o Operation, err error) {
 			if err != nil {
 				// if token is not empty, limit was invalid
 				if token != "" {
-					err = fmt.Errorf("error parsing limit '%s': %s", token, err.Error())
+					dslErr = parsingError(token, p.remaining(), "invalid limit", err)
+					return
 				}
 			}
 			p.nextStep = stepListOptionalOffsetOrDirection
 
 		case stepFinalIndexName:
-			o.indexName = p.current()
+			o.indexName, err = p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "index name")
+				return
+			}
 			return
 
 		case stepFinalAutoSelector:
-			o.autoSel, err = ParseAutoSelector(p.current())
+			token, err := p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "auto index selector")
+				return
+			}
+			o.autoSel, err = ParseAutoSelector(token)
+			if err != nil {
+				dslErr = parsingError(token, p.remaining(), "invalid selector", err)
+			}
 			return
 
 		case stepFinalMapSelector:
-			o.mapSel = ParseMapSelector(p.current())
+			token, err := p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "map index selector")
+				return
+			}
+			o.mapSel = ParseMapSelector(token)
 			return
 
 		case stepFinalPayload:
@@ -263,7 +327,11 @@ func (p parser) Parse() (o Operation, err error) {
 			return
 
 		case stepListOptionalOffsetOrDirection:
-			token := p.current()
+			token, err := p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "string to insert")
+				return
+			}
 			// if token is a direction, treat as final token
 			if desc, isDirection := parseDirection(token); isDirection {
 				o.listDesc = desc
@@ -274,39 +342,53 @@ func (p parser) Parse() (o Operation, err error) {
 			if err != nil {
 				// if token is not empty, offset was invalid
 				if token != "" {
-					err = fmt.Errorf("error parsing offset '%s': %s", token, err.Error())
+					dslErr = parsingError(token, p.remaining(), "invalid offset", err)
+					return
 				}
 			}
 			p.nextStep = stepFinalOptionalDirection
 
 		case stepUpdateInsertKeyMapSelector:
-			o.mapSel = ParseMapSelector(p.current())
+			token, err := p.current()
+			if err != nil {
+				dslErr = unexpectedEndOfInputError(p.raw, "map index selector")
+				return
+			}
+			o.mapSel = ParseMapSelector(token)
 			p.nextStep = stepFinalPayload
 
 		case stepUpdateAutoSelector:
-			o.autoSel, err = ParseAutoSelector(p.current())
+			token, err := p.current()
 			if err != nil {
-				err = fmt.Errorf("error parsing auto selector '%s'", p.current())
+				dslErr = unexpectedEndOfInputError(p.raw, "auto index selector")
+				return
+			}
+			o.autoSel, err = ParseAutoSelector(token)
+			if err != nil {
+				dslErr = parsingError(token, p.remaining(), "invalid selector", err)
 				return
 			}
 			p.nextStep = stepFinalPayload
 
 		case stepFinalOptionalDirection:
-			if desc, isDirection := parseDirection(p.current()); isDirection {
+			// optional token, error can be ignored
+			token, _ := p.current()
+			if desc, isDirection := parseDirection(token); isDirection {
 				o.listDesc = desc
+				// if token is not a valid direction and isn't empty, invalid syntax
+			} else if token != "" {
+				dslErr = syntaxError(token, p.remaining(), "invalid direction")
 			}
 			return
 
 		default:
-			err = fmt.Errorf("internal error: unexpected state encountered while parsing query '%s'", p.raw)
+			dslErr = fmt.Errorf("internal error: unexpected state encountered while parsing query '%s'", p.raw)
 			log.Errorf(err.Error())
 			return
 		}
 
 		p.increment()
 	}
-
-	return
 }
 
 // parse a token that may indicate a sort direction, defaulting to false
