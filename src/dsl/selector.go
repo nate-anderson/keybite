@@ -14,7 +14,10 @@ Tools for parsing selectors
 // ParseAutoSelector parses a string into a selector. Acceptable formats are 6, [6:10], [6, 7, 8]
 func ParseAutoSelector(token string) (store.AutoSelector, error) {
 	if token[0] == '[' {
-		body := StripBrackets(token)
+		body, err := StripBrackets(token)
+		if err != nil {
+			return &store.ArraySelector{}, fmt.Errorf("invalid auto selector: %s", err.Error())
+		}
 		// array
 		if strings.Contains(body, ",") {
 			collection, err := parseCollection(body)
@@ -41,26 +44,32 @@ func ParseAutoSelector(token string) (store.AutoSelector, error) {
 }
 
 // ParseMapSelector parses a selection of map keys
-func ParseMapSelector(token string) store.MapSelector {
+func ParseMapSelector(token string) (store.MapSelector, error) {
 	// if selection resembles an array, try to create an array selector
 	if token[0] == '[' {
-		body := StripBrackets(token)
+		body, err := StripBrackets(token)
+		if err != nil {
+			return &store.MapArraySelector{}, fmt.Errorf("invalid map selector: %s", err.Error())
+		}
 		collection := strings.Split(body, ",")
 		selector := store.NewMapArraySelector(collection)
-		return &selector
+		return &selector, nil
 	}
 
 	// else treat it as a single selection
 	selector := store.NewMapSingleSelector(token)
-	return &selector
+	return &selector, nil
 }
 
 // StripBrackets removes surrounding square brackets
-func StripBrackets(token string) string {
+func StripBrackets(token string) (string, error) {
+	if !strings.HasSuffix(token, "]") {
+		return token, fmt.Errorf("closing bracket expected")
+	}
 	return strings.TrimPrefix(
 		strings.TrimSuffix(token, "]"),
 		"[",
-	)
+	), nil
 }
 
 // [6,7,8]
