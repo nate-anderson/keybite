@@ -271,11 +271,8 @@ func (p parser) Parse() (o Operation, dslErr error) {
 			p.nextStep = stepListOptionalLimitOrDirection
 
 		case stepListOptionalLimitOrDirection:
-			token, err := p.current()
-			if err != nil {
-				dslErr = unexpectedEndOfInputError(p.raw, "limit or sort direction")
-				return
-			}
+			// optional token, error can be ignored
+			token, _ := p.current()
 			// if token is a direction, set the direction and treat as final token
 			if desc, isDirection := parseDirection(token); isDirection {
 				o.listDesc = desc
@@ -331,11 +328,8 @@ func (p parser) Parse() (o Operation, dslErr error) {
 			return
 
 		case stepListOptionalOffsetOrDirection:
-			token, err := p.current()
-			if err != nil {
-				dslErr = unexpectedEndOfInputError(p.raw, "string to insert")
-				return
-			}
+			// optional token, error can be ignored
+			token, _ := p.current()
 			// if token is a direction, treat as final token
 			if desc, isDirection := parseDirection(token); isDirection {
 				o.listDesc = desc
