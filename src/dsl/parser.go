@@ -307,6 +307,7 @@ func (p parser) Parse() (o Operation, dslErr error) {
 			o.autoSel, err = ParseAutoSelector(token)
 			if err != nil {
 				dslErr = parsingError(token, p.remaining(), "invalid selector", err)
+				return
 			}
 			return
 
@@ -327,6 +328,7 @@ func (p parser) Parse() (o Operation, dslErr error) {
 			payload := strings.Join(p.remaining(), " ")
 			if payload == "" {
 				dslErr = unexpectedEndOfInputError(p.raw, "insert payload")
+				return
 			}
 			o.payload = payload
 			return

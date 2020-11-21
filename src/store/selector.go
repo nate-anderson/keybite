@@ -48,7 +48,7 @@ func (s ArraySelector) Length() int {
 	return len(s.ids)
 }
 
-// RangeSelector allows selecting a range of values from start to end
+// RangeSelector allows selecting a range of values from start to end inclusive
 type RangeSelector struct {
 	to   uint64
 	from uint64
@@ -75,7 +75,7 @@ func (s RangeSelector) Select() uint64 {
 
 // Length denotes if this selection is a collection of multiple values, or a single value
 func (s RangeSelector) Length() int {
-	return int(s.to - s.from)
+	return int((s.to + 1) - s.from)
 }
 
 // SingleSelector selects a single ID
