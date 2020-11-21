@@ -324,7 +324,11 @@ func (p parser) Parse() (o Operation, dslErr error) {
 			return
 
 		case stepFinalPayload:
-			o.payload = strings.Join(p.remaining(), " ")
+			payload := strings.Join(p.remaining(), " ")
+			if payload == "" {
+				dslErr = unexpectedEndOfInputError(p.raw, "insert payload")
+			}
+			o.payload = payload
 			return
 
 		case stepListOptionalOffsetOrDirection:
