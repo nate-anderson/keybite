@@ -664,6 +664,129 @@ func TestExecuteMapCount(t *testing.T) {
 	util.Equals(t, nBatch, count)
 }
 
+func TestExecuteQueryAutoArraySelector(t *testing.T) {
+	_, mapIndex := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	for i := 0; i < 3; i++ {
+		key := strconv.Itoa(i)
+		value := "testVal"
+		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
+		_, err := Execute(insertStmt, testConf)
+		util.Ok(t, err)
+	}
+
+	queryStr := fmt.Sprintf("query %s [1,2,3]", mapIndex)
+	queryRes, err := Execute(queryStr, testConf)
+	util.Ok(t, err)
+	util.Assert(t, queryRes.Valid(), "query result should be valid")
+
+}
+
+func TestUnexpectedEndOfInputError(t *testing.T) {
+	_, mapIndex := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	missingIndexQueries := []string{
+		"query",
+		"query_key",
+		"insert",
+		"insert_key",
+		"update",
+		"update_key",
+		"upsert_key",
+		"delete",
+		"delete_key",
+		"list",
+		"list_key",
+		"count",
+		"count_key",
+	}
+
+	for _, query := range missingIndexQueries {
+		_, err := Execute(query, testConf)
+		util.Assert(t, err != nil, fmt.Sprintf("error for query with missing index '%s' should be non-nil", query))
+	}
+
+	missingSelectorFormats := []string{
+		"query %s",
+		"query_key %s",
+		"insert_key %s",
+		"update %s",
+		"update_key %s",
+		"upsert_key %s",
+		"delete %s",
+		"delete_key %s",
+		"upsert_key %s",
+	}
+
+	for _, format := range missingSelectorFormats {
+		query := fmt.Sprintf(format, mapIndex)
+		_, err := Execute(query, testConf)
+		util.Assert(t, err != nil, fmt.Sprintf("error for query with missing selector '%s' should be non-nil", query))
+	}
+
+	invalidSelectorFormats := []string{
+		"query %s [",
+		"query_key %s [:",
+		"insert_key %s [,",
+		"update %s ]",
+		"update_key %s ]",
+		"upsert_key %s []",
+		"delete %s [:,",
+		"delete_key %s ]",
+		"upsert_key %s :",
+	}
+
+	for _, format := range invalidSelectorFormats {
+		query := fmt.Sprintf(format, mapIndex)
+		_, err := Execute(query, testConf)
+		util.Assert(t, err != nil, fmt.Sprintf("error for query with invalid selector '%s' should be non-nil", query))
+	}
+}
+
+func TestInvalidSortDirectionError(t *testing.T) {
+	autoIndex, mapIndex := createTestIndexes(t, testConf)
+	defer dropTestIndexes(t, testConf)
+
+	_, err := Execute(fmt.Sprintf("list %s up", autoIndex), testConf)
+	util.Assert(t, err != nil, "error for invalid sort direction query (auto index) should be non-nil")
+
+	_, err = Execute(fmt.Sprintf("list_key %s down", mapIndex), testConf)
+	util.Assert(t, err != nil, "error for invalid sort direction query (map index) should be non-nill")
+}
+
+func TestLimit(t *testing.T) {
+	in := []string{"this", "is", "a", "test", "string"}
+	strLimit := 4
+	limited := limit(in, strLimit)
+	util.Equals(t, (strLimit - 1), len(limited))
+
+	longStrLimit := 10
+	longLimited := limit(in, longStrLimit)
+	util.Equals(t, len(in), len(longLimited))
+}
+
+func TestExecuteUnknownKeyword(t *testing.T) {
+	_, err := Execute("unknown", testConf)
+	util.Assert(t, err != nil, "unknown query keyword should return error")
+}
+
+func TestError(t *testing.T) {
+	e := Error{
+		InternalError:   fmt.Errorf("test error"),
+		Message:         "fake message",
+		RemainingTokens: []string{"test", "tokens", "for", "testing", "purposes"},
+	}
+
+	str := e.Error()
+	util.Assert(t, len(str) > 0, "error builds string")
+
+	snippet := e.makeSnippet()
+	split := strings.Fields(snippet)
+	util.Equals(t, maxSnippetTokens, len(split))
+}
+
 // this function uses panic because err should never be non-nil
 func parseArrayResult(result store.Result) []string {
 	arr := []string{}
