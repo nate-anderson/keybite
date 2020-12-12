@@ -9,7 +9,7 @@ import (
 )
 
 // Execute a statement on the data in the provided datadir
-func Execute(input string, conf config.Config) (store.Result, error) {
+func Execute(input string, conf *config.Config) (store.Result, error) {
 	parser := newParser(input)
 
 	query, err := parser.Parse()

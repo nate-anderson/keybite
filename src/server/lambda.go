@@ -44,18 +44,18 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, request Request) (Re
 
 // λHandler is the struct used for handling lambda requests
 type λHandler struct {
-	conf config.Config
+	conf *config.Config
 }
 
 // newλHandler creates a lambda handler
-func newλHandler(conf config.Config) λHandler {
+func newλHandler(conf *config.Config) λHandler {
 	return λHandler{
 		conf: conf,
 	}
 }
 
 // Serveλ serves a lambda request
-func Serveλ(conf config.Config) {
+func Serveλ(conf *config.Config) {
 	handler := newλHandler(conf)
 	lambda.Start(handler.HandleLambdaRequest)
 }

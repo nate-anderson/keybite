@@ -35,7 +35,7 @@ type StorageDriver interface {
 const lockfileExtension = ".lock"
 
 // GetConfiguredDriver returns the correct driver based on config
-func GetConfiguredDriver(conf config.Config) (StorageDriver, error) {
+func GetConfiguredDriver(conf *config.Config) (StorageDriver, error) {
 	driverType, err := conf.GetString("DRIVER")
 	if err != nil {
 		return nil, err

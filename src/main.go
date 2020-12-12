@@ -36,7 +36,7 @@ func main() {
 	// if args are passed to tbe binary, run query and returm output to stdout
 	if len(os.Args) > 1 {
 		input := strings.Join(os.Args[1:], " ")
-		result, err := dsl.Execute(input, conf)
+		result, err := dsl.Execute(input, &conf)
 		if err != nil {
 			log.Error("error handling CLI request")
 			panic(err)
@@ -46,7 +46,7 @@ func main() {
 	}
 
 	// if no args are passed, start in server mode
-	err = server.StartConfiguredServer(conf)
+	err = server.StartConfiguredServer(&conf)
 	if err != nil {
 		log.Error(err.Error())
 	}

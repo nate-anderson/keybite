@@ -9,7 +9,7 @@ import (
 )
 
 // StartConfiguredServer starts the appropriate server based on the environment env variable
-func StartConfiguredServer(conf config.Config) error {
+func StartConfiguredServer(conf *config.Config) error {
 	environment, err := conf.GetString("ENVIRONMENT")
 	if err != nil {
 		log.Error("error determining environment")
