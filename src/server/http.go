@@ -53,26 +53,15 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = request.LinkQueryDependencies()
-	if err != nil {
-		log.Infof("error linking query dependencies: %s", err.Error())
-		respondError(w, err.Error(), http.StatusBadRequest)
+	queryResults, fatalErr := HandleRequest(&request, h.conf)
+	if fatalErr != nil {
+		respondError(w, fatalErr.Error(), http.StatusBadRequest)
 		return
-	}
-
-	queryResults := ResultSet{}
-	seen := keyList{}
-	for key, query := range request {
-		err := ResolveQuery(key, *query, h.conf, queryResults, seen)
-		if err != nil {
-			LogQueryErrorInfo(key, err)
-			continue
-		}
 	}
 
 	log.Debugf("%s <= %s", req.RemoteAddr, req.RequestURI)
 	respond(w, queryResults, http.StatusOK)
-
+	return
 }
 
 func respond(w http.ResponseWriter, data interface{}, status int) {

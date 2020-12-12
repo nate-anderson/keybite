@@ -21,20 +21,9 @@ func (l λHandler) HandleLambdaRequest(ctx context.Context, request Request) (Re
 		log.Warnf("incomplete log error: failed to extract lambda context")
 	}
 
-	err := request.LinkQueryDependencies()
-	if err != nil {
-		log.Infof("error linking query dependencies: %s", err.Error())
-		return ResultSet{}, err
-	}
-
-	queryResults := ResultSet{}
-	seen := keyList{}
-	for key, query := range request {
-		err := ResolveQuery(key, *query, l.conf, queryResults, seen)
-		if err != nil {
-			log.Infof("error resolving query for key '%s': %s", key, err)
-			continue
-		}
+	queryResults, fatalErr := HandleRequest(&request, l.conf)
+	if fatalErr != nil {
+		return ResultSet{}, fatalErr
 	}
 
 	log.Debugf("%s :: %s <= %s", requestID, λctx.Identity.CognitoIdentityID, functionName)

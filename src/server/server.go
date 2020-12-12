@@ -8,6 +8,26 @@ import (
 	"strings"
 )
 
+// HandleRequest handles a request and returns a resultset or a fatal error
+// if the request could not be completed
+func HandleRequest(request *Request, conf *config.Config) (response ResultSet, fatalErr error) {
+	err := request.LinkQueryDependencies()
+	if err != nil {
+		fatalErr = fmt.Errorf("error linking query dependencies: %s", err.Error())
+		return
+	}
+
+	seen := keyList{}
+	for key, query := range *request {
+		err := ResolveQuery(key, *query, conf, response, seen)
+		if err != nil {
+			LogQueryErrorInfo(key, err)
+			continue
+		}
+	}
+	return
+}
+
 // StartConfiguredServer starts the appropriate server based on the environment env variable
 func StartConfiguredServer(conf *config.Config) error {
 	environment, err := conf.GetString("ENVIRONMENT")
