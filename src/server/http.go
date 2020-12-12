@@ -9,7 +9,7 @@ import (
 )
 
 // ServeHTTP starts the HTTP server
-func ServeHTTP(conf config.Config) error {
+func ServeHTTP(conf *config.Config) error {
 	port, err := conf.GetString("HTTP_PORT")
 	if err != nil {
 		return err
@@ -31,11 +31,11 @@ func ServeHTTP(conf config.Config) error {
 
 // QueryHandler handles query HTTP requests
 type QueryHandler struct {
-	conf config.Config
+	conf *config.Config
 }
 
 // NewQueryHandler creates a query HTTP handler
-func NewQueryHandler(conf config.Config) QueryHandler {
+func NewQueryHandler(conf *config.Config) QueryHandler {
 	return QueryHandler{
 		conf: conf,
 	}

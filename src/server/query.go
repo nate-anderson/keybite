@@ -84,7 +84,7 @@ func (q *Query) Complete(list ResultSet) (string, error) {
 }
 
 // Execute the query and get the result
-func (q Query) Execute(conf config.Config, results ResultSet) (store.Result, error) {
+func (q Query) Execute(conf *config.Config, results ResultSet) (store.Result, error) {
 	toExecute, err := q.Complete(results)
 	if err != nil {
 		return store.EmptyResult(), err

@@ -27,7 +27,7 @@ var testConf = config.Config(map[string]string{
 	"LOCK_DURATION_FS": "50",
 })
 
-func createTestIndexes(t *testing.T, conf config.Config) (autoIndexName, mapIndexName string) {
+func createTestIndexes(t *testing.T, conf *config.Config) (autoIndexName, mapIndexName string) {
 	// create data dir
 	dataPath, err := conf.GetString("DATA_DIR")
 	util.Ok(t, err)
@@ -45,7 +45,7 @@ func createTestIndexes(t *testing.T, conf config.Config) (autoIndexName, mapInde
 	return
 }
 
-func dropTestIndexes(t *testing.T, conf config.Config) {
+func dropTestIndexes(t *testing.T, conf *config.Config) {
 	dataPath, err := conf.GetString("DATA_DIR")
 	util.Ok(t, err)
 
@@ -60,18 +60,18 @@ func dropTestIndexes(t *testing.T, conf config.Config) {
 
 // insert and query one record in an auto index
 func TestExecuteAutoInsertQueryOne(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 
 	insertStr := fmt.Sprintf("insert %s %s", autoIndex, testValue)
 	// the insert result contains the ID of the inserted record
-	insertResult, err := Execute(insertStr, testConf)
+	insertResult, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	queryStr := fmt.Sprintf("query %s %s", autoIndex, insertResult.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, testValue, queryRes.String())
@@ -79,15 +79,15 @@ func TestExecuteAutoInsertQueryOne(t *testing.T) {
 
 // insert and query one record in an auto index
 func TestExecuteAutoInsertQueryMany(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 
 	for i := 0; i < nBatch; i++ {
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
-		res, err := Execute(insertStmt, testConf)
+		res, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		_, err = strconv.ParseUint(res.String(), 10, 64)
 		util.Ok(t, err)
@@ -96,7 +96,7 @@ func TestExecuteAutoInsertQueryMany(t *testing.T) {
 	querySelector := fmt.Sprintf("[1:%d]", nBatch)
 
 	queryStr := fmt.Sprintf("query %s %s", autoIndex, querySelector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	resultArr := parseArrayResult(queryRes)
@@ -110,19 +110,19 @@ func TestExecuteAutoInsertQueryMany(t *testing.T) {
 
 // insert and query one record in a map index
 func TestExecuteMapInsertQueryOne(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 	testKey := "test_key"
 
 	insertStr := fmt.Sprintf("insert_key %s %s %s", mapIndex, testKey, testValue)
 	// the insert result contains the ID of the inserted record
-	insertResult, err := Execute(insertStr, testConf)
+	insertResult, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, insertResult.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, testValue, queryRes.String())
@@ -130,8 +130,8 @@ func TestExecuteMapInsertQueryOne(t *testing.T) {
 
 // insert and query one record in a map index
 func TestExecuteMapInsertQueryMany(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 	testKeyFmt := "test_key_%d"
@@ -142,7 +142,7 @@ func TestExecuteMapInsertQueryMany(t *testing.T) {
 		key := fmt.Sprintf(testKeyFmt, i)
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		insertKeys[i] = key
 	}
@@ -150,7 +150,7 @@ func TestExecuteMapInsertQueryMany(t *testing.T) {
 	querySelector := "[" + strings.Join(insertKeys, ",") + "]"
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, querySelector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	resultArr := parseArrayResult(queryRes)
@@ -164,26 +164,26 @@ func TestExecuteMapInsertQueryMany(t *testing.T) {
 
 // insert and update one record in an auto index
 func TestExecuteAutoUpdateOne(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 
 	insertStr := fmt.Sprintf("insert %s %s", autoIndex, testValue)
 	// the insert result contains the ID of the inserted record
-	insertRes, err := Execute(insertStr, testConf)
+	insertRes, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	updatedValue := "test_value_updated"
 
 	updateStr := fmt.Sprintf("update %s %s %s", autoIndex, insertRes.String(), updatedValue)
-	updateRes, err := Execute(updateStr, testConf)
+	updateRes, err := Execute(updateStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, insertRes.String(), updateRes.String())
 
 	queryStr := fmt.Sprintf("query %s %s", autoIndex, updateRes.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, queryRes.String(), updatedValue)
@@ -191,15 +191,15 @@ func TestExecuteAutoUpdateOne(t *testing.T) {
 
 // insert and update many records in an auto index
 func TestExecuteAutoUpdateMany(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 
 	for i := 0; i < nBatch; i++ {
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
-		res, err := Execute(insertStmt, testConf)
+		res, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		_, err = strconv.ParseUint(res.String(), 10, 64)
 		util.Ok(t, err)
@@ -209,7 +209,7 @@ func TestExecuteAutoUpdateMany(t *testing.T) {
 	selector := fmt.Sprintf("[1:%d]", nBatch)
 
 	updateStr := fmt.Sprintf("update %s %s %s", autoIndex, selector, updatedValue)
-	updateRes, err := Execute(updateStr, testConf)
+	updateRes, err := Execute(updateStr, &testConf)
 	util.Ok(t, err)
 
 	updateResultArr := parseIDArrayResult(updateRes)
@@ -217,7 +217,7 @@ func TestExecuteAutoUpdateMany(t *testing.T) {
 	util.Equals(t, nBatch, len(updateResultArr))
 
 	queryStr := fmt.Sprintf("query %s %s", autoIndex, selector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	queryResultArr := parseArrayResult(queryRes)
@@ -231,27 +231,27 @@ func TestExecuteAutoUpdateMany(t *testing.T) {
 
 // insert and update one record in a map index
 func TestExecuteMapUpdateOne(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 	testKey := "test_key"
 
 	insertStr := fmt.Sprintf("insert_key %s %s %s", mapIndex, testKey, testValue)
 	// the insert result contains the ID of the inserted record
-	insertRes, err := Execute(insertStr, testConf)
+	insertRes, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	updatedValue := "test_value_updated"
 
 	updateStr := fmt.Sprintf("update_key %s %s %s", mapIndex, insertRes.String(), updatedValue)
-	updateRes, err := Execute(updateStr, testConf)
+	updateRes, err := Execute(updateStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, insertRes.String(), updateRes.String())
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, updateRes.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, queryRes.String(), updatedValue)
@@ -259,8 +259,8 @@ func TestExecuteMapUpdateOne(t *testing.T) {
 
 // insert and update many records in a map index
 func TestExecuteMapUpdateMany(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 	testKeyFmt := "test_key_%d"
@@ -271,7 +271,7 @@ func TestExecuteMapUpdateMany(t *testing.T) {
 		key := fmt.Sprintf(testKeyFmt, i)
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		insertKeys[i] = key
 	}
@@ -280,7 +280,7 @@ func TestExecuteMapUpdateMany(t *testing.T) {
 	selector := "[" + strings.Join(insertKeys, ",") + "]"
 
 	updateStr := fmt.Sprintf("update_key %s %s %s", mapIndex, selector, updatedValue)
-	updateRes, err := Execute(updateStr, testConf)
+	updateRes, err := Execute(updateStr, &testConf)
 	util.Ok(t, err)
 
 	updateResultArr := parseArrayResult(updateRes)
@@ -288,7 +288,7 @@ func TestExecuteMapUpdateMany(t *testing.T) {
 	util.Equals(t, nBatch, len(updateResultArr))
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, selector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	queryResultArr := parseArrayResult(queryRes)
@@ -301,27 +301,27 @@ func TestExecuteMapUpdateMany(t *testing.T) {
 
 // upsert one record in a map index
 func TestExecuteMapUpsertOne(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 	testKey := "test_key"
 
 	insertStr := fmt.Sprintf("upsert_key %s %s %s", mapIndex, testKey, testValue)
 	// the insert result contains the ID of the inserted record
-	insertRes, err := Execute(insertStr, testConf)
+	insertRes, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	updatedValue := "test_value_updated"
 
 	updateStr := fmt.Sprintf("upsert_key %s %s %s", mapIndex, insertRes.String(), updatedValue)
-	updateRes, err := Execute(updateStr, testConf)
+	updateRes, err := Execute(updateStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, insertRes.String(), updateRes.String())
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, updateRes.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, queryRes.String(), updatedValue)
@@ -329,8 +329,8 @@ func TestExecuteMapUpsertOne(t *testing.T) {
 
 // upsert many records in a map index
 func TestExecuteMapUpsertMany(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 	testKeyFmt := "test_key_%d"
@@ -341,7 +341,7 @@ func TestExecuteMapUpsertMany(t *testing.T) {
 		key := fmt.Sprintf(testKeyFmt, i)
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("upsert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		insertKeys[i] = key
 	}
@@ -350,7 +350,7 @@ func TestExecuteMapUpsertMany(t *testing.T) {
 	selector := "[" + strings.Join(insertKeys, ",") + "]"
 
 	updateStr := fmt.Sprintf("upsert_key %s %s %s", mapIndex, selector, updatedValue)
-	updateRes, err := Execute(updateStr, testConf)
+	updateRes, err := Execute(updateStr, &testConf)
 	util.Ok(t, err)
 
 	updateResultArr := parseArrayResult(updateRes)
@@ -358,7 +358,7 @@ func TestExecuteMapUpsertMany(t *testing.T) {
 	util.Equals(t, nBatch, len(updateResultArr))
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, selector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 
 	queryResultArr := parseArrayResult(queryRes)
@@ -371,39 +371,39 @@ func TestExecuteMapUpsertMany(t *testing.T) {
 
 // insert and delete one record in an auto index
 func TestExecuteAutoDeleteOne(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 
 	insertStr := fmt.Sprintf("insert %s %s", autoIndex, testValue)
 	// the insert result contains the ID of the inserted record
-	insertRes, err := Execute(insertStr, testConf)
+	insertRes, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	deleteStr := fmt.Sprintf("delete %s %s", autoIndex, insertRes.String())
-	deleteRes, err := Execute(deleteStr, testConf)
+	deleteRes, err := Execute(deleteStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, insertRes.String(), deleteRes.String())
 
 	queryStr := fmt.Sprintf("query %s %s", autoIndex, deleteRes.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	t.Log(queryRes)
 	util.Assert(t, err != nil, "querying deleted key returns error")
 }
 
 // insert and delete many records in an auto index
 func TestExecuteAutoDeleteMany(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 
 	for i := 0; i < nBatch; i++ {
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
-		res, err := Execute(insertStmt, testConf)
+		res, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		_, err = strconv.ParseUint(res.String(), 10, 64)
 		util.Ok(t, err)
@@ -412,7 +412,7 @@ func TestExecuteAutoDeleteMany(t *testing.T) {
 	selector := fmt.Sprintf("[1:%d]", nBatch)
 
 	deleteStr := fmt.Sprintf("delete %s %s", autoIndex, selector)
-	deleteRes, err := Execute(deleteStr, testConf)
+	deleteRes, err := Execute(deleteStr, &testConf)
 	util.Ok(t, err)
 
 	deleteResultArr := parseIDArrayResult(deleteRes)
@@ -420,7 +420,7 @@ func TestExecuteAutoDeleteMany(t *testing.T) {
 	util.Equals(t, nBatch, len(deleteResultArr))
 
 	queryStr := fmt.Sprintf("query %s %s", autoIndex, selector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 
 	queryResArr := parseArrayResult(queryRes)
 
@@ -434,25 +434,25 @@ func TestExecuteAutoDeleteMany(t *testing.T) {
 
 // insert and delete one record in a map index
 func TestExecuteMapDeleteOne(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValue := "test_value"
 	testKey := "test_key"
 
 	insertStr := fmt.Sprintf("insert_key %s %s %s", mapIndex, testKey, testValue)
 	// the insert result contains the ID of the inserted record
-	insertRes, err := Execute(insertStr, testConf)
+	insertRes, err := Execute(insertStr, &testConf)
 	util.Ok(t, err)
 
 	deleteStr := fmt.Sprintf("delete_key %s %s", mapIndex, insertRes.String())
-	deleteRes, err := Execute(deleteStr, testConf)
+	deleteRes, err := Execute(deleteStr, &testConf)
 	util.Ok(t, err)
 
 	util.Equals(t, insertRes.String(), deleteRes.String())
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, deleteRes.String())
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 
 	queryResArr := parseArrayResult(queryRes)
 	util.Equals(t, 0, len(queryResArr))
@@ -461,8 +461,8 @@ func TestExecuteMapDeleteOne(t *testing.T) {
 
 // insert and update many records in a map index
 func TestExecuteMapDeleteMany(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 	testKeyFmt := "test_key_%d"
@@ -473,7 +473,7 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 		key := fmt.Sprintf(testKeyFmt, i)
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		insertKeys[i] = key
 	}
@@ -481,7 +481,7 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 	selector := "[" + strings.Join(insertKeys, ",") + "]"
 
 	deleteStr := fmt.Sprintf("delete_key %s %s", mapIndex, selector)
-	deleteRes, err := Execute(deleteStr, testConf)
+	deleteRes, err := Execute(deleteStr, &testConf)
 	util.Ok(t, err)
 
 	deleteResultArr := parseArrayResult(deleteRes)
@@ -489,7 +489,7 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 	util.Equals(t, nBatch, len(deleteResultArr))
 
 	queryStr := fmt.Sprintf("query_key %s %s", mapIndex, selector)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 
 	queryResultArr := parseArrayResult(queryRes)
 	util.Equals(t, nBatch, len(queryResultArr))
@@ -502,22 +502,22 @@ func TestExecuteMapDeleteMany(t *testing.T) {
 }
 
 func TestExecuteAutoList(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 
 	for i := 0; i < nBatch; i++ {
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
-		res, err := Execute(insertStmt, testConf)
+		res, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		_, err = strconv.ParseUint(res.String(), 10, 64)
 		util.Ok(t, err)
 	}
 
 	listStr := fmt.Sprintf("list %s", autoIndex)
-	listRes, err := Execute(listStr, testConf)
+	listRes, err := Execute(listStr, &testConf)
 	util.Ok(t, err)
 
 	listResArr := parseListResult(listRes)
@@ -526,7 +526,7 @@ func TestExecuteAutoList(t *testing.T) {
 	// test limit
 	limit := 10
 	listLimitStr := fmt.Sprintf("list %s %d", autoIndex, limit)
-	listLimitRes, err := Execute(listLimitStr, testConf)
+	listLimitRes, err := Execute(listLimitStr, &testConf)
 	util.Ok(t, err)
 
 	listLimitResArr := parseListResult(listLimitRes)
@@ -535,7 +535,7 @@ func TestExecuteAutoList(t *testing.T) {
 	// test offset
 	offset := 10
 	listOffsetStr := fmt.Sprintf("list %s 0 %d", autoIndex, offset)
-	listOffsetRes, err := Execute(listOffsetStr, testConf)
+	listOffsetRes, err := Execute(listOffsetStr, &testConf)
 	util.Ok(t, err)
 
 	listOffsetResArr := parseListResult(listOffsetRes)
@@ -546,7 +546,7 @@ func TestExecuteAutoList(t *testing.T) {
 
 	// test limit + offset
 	listLimitOffsetStr := fmt.Sprintf("list %s %d %d", autoIndex, limit, offset)
-	listLimitOffsetRes, err := Execute(listLimitOffsetStr, testConf)
+	listLimitOffsetRes, err := Execute(listLimitOffsetStr, &testConf)
 	util.Ok(t, err)
 
 	listLimitOffsetResArr := parseListResult(listLimitOffsetRes)
@@ -559,8 +559,8 @@ func TestExecuteAutoList(t *testing.T) {
 }
 
 func TestExecuteMapList(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 	testKeyFmt := "tk%d"
@@ -569,12 +569,12 @@ func TestExecuteMapList(t *testing.T) {
 		key := fmt.Sprintf(testKeyFmt, i)
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 	}
 
 	listStr := fmt.Sprintf("list_key %s", mapIndex)
-	listRes, err := Execute(listStr, testConf)
+	listRes, err := Execute(listStr, &testConf)
 	util.Ok(t, err)
 
 	listResArr := parseMapListResult(listRes)
@@ -584,7 +584,7 @@ func TestExecuteMapList(t *testing.T) {
 	limit := 10
 
 	listLimitStr := fmt.Sprintf("list_key %s %d", mapIndex, limit)
-	listLimitRes, err := Execute(listLimitStr, testConf)
+	listLimitRes, err := Execute(listLimitStr, &testConf)
 	util.Ok(t, err)
 
 	listLimitResArr := parseMapListResult(listLimitRes)
@@ -593,7 +593,7 @@ func TestExecuteMapList(t *testing.T) {
 	// test offset
 	offset := 10
 	listOffsetStr := fmt.Sprintf("list_key %s %d %d", mapIndex, limit, offset)
-	listOffsetRes, err := Execute(listOffsetStr, testConf)
+	listOffsetRes, err := Execute(listOffsetStr, &testConf)
 	util.Ok(t, err)
 
 	listOffsetResArr := parseMapListResult(listOffsetRes)
@@ -605,7 +605,7 @@ func TestExecuteMapList(t *testing.T) {
 
 	// test limit + offset
 	listLimitOffsetStr := fmt.Sprintf("list_key %s %d %d", mapIndex, limit, offset)
-	listLimitOffsetRes, err := Execute(listLimitOffsetStr, testConf)
+	listLimitOffsetRes, err := Execute(listLimitOffsetStr, &testConf)
 	util.Ok(t, err)
 
 	listLimitOffsetResArr := parseMapListResult(listLimitOffsetRes)
@@ -619,22 +619,22 @@ func TestExecuteMapList(t *testing.T) {
 }
 
 func TestExecuteAutoCount(t *testing.T) {
-	autoIndex, _ := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, _ := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 
 	for i := 0; i < nBatch; i++ {
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert %s %s", autoIndex, value)
-		res, err := Execute(insertStmt, testConf)
+		res, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 		_, err = strconv.ParseUint(res.String(), 10, 64)
 		util.Ok(t, err)
 	}
 
 	countStr := fmt.Sprintf("count %s", autoIndex)
-	countRes, err := Execute(countStr, testConf)
+	countRes, err := Execute(countStr, &testConf)
 	util.Ok(t, err)
 
 	count, err := strconv.Atoi(countRes.String())
@@ -642,8 +642,8 @@ func TestExecuteAutoCount(t *testing.T) {
 }
 
 func TestExecuteMapCount(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	testValueFmt := "test_value_%d"
 	testKeyFmt := "test_key_%d"
@@ -652,12 +652,12 @@ func TestExecuteMapCount(t *testing.T) {
 		key := fmt.Sprintf(testKeyFmt, i)
 		value := fmt.Sprintf(testValueFmt, i)
 		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 	}
 
 	countStr := fmt.Sprintf("count_key %s", mapIndex)
-	countRes, err := Execute(countStr, testConf)
+	countRes, err := Execute(countStr, &testConf)
 	util.Ok(t, err)
 
 	count, err := strconv.Atoi(countRes.String())
@@ -665,27 +665,27 @@ func TestExecuteMapCount(t *testing.T) {
 }
 
 func TestExecuteQueryAutoArraySelector(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	for i := 0; i < 3; i++ {
 		key := strconv.Itoa(i)
 		value := "testVal"
 		insertStmt := fmt.Sprintf("insert_key %s %s %s", mapIndex, key, value)
-		_, err := Execute(insertStmt, testConf)
+		_, err := Execute(insertStmt, &testConf)
 		util.Ok(t, err)
 	}
 
 	queryStr := fmt.Sprintf("query %s [1,2,3]", mapIndex)
-	queryRes, err := Execute(queryStr, testConf)
+	queryRes, err := Execute(queryStr, &testConf)
 	util.Ok(t, err)
 	util.Assert(t, queryRes.Valid(), "query result should be valid")
 
 }
 
 func TestUnexpectedEndOfInputError(t *testing.T) {
-	_, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	_, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
 	missingIndexQueries := []string{
 		"query",
@@ -704,7 +704,7 @@ func TestUnexpectedEndOfInputError(t *testing.T) {
 	}
 
 	for _, query := range missingIndexQueries {
-		_, err := Execute(query, testConf)
+		_, err := Execute(query, &testConf)
 		util.Assert(t, err != nil, fmt.Sprintf("error for query with missing index '%s' should be non-nil", query))
 	}
 
@@ -722,7 +722,7 @@ func TestUnexpectedEndOfInputError(t *testing.T) {
 
 	for _, format := range missingSelectorFormats {
 		query := fmt.Sprintf(format, mapIndex)
-		_, err := Execute(query, testConf)
+		_, err := Execute(query, &testConf)
 		util.Assert(t, err != nil, fmt.Sprintf("error for query with missing selector '%s' should be non-nil", query))
 	}
 
@@ -740,19 +740,19 @@ func TestUnexpectedEndOfInputError(t *testing.T) {
 
 	for _, format := range invalidSelectorFormats {
 		query := fmt.Sprintf(format, mapIndex)
-		_, err := Execute(query, testConf)
+		_, err := Execute(query, &testConf)
 		util.Assert(t, err != nil, fmt.Sprintf("error for query with invalid selector '%s' should be non-nil", query))
 	}
 }
 
 func TestInvalidSortDirectionError(t *testing.T) {
-	autoIndex, mapIndex := createTestIndexes(t, testConf)
-	defer dropTestIndexes(t, testConf)
+	autoIndex, mapIndex := createTestIndexes(t, &testConf)
+	defer dropTestIndexes(t, &testConf)
 
-	_, err := Execute(fmt.Sprintf("list %s up", autoIndex), testConf)
+	_, err := Execute(fmt.Sprintf("list %s up", autoIndex), &testConf)
 	util.Assert(t, err != nil, "error for invalid sort direction query (auto index) should be non-nil")
 
-	_, err = Execute(fmt.Sprintf("list_key %s down", mapIndex), testConf)
+	_, err = Execute(fmt.Sprintf("list_key %s down", mapIndex), &testConf)
 	util.Assert(t, err != nil, "error for invalid sort direction query (map index) should be non-nill")
 }
 
@@ -768,7 +768,7 @@ func TestLimit(t *testing.T) {
 }
 
 func TestExecuteUnknownKeyword(t *testing.T) {
-	_, err := Execute("unknown", testConf)
+	_, err := Execute("unknown", &testConf)
 	util.Assert(t, err != nil, "unknown query keyword should return error")
 }
 

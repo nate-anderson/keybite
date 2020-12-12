@@ -27,7 +27,7 @@ func (r *Request) LinkQueryDependencies() error {
 
 // ExecuteQueries executes all queries in the request
 // Query dependency pointers must be set before calling this function
-func (r Request) ExecuteQueries(conf config.Config) ResultSet {
+func (r Request) ExecuteQueries(conf *config.Config) ResultSet {
 	results := make(ResultSet, len(r))
 	for key, query := range r {
 		result, err := query.Execute(conf, results)
@@ -54,7 +54,7 @@ func (l keyList) contains(key string) bool {
 }
 
 // ResolveQuery resolves a query into a resultset
-func ResolveQuery(key string, q Query, conf config.Config, results ResultSet, seen keyList) error {
+func ResolveQuery(key string, q Query, conf *config.Config, results ResultSet, seen keyList) error {
 	seen = append(seen, key)
 	// resolve q's deps
 	for i, dep := range q.deps {
