@@ -3,7 +3,7 @@
 A very alpha stateless key-value store with a cool API
 
 ## A serverless key-value store with teeth
-Hosting an RDS instance or database server for your simple serverless app sucks. Keybite can live inside a lambda function and persist its data in S3, meaning it costs next to nothing when not being used.
+Hosting an RDS instance or database server for your simple serverless app sucks. Keybite can live inside a lambda function and persist its data in S3, meaning it costs practically nothing when sitting idle.
 
 ## Cool, simple query language
 Inspired by declarative query languages like SQL and the conveniences of modern GraphQL APIs, Keybite's HTTP-based queries are flexible and straightforward. Simply POST a JSON object to the Keybite Lambda function to perform queries, inserts and updates all at once. Keybite's inline variable syntax even allows you to use query results before they are fetched.
