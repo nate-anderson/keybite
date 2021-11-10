@@ -35,7 +35,7 @@ I don't promise this will be useful to anyone. I don't promise it will actually 
 - Limited and fragile (see index notes above; limited key string length)
 
 ## What keybite isn't
-- A drop-in replacement for MySQL or MongoDB (no indexes based on value, no JSON parsing)
+- A replacement for a full-fledged RDBMS or NoSQL database (no lookups by value, no JSON parsing or type validation)
 - Suited for analytics tasks for the same reasons as above
 - Secure (don't make queries straight from a frontend, don't store sensitive data)
 - Production-ready
