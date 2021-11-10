@@ -1,7 +1,5 @@
 ![Keybite logo](keybite-text.png)
 
-A very alpha stateless key-value store with a cool API
-
 ## A serverless key-value store with teeth
 Hosting an RDS instance or database server for your simple serverless app sucks. Keybite can live inside a lambda function and persist its data in S3, meaning it costs practically nothing when sitting idle.
 
