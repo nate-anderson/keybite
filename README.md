@@ -2,13 +2,11 @@
 
 A very alpha stateless key-value store with a cool API
 
-## Tired of hosting database servers for your serverless apps?
-Hosting an RDS instance or database server for your simple serverless app? That sucks!
-
-Keybite is a key-value store designed for use with serverless apps (specifically AWS Lambda). Keybite is designed to run as a Lambda function, connect to an S3 bucket and act as a (moderately) capable database for your serverless apps.
+## A serverless key-value store with teeth
+Hosting an RDS instance or database server for your simple serverless app sucks. Keybite can live inside a lambda function and persist its data in S3, meaning it costs next to nothing when not being used.
 
 ## Cool, simple query language
-Inspired by declarative query languages like SQL and the conveniences of modern GraphQL APIs, Keybite's HTTP-based queries are flexible and straightforward. Simply POST a JSON object to the Keybite Lambda function to perform queries, inserts and updates all at once. Keybite's inline variable syntax even allows you to use query results before they are fetched. Check it out:
+Inspired by declarative query languages like SQL and the conveniences of modern GraphQL APIs, Keybite's HTTP-based queries are flexible and straightforward. Simply POST a JSON object to the Keybite Lambda function to perform queries, inserts and updates all at once. Keybite's inline variable syntax even allows you to use query results before they are fetched.
 
 ```json
 {
@@ -17,9 +15,7 @@ Inspired by declarative query languages like SQL and the conveniences of modern 
 }
 ```
 
-You just provide a JSON object with a list of variables and statements used to populate them.
-
-Keybite lets you cut down on network calls and capitalize on Lambda's fast execution times to make your app's IO simple and fast.
+You just provide a JSON object with a list of variables and statements used to populate them. A single HTTP request to Keybite can contain as many queries as you need, and you can reference query results before they are resolved.
 
 ## Auto-increment and map-style indexes
 Keybite has auto-incrementing indexes (insert a value, get an automatically assigned ID) and map- or dictionary- style key-value storage (you provide the value _and_ the key).
@@ -28,9 +24,9 @@ Keybite has auto-incrementing indexes (insert a value, get an automatically assi
 Keybite can be run as a standalone HTTP server or as a Lambda function. Data can be stored in a local filesystem when run as a standalone HTTP server, or in an EFS volume or S3 bucket when running as a Lambda function.
 
 # Why?
-I liked the idea of being able to make simple app prototypes without paying for database server uptime. I also wanted to write a key-value store
-and design a query language. I don't promise this will be useful to anyone. I haven't done the math and can't be sure it's actually
-cheaper than just firing up an EC2 or RDS instance with MySQL.
+I wanted to better understand NoSQL databases and hash tables, try my hand at designing a database API and query DSL, while building something useful (at least to myself). I liked the idea of being able to deploy and test simple app prototypes without paying for database server uptime.
+
+I don't promise this will be useful to anyone. I don't promise it will actually save you money, and I certainly don't promise it won't blow up under an important workload.
 
 ## What keybite is
 - A file-based key value store that doesn't require an always-on server
@@ -46,4 +42,4 @@ cheaper than just firing up an EC2 or RDS instance with MySQL.
 
 
 ## What keybite will be
-- Concurrency safe (it tries to be, but I'm not positive it is)
+- Safe for concurrent use (it tries to be, but I'm not positive it is)
