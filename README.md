@@ -24,7 +24,7 @@ Keybite has auto-incrementing indexes (insert a value, get an automatically assi
 Keybite can be run as a standalone HTTP server or as a Lambda function. Data can be stored in a local filesystem when run as a standalone HTTP server, or in an EFS volume or S3 bucket when running as a Lambda function.
 
 # Why?
-I wanted to better understand NoSQL databases and hash tables, try my hand at designing a database API and query DSL, while building something useful (at least to myself). I liked the idea of being able to deploy and test simple app prototypes without paying for database server uptime.
+I wanted to better understand NoSQL databases and hash tables, and try my hand at designing a database API and query DSL, while building something useful (at least to myself). I liked the idea of being able to deploy and test simple app prototypes without paying for database server uptime.
 
 I don't promise this will be useful to anyone. I don't promise it will actually save you money, and I certainly don't promise it won't blow up under an important workload.
 
