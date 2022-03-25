@@ -10,11 +10,12 @@ import (
 
 // HandleRequest handles a request and returns a resultset or a fatal error
 // if the request could not be completed
-func HandleRequest(request *Request, conf *config.Config) (response ResultSet, fatalErr error) {
+func HandleRequest(request *Request, conf *config.Config) (ResultSet, error) {
+	response := make(ResultSet)
 	err := request.LinkQueryDependencies()
 	if err != nil {
-		fatalErr = fmt.Errorf("error linking query dependencies: %s", err.Error())
-		return
+		fatalErr := fmt.Errorf("error linking query dependencies: %s", err.Error())
+		return response, fatalErr
 	}
 
 	seen := keyList{}
@@ -25,7 +26,7 @@ func HandleRequest(request *Request, conf *config.Config) (response ResultSet, f
 			continue
 		}
 	}
-	return
+	return response, nil
 }
 
 // StartConfiguredServer starts the appropriate server based on the environment env variable
