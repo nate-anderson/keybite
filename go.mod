@@ -8,4 +8,5 @@ require (
 	github.com/joho/godotenv v1.3.0
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
 	golang.org/x/text v0.3.3 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
