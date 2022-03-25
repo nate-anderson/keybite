@@ -1,4 +1,4 @@
-module keybite
+module github.com/nate-anderson/keybite
 
 go 1.14
 
