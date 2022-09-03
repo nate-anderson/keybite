@@ -11,10 +11,10 @@ import (
 // https://github.com/benbjohnson/testing
 
 // Assert fails the test if the condition is false.
-func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
+func Assert(tb testing.TB, condition bool, msg string, v ...any) {
 	if !condition {
 		_, file, line, _ := runtime.Caller(1)
-		tb.Errorf("%s:%d: "+msg+"\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
+		tb.Errorf("%s:%d: "+msg+"\n\n", append([]any{filepath.Base(file), line}, v...)...)
 	}
 }
 

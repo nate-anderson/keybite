@@ -45,8 +45,8 @@ func (r ResultSet) HasKey(key string) bool {
 	return true
 }
 
-func strSliceToInterfaceSlice(strSlice []string) []interface{} {
-	new := make([]interface{}, len(strSlice))
+func strSliceToInterfaceSlice(strSlice []string) []any {
+	new := make([]any, len(strSlice))
 	for i, v := range strSlice {
 		new[i] = v
 	}

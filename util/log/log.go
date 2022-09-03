@@ -58,24 +58,24 @@ func stringToLogLevel(str string) logLevel {
 }
 
 // Always logs the provided message regardless of log level
-func Always(args ...interface{}) {
+func Always(args ...any) {
 	logger.Println(args...)
 }
 
 // Alwaysf logs the provided formatted message regardless of log level
-func Alwaysf(format string, args ...interface{}) {
+func Alwaysf(format string, args ...any) {
 	logger.Printf(format, args...)
 }
 
 // Error logs an error message
-func Error(args ...interface{}) {
+func Error(args ...any) {
 	if level >= LevelError {
 		logger.Println(args...)
 	}
 }
 
 // Errorf logs a formatted error message
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...any) {
 	sformat := PrependString("[ERROR]", format)
 	if level >= LevelError {
 		logger.Printf(sformat, args...)
@@ -83,14 +83,14 @@ func Errorf(format string, args ...interface{}) {
 }
 
 // Warn logs a warn message
-func Warn(args ...interface{}) {
+func Warn(args ...any) {
 	if level >= LevelWarn {
 		logger.Println(args...)
 	}
 }
 
 // Warnf logs a formatted warn message
-func Warnf(format string, args ...interface{}) {
+func Warnf(format string, args ...any) {
 	sformat := PrependString("[WARN]", format)
 	if level >= LevelWarn {
 		logger.Printf(sformat, args...)
@@ -98,14 +98,14 @@ func Warnf(format string, args ...interface{}) {
 }
 
 // Info logs an info message
-func Info(args ...interface{}) {
+func Info(args ...any) {
 	if level >= LevelInfo {
 		logger.Println(args...)
 	}
 }
 
 // Infof logs a formatted info message
-func Infof(format string, args ...interface{}) {
+func Infof(format string, args ...any) {
 	sformat := PrependString("[INFO]", format)
 	if level >= LevelInfo {
 		logger.Printf(sformat, args...)
@@ -113,14 +113,14 @@ func Infof(format string, args ...interface{}) {
 }
 
 // Debug logs a debug message
-func Debug(args ...interface{}) {
+func Debug(args ...any) {
 	if level >= LevelDebug {
 		logger.Println(args...)
 	}
 }
 
 // Debugf logs a formatted debug message
-func Debugf(format string, args ...interface{}) {
+func Debugf(format string, args ...any) {
 	sformat := PrependString("[DEBUG]", format)
 	if level >= LevelDebug {
 		logger.Printf(sformat, args...)
