@@ -35,7 +35,7 @@ type memoryAutoIndex struct {
 
 func (i *memoryAutoIndex) addPage(page *memoryAutoPage, name string) {
 	i.pages[name] = page
-	if !util.StrSliceContains(name, i.orderedPageNames) {
+	if !util.SliceContains(name, i.orderedPageNames) {
 		i.orderedPageNames = append(i.orderedPageNames, name)
 		sort.Strings(i.orderedPageNames)
 	}
@@ -55,7 +55,7 @@ type memoryMapIndex struct {
 
 func (i *memoryMapIndex) addPage(page *memoryMapPage, name string) {
 	i.pages[name] = page
-	if !util.StrSliceContains(name, i.orderedPageNames) {
+	if !util.SliceContains(name, i.orderedPageNames) {
 		i.orderedPageNames = append(i.orderedPageNames, name)
 		sort.Strings(i.orderedPageNames)
 	}

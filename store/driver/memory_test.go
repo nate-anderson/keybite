@@ -86,7 +86,7 @@ func TestMemoryDriverListPages(t *testing.T) {
 
 	util.Equals(t, 10, len(pages))
 	for _, el := range expected {
-		util.Assert(t, util.StrSliceContains(el, pages), fmt.Sprintf("page %s not included in results", el))
+		util.Assert(t, util.SliceContains(el, pages), fmt.Sprintf("page %s not included in results", el))
 	}
 }
 

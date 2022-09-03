@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -15,8 +14,7 @@ import (
 func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 	if !condition {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("%s:%d: "+msg+"\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
-		tb.Fail()
+		tb.Errorf("%s:%d: "+msg+"\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
 	}
 }
 
@@ -24,38 +22,32 @@ func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 func Ok(tb testing.TB, err error) {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("%s:%d: unexpected error: %s\n\n", filepath.Base(file), line, err.Error())
-		tb.Fail()
+		tb.Errorf("%s:%d: unexpected error: %s\n\n", filepath.Base(file), line, err.Error())
 	}
 }
 
 // Equals fails the test if exp is not equal to act.
-func Equals(tb testing.TB, exp, act interface{}) {
+func Equals[T comparable](tb testing.TB, exp, act T) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("%s:%d:\n\n\texp: %#v (%T)\n\n\tgot: %#v (%T)\n\n", filepath.Base(file), line, exp, exp, act, act)
-		tb.Fail()
+		tb.Errorf("%s:%d:\n\n\texp: %#v (%T)\n\n\tgot: %#v (%T)\n\n", filepath.Base(file), line, exp, exp, act, act)
 	}
 }
 
-// StrSliceContains string slice contains
-func StrSliceContains(str string, sl []string) bool {
+// SliceContains asserts a slice contains a value
+func SliceContains[T comparable](member T, sl []T) bool {
 	for _, el := range sl {
-		if el == str {
+		if el == member {
 			return true
 		}
 	}
 	return false
 }
 
-// Uint64SliceContains uint64 slice contains
-func Uint64SliceContains(i uint64, sl []uint64) bool {
-	for _, el := range sl {
-		if el == i {
-			return true
-		}
+func IsNil(tb testing.TB, value any) {
+	if value != nil {
+		tb.Errorf("value %+v should be nil", value)
 	}
-	return false
 }
 
 // RepeatString repeats a string n times in a slice

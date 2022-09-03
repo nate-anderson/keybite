@@ -102,7 +102,7 @@ func TestMapIndexInsertManyQueryMany(t *testing.T) {
 	util.Equals(t, numInserts, len(insertedKeys))
 
 	for _, key := range insertKeys {
-		util.Assert(t, util.StrSliceContains(key, insertKeys), "inserted keys include test insert keys")
+		util.Assert(t, util.SliceContains(key, insertKeys), "inserted keys include test insert keys")
 	}
 
 	selector := NewMapArraySelector(insertKeys)
