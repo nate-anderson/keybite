@@ -97,7 +97,7 @@ func TestBucketCreateAutoIndex(t *testing.T) {
 		objKeys = append(objKeys, *item.Key)
 	}
 
-	util.Assert(t, util.StrSliceContains(indexName+"/", objKeys), "response contents contain target created index")
+	util.Assert(t, util.SliceContains(indexName+"/", objKeys), "response contents contain target created index")
 
 }
 
@@ -128,7 +128,7 @@ func TestBucketCreateMapIndex(t *testing.T) {
 		objKeys = append(objKeys, *item.Key)
 	}
 
-	util.Assert(t, util.StrSliceContains(indexName+"/", objKeys), "response contents contain target created index")
+	util.Assert(t, util.SliceContains(indexName+"/", objKeys), "response contents contain target created index")
 }
 
 func TestBucketWritePageReadPage(t *testing.T) {

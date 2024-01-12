@@ -44,7 +44,7 @@ const (
 )
 
 // maybeMissingKeyError returns the driver error unless it is a missing-key error
-func maybeMissingKeyError(indexName string, key interface{}, err error) error {
+func maybeMissingKeyError(indexName string, key any, err error) error {
 	if driver.IsPageNotExist(err) {
 		return errKeyNotExist(indexName, key, err)
 	}
@@ -52,7 +52,7 @@ func maybeMissingKeyError(indexName string, key interface{}, err error) error {
 }
 
 // errKeyNotExist indicates
-func errKeyNotExist(indexName string, key interface{}, err error) error {
+func errKeyNotExist(indexName string, key any, err error) error {
 	storeErr := Error{
 		format:        "Key '%s' not found in index '%s'",
 		IndexName:     indexName,

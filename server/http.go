@@ -64,7 +64,7 @@ func (h QueryHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func respond(w http.ResponseWriter, data interface{}, status int) {
+func respond(w http.ResponseWriter, data any, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	resBytes, err := json.Marshal(data)
 	if err != nil {

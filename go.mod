@@ -1,12 +1,11 @@
 module keybite
 
-go 1.14
+go 1.19
 
 require (
-	github.com/aws/aws-lambda-go v1.17.0
-	github.com/aws/aws-sdk-go v1.32.6
-	github.com/joho/godotenv v1.3.0
-	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
-	golang.org/x/text v0.3.3 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
+	github.com/aws/aws-lambda-go v1.34.1
+	github.com/aws/aws-sdk-go v1.44.91
+	github.com/joho/godotenv v1.4.0
 )
+
+require github.com/jmespath/go-jmespath v0.4.0 // indirect
